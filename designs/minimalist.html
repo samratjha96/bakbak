@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BakBak - Language Learning Transcription</title>
+  <style>
+    :root {
+      --primary-color: #6366F1;
+      --secondary-color: #4F46E5;
+      --text-color: #1F2937;
+      --light-text: #6B7280;
+      --background: #FFFFFF;
+      --light-gray: #F3F4F6;
+      --border-color: #E5E7EB;
+      --success-color: #10B981;
+      --error-color: #EF4444;
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      --border-radius: 8px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --transition: all 0.2s ease-in-out;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family);
+      color: var(--text-color);
+      background-color: var(--background);
+      line-height: 1.5;
+      font-size: 16px;
+      padding-bottom: 80px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* Header */
+    header {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 24px;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--primary-color);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .language-selector {
+      position: relative;
+    }
+
+    .language-selector select {
+      appearance: none;
+      background-color: var(--light-gray);
+      border: none;
+      padding: 8px 32px 8px 12px;
+      border-radius: var(--border-radius);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-color);
+      cursor: pointer;
+    }
+
+    .language-selector::after {
+      content: '';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid var(--text-color);
+      pointer-events: none;
+    }
+
+    /* Recording Interface */
+    .recording-interface {
+      background-color: var(--light-gray);
+      border-radius: var(--border-radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .waveform {
+      height: 60px;
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .waveform-placeholder {
+      width: 100%;
+      height: 40px;
+      background: linear-gradient(to bottom, 
+        var(--border-color) 0%, var(--border-color) 20%,
+        transparent 20%, transparent 30%,
+        var(--border-color) 30%, var(--border-color) 70%,
+        transparent 70%, transparent 80%,
+        var(--border-color) 80%, var(--border-color) 100%
+      );
+      opacity: 0.5;
+      border-radius: var(--border-radius);
+    }
+
+    .waveform-active {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .waveform-active.show {
+      opacity: 1;
+    }
+
+    .waveform-bar {
+      width: 3px;
+      height: 20px;
+      margin: 0 2px;
+      background-color: var(--primary-color);
+      border-radius: 2px;
+      animation: waveform 0.5s infinite alternate;
+    }
+
+    @keyframes waveform {
+      0% { height: 10px; }
+      100% { height: 40px; }
+    }
+
+    .waveform-bar:nth-child(2n) {
+      animation-delay: 0.1s;
+    }
+
+    .waveform-bar:nth-child(3n) {
+      animation-delay: 0.2s;
+    }
+
+    .waveform-bar:nth-child(4n) {
+      animation-delay: 0.3s;
+    }
+
+    .recording-controls {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+
+    .btn:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .btn svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .btn-record {
+      background-color: white;
+      box-shadow: var(--shadow);
+    }
+
+    .btn-record.active {
+      background-color: var(--error-color);
+    }
+
+    .btn-record.active svg {
+      fill: white;
+    }
+
+    .btn-record.active:hover {
+      background-color: #DC2626;
+    }
+
+    .timer {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--light-text);
+      margin-top: 12px;
+    }
+
+    /* Transcription Section */
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--light-text);
+      margin-bottom: 12px;
+    }
+
+    .transcription-container {
+      margin-bottom: 24px;
+    }
+
+    .transcription-area {
+      width: 100%;
+      min-height: 120px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      font-family: var(--font-family);
+      font-size: 16px;
+      color: var(--text-color);
+      resize: none;
+      transition: var(--transition);
+      margin-bottom: 8px;
+    }
+
+    .transcription-area:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    }
+
+    .romanization {
+      font-size: 14px;
+      color: var(--light-text);
+      padding: 8px 16px;
+      background-color: var(--light-gray);
+      border-radius: var(--border-radius);
+      margin-bottom: 16px;
+    }
+
+    /* Notes Section */
+    .notes-container {
+      margin-bottom: 24px;
+    }
+
+    .notes-area {
+      width: 100%;
+      min-height: 100px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      font-family: var(--font-family);
+      font-size: 16px;
+      color: var(--text-color);
+      resize: none;
+      transition: var(--transition);
+    }
+
+    .notes-area:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Action Bar */
+    .action-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: var(--background);
+      border-top: 1px solid var(--border-color);
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      z-index: 100;
+    }
+
+    .action-btn {
+      background-color: var(--light-gray);
+      border: none;
+      border-radius: var(--border-radius);
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-color);
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .action-btn:hover {
+      background-color: #E5E7EB;
+    }
+
+    .action-btn.primary {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .action-btn.primary:hover {
+      background-color: var(--secondary-color);
+    }
+
+    .action-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Media queries for responsiveness */
+    @media (min-width: 640px) {
+      .recording-controls {
+        gap: 24px;
+      }
+      
+      .transcription-area, .notes-area {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container header-content">
+      <a href="#" class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+        </svg>
+        BakBak
+      </a>
+      <div class="language-selector">
+        <select id="language-select">
+          <option value="ja">Japanese</option>
+          <option value="ko">Korean</option>
+          <option value="zh">Mandarin</option>
+          <option value="fr">French</option>
+          <option value="es">Spanish</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="recording-interface">
+      <div class="waveform">
+        <div class="waveform-placeholder"></div>
+        <div class="waveform-active" id="active-waveform">
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+        </div>
+      </div>
+      <div class="recording-controls">
+        <button class="btn">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
+          </svg>
+        </button>
+        <button class="btn btn-record" id="record-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm0 8.625a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <button class="btn">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+      </div>
+      <div class="timer" id="timer">00:00</div>
+    </div>
+
+    <div class="transcription-container">
+      <h2 class="section-title">Transcription</h2>
+      <textarea class="transcription-area" placeholder="Your transcription will appear here..."></textarea>
+      <div class="romanization">Romanization: Konnichiwa, watashi no namae wa...</div>
+    </div>
+
+    <div class="notes-container">
+      <h2 class="section-title">Notes</h2>
+      <textarea class="notes-area" placeholder="Add your notes here..."></textarea>
+    </div>
+  </main>
+
+  <div class="action-bar">
+    <button class="action-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+      </svg>
+      Edit
+    </button>
+    <button class="action-btn primary">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+      </svg>
+      Save
+    </button>
+  </div>
+
+  <script>
+    // Simple interactivity for demo purposes
+    const recordBtn = document.getElementById('record-btn');
+    const activeWaveform = document.getElementById('active-waveform');
+    const timerEl = document.getElementById('timer');
+    let isRecording = false;
+    let timer = 0;
+    let timerInterval;
+
+    recordBtn.addEventListener('click', () => {
+      isRecording = !isRecording;
+      
+      if (isRecording) {
+        recordBtn.classList.add('active');
+        activeWaveform.classList.add('show');
+        
+        // Start timer
+        timer = 0;
+        timerInterval = setInterval(() => {
+          timer++;
+          const minutes = Math.floor(timer / 60).toString().padStart(2, '0');
+          const seconds = (timer % 60).toString().padStart(2, '0');
+          timerEl.textContent = `${minutes}:${seconds}`;
+        }, 1000);
+      } else {
+        recordBtn.classList.remove('active');
+        activeWaveform.classList.remove('show');
+        clearInterval(timerInterval);
+      }
+    });
+  </script>
+</body>
+</html>

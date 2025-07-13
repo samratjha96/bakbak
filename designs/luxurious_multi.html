@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eloquence - Premium Language Learning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      /* Premium Color Palette */
+      --dark-bg: #0c0c14;
+      --dark-surface: #1a1a2e;
+      --dark-card: #232340;
+      --primary: #b8860b; /* Classic gold */
+      --primary-light: #d4af37;
+      --primary-dark: #996515;
+      --accent: #4a40d4;
+      --accent-light: #6257e0;
+      --accent-dark: #342d99;
+      --text-light: #f5f5f8;
+      --text-medium: #b0b0c0;
+      --text-dark: #6d6d8c;
+      --success: #38b876;
+      --warning: #f7c948;
+      --error: #e94560;
+      
+      /* Spacing */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+      --space-xxl: 3rem;
+      
+      /* Typography */
+      --font-display: 'Playfair Display', serif;
+      --font-body: 'Poppins', sans-serif;
+      
+      /* Border Radius */
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-circle: 50%;
+      
+      /* Shadows */
+      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
+      --shadow-gold: 0 6px 12px rgba(184, 134, 11, 0.2);
+      
+      /* Transitions */
+      --transition-fast: 0.2s ease;
+      --transition-medium: 0.3s ease;
+      --transition-slow: 0.5s ease;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: var(--font-body);
+      background-color: var(--dark-bg);
+      color: var(--text-light);
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    
+    h1, h2, h3, h4, h5 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    
+    h1 {
+      font-size: 2.8rem;
+      margin-bottom: var(--space-lg);
+    }
+    
+    h2 {
+      font-size: 2.2rem;
+      margin-bottom: var(--space-md);
+    }
+    
+    h3 {
+      font-size: 1.8rem;
+      margin-bottom: var(--space-md);
+    }
+    
+    h4 {
+      font-size: 1.5rem;
+      margin-bottom: var(--space-sm);
+    }
+    
+    p {
+      margin-bottom: var(--space-md);
+    }
+    
+    a {
+      color: var(--primary-light);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+    
+    a:hover {
+      color: var(--primary);
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--space-md);
+    }
+
+    .page {
+      display: none;
+      min-height: 100vh;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    .page.active {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      transition: all var(--transition-fast);
+      cursor: pointer;
+      border: none;
+      font-family: var(--font-body);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: var(--text-light);
+      box-shadow: var(--shadow-gold);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(184, 134, 11, 0.3);
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(184, 134, 11, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .btn-text {
+      background: none;
+      color: var(--primary);
+      padding: 0.5rem;
+    }
+    
+    .btn-text:hover {
+      color: var(--primary-light);
+    }
+    
+    .btn-icon {
+      margin-right: 0.5rem;
+    }
+    
+    /* Forms */
+    .form-group {
+      margin-bottom: var(--space-lg);
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: var(--space-sm);
+      font-weight: 500;
+      color: var(--text-medium);
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--dark-card);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-light);
+      font-family: var(--font-body);
+      transition: all var(--transition-fast);
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.2);
+    }
+    
+    .form-input::placeholder {
+      color: var(--text-dark);
+    }
+    
+    /* Cards */
+    .card {
+      background-color: var(--dark-surface);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-lg);
+      box-shadow: var(--shadow-md);
+      transition: all var(--transition-medium);
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .card-header {
+      margin-bottom: var(--space-lg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .card-body {
+      margin-bottom: var(--space-md);
+    }
+    
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-right: var(--space-sm);
+    }
+    
+    .badge-primary {
+      background-color: rgba(184, 134, 11, 0.2);
+      color: var(--primary);
+    }
+    
+    .badge-accent {
+      background-color: rgba(74, 64, 212, 0.2);
+      color: var(--accent);
+    }
+    
+    .badge-success {
+      background-color: rgba(56, 184, 118, 0.2);
+      color: var(--success);
+    }
+    
+    /* Nav */
+    .nav {
+      padding: var(--space-md) 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+    }
+    
+    .nav-logo span {
+      color: var(--primary);
+    }
+    
+    .nav-links {
+      display: none;
+    }
+    
+    .nav-actions {
+      display: flex;
+      gap: var(--space-sm);
+    }
+    
+    .nav-toggle {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    
+    .app-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--dark-surface);
+      padding: var(--space-md) 0;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+    }
+    
+    .app-nav-links {
+      display: flex;
+      justify-content: space-around;
+    }
+    
+    .app-nav-link {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: var(--text-medium);
+      font-size: 0.8rem;
+      transition: all var(--transition-fast);
+    }
+    
+    .app-nav-link.active {
+      color: var(--primary);
+    }
+    
+    .app-nav-icon {
+      font-size: 1.4rem;
+      margin-bottom: var(--space-xs);
+    }
+    
+    /* Utilities */
+    .text-primary {
+      color: var(--primary);
+    }
+    
+    .text-accent {
+      color: var(--accent);
+    }
+    
+    .text-light {
+      color: var(--text-light);
+    }
+    
+    .text-medium {
+      color: var(--text-medium);
+    }
+    
+    .text-center {
+      text-align: center;
+    }
+    
+    .mb-0 { margin-bottom: 0; }
+    .mb-xs { margin-bottom: var(--space-xs); }
+    .mb-sm { margin-bottom: var(--space-sm); }
+    .mb-md { margin-bottom: var(--space-md); }
+    .mb-lg { margin-bottom: var(--space-lg); }
+    .mb-xl { margin-bottom: var(--space-xl); }
+    
+    .mt-0 { margin-top: 0; }
+    .mt-xs { margin-top: var(--space-xs); }
+    .mt-sm { margin-top: var(--space-sm); }
+    .mt-md { margin-top: var(--space-md); }
+    .mt-lg { margin-top: var(--space-lg); }
+    .mt-xl { margin-top: var(--space-xl); }
+    
+    .flex {
+      display: flex;
+    }
+    
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .flex-center {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .flex-column {
+      flex-direction: column;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+    }
+    
+    .divider {
+      height: 1px;
+      background-color: rgba(255, 255, 255, 0.1);
+      margin: var(--space-lg) 0;
+    }
+    
+    /* Hero Section */
+    .hero {
+      position: relative;
+      padding: var(--space-xl) 0;
+      overflow: hidden;
+    }
+    
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+    
+    .hero-title {
+      font-size: 2.5rem;
+      margin-bottom: var(--space-md);
+    }
+    
+    .hero-subtitle {
+      font-size: 1.2rem;
+      color: var(--text-medium);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .hero-actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+      margin-top: var(--space-lg);
+    }
+    
+    /* Features */
+    .features {
+      padding: var(--space-xl) 0;
+    }
+    
+    .feature-card {
+      text-align: center;
+      padding: var(--space-lg);
+      border-radius: var(--radius-lg);
+      background-color: var(--dark-surface);
+      transition: all var(--transition-medium);
+      height: 100%;
+    }
+    
+    .feature-icon {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto var(--space-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-circle);
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      font-size: 1.5rem;
+      color: var(--text-light);
+    }
+    
+    /* Testimonials */
+    .testimonials {
+      padding: var(--space-xl) 0;
+    }
+    
+    .testimonial-card {
+      padding: var(--space-lg);
+      border-radius: var(--radius-lg);
+      background-color: var(--dark-surface);
+      margin-bottom: var(--space-lg);
+      position: relative;
+    }
+    
+    .testimonial-quote {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 1.2rem;
+      margin-bottom: var(--space-md);
+    }
+    
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+    }
+    
+    .testimonial-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: var(--radius-circle);
+      margin-right: var(--space-sm);
+      object-fit: cover;
+      border: 2px solid var(--primary);
+    }
+    
+    .testimonial-info {
+      flex: 1;
+    }
+    
+    .testimonial-name {
+      font-weight: 600;
+    }
+    
+    .testimonial-role {
+      font-size: 0.8rem;
+      color: var(--text-medium);
+    }
+    
+    /* Dashboard */
+    .dashboard-header {
+      margin-bottom: var(--space-lg);
+    }
+    
+    .dashboard-greeting {
+      font-size: 1.8rem;
+      margin-bottom: var(--space-xs);
+    }
+    
+    .dashboard-subtitle {
+      color: var(--text-medium);
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .stat-card {
+      background-color: var(--dark-surface);
+      padding: var(--space-md);
+      border-radius: var(--radius-md);
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .stat-label {
+      color: var(--text-medium);
+      font-size: 0.9rem;
+    }
+    
+    .recent-recordings {
+      margin-top: var(--space-lg);
+    }
+    
+    .recording-card {
+      padding: var(--space-md);
+      border-radius: var(--radius-md);
+      background-color: var(--dark-card);
+      margin-bottom: var(--space-md);
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+    
+    .recording-card:hover {
+      transform: translateX(4px);
+      box-shadow: -4px 0 0 0 var(--primary);
+    }
+    
+    .recording-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .recording-title {
+      font-weight: 600;
+      margin-bottom: var(--space-xs);
+    }
+    
+    .recording-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-medium);
+    }
+    
+    .recording-actions {
+      display: flex;
+      gap: var(--space-sm);
+    }
+    
+    .recording-progress {
+      margin-top: var(--space-sm);
+      height: 4px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    }
+    
+    /* Recording Flow */
+    .recording-flow {
+      padding: var(--space-lg) 0;
+      text-align: center;
+    }
+    
+    .recording-container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .recording-visualizer {
+      height: 140px;
+      background-color: var(--dark-surface);
+      border-radius: var(--radius-lg);
+      margin: var(--space-xl) 0;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .visualizer-container {
+      display: flex;
+      align-items: center;
+      height: 60px;
+      width: 100%;
+      justify-content: center;
+      gap: 5px;
+    }
+    
+    .audio-bar {
+      width: 4px;
+      background-color: var(--primary);
+      border-radius: 2px;
+      transition: height 0.2s ease;
+    }
+    
+    .recording-timer {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      margin-bottom: var(--space-lg);
+    }
+    
+    .recording-controls {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-lg);
+    }
+    
+    .control-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: var(--radius-circle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--dark-surface);
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: all var(--transition-medium);
+    }
+    
+    .control-btn.record-btn {
+      background-color: var(--primary);
+      color: white;
+      width: 70px;
+      height: 70px;
+      font-size: 1.8rem;
+    }
+    
+    .control-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 10px rgba(184, 134, 11, 0.4);
+    }
+    
+    .recording-info {
+      margin-top: var(--space-lg);
+      padding: var(--space-md);
+      background-color: var(--dark-surface);
+      border-radius: var(--radius-md);
+      text-align: left;
+    }
+    
+    /* Transcription */
+    .transcription-content {
+      padding: var(--space-lg) 0;
+    }
+    
+    .transcription-header {
+      margin-bottom: var(--space-lg);
+    }
+    
+    .transcription-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-medium);
+      font-size: 0.9rem;
+      margin-bottom: var(--space-md);
+    }
+    
+    .transcription-audio {
+      width: 100%;
+      background-color: var(--dark-surface);
+      padding: var(--space-md);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .audio-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+    }
+    
+    .audio-progress {
+      flex: 1;
+      height: 4px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      position: relative;
+      cursor: pointer;
+    }
+    
+    .audio-progress-bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      border-radius: 2px;
+    }
+    
+    .audio-progress-handle {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translate(50%, -50%);
+      width: 12px;
+      height: 12px;
+      background-color: var(--primary);
+      border-radius: var(--radius-circle);
+      box-shadow: 0 0 10px rgba(184, 134, 11, 0.4);
+    }
+    
+    .audio-time {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      min-width: 60px;
+      text-align: center;
+    }
+    
+    .transcription-text {
+      background-color: var(--dark-surface);
+      padding: var(--space-lg);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .transcription-paragraph {
+      margin-bottom: var(--space-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      padding: var(--space-sm);
+      border-radius: var(--radius-sm);
+    }
+    
+    .transcription-paragraph:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .transcription-paragraph.active {
+      background-color: rgba(184, 134, 11, 0.1);
+      border-left: 2px solid var(--primary);
+    }
+    
+    .transcription-line {
+      margin-bottom: var(--space-xs);
+    }
+    
+    .original-text {
+      font-weight: 500;
+    }
+    
+    .romanized-text {
+      font-size: 0.9rem;
+      color: var(--text-medium);
+      font-style: italic;
+    }
+    
+    .transcription-actions {
+      display: flex;
+      gap: var(--space-md);
+      margin-top: var(--space-lg);
+    }
+    
+    /* Notes View */
+    .notes-header {
+      margin-bottom: var(--space-lg);
+    }
+    
+    .notes-container {
+      background-color: var(--dark-surface);
+      padding: var(--space-lg);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .notes-editor {
+      margin-bottom: var(--space-lg);
+    }
+    
+    .notes-toolbar {
+      display: flex;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-sm);
+      padding: var(--space-sm);
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-sm);
+    }
+    
+    .toolbar-btn {
+      background: none;
+      border: none;
+      color: var(--text-medium);
+      cursor: pointer;
+      padding: var(--space-xs);
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+    }
+    
+    .toolbar-btn:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: var(--text-light);
+    }
+    
+    .notes-textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: var(--space-md);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.05);
+      color: var(--text-light);
+      font-family: var(--font-body);
+      resize: vertical;
+      transition: all var(--transition-fast);
+    }
+    
+    .notes-textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .notes-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-md);
+    }
+    
+    /* Media Queries */
+    @media (min-width: 768px) {
+      h1 {
+        font-size: 3.5rem;
+      }
+      
+      h2 {
+        font-size: 2.5rem;
+      }
+      
+      .hero-title {
+        font-size: 3.5rem;
+      }
+      
+      .hero-subtitle {
+        font-size: 1.5rem;
+      }
+      
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: var(--space-xl);
+      }
+      
+      .nav-link {
+        color: var(--text-medium);
+        transition: all var(--transition-fast);
+        font-weight: 500;
+      }
+      
+      .nav-link:hover, .nav-link.active {
+        color: var(--text-light);
+      }
+      
+      .nav-toggle {
+        display: none;
+      }
+      
+      .app-nav {
+        position: static;
+        box-shadow: none;
+        padding: 0;
+        background: none;
+      }
+      
+      .app-nav-links {
+        gap: var(--space-md);
+      }
+      
+      .app-nav-link {
+        flex-direction: row;
+        font-size: 1rem;
+        gap: var(--space-sm);
+      }
+      
+      .app-nav-icon {
+        margin-bottom: 0;
+      }
+      
+      .hero-actions {
+        flex-direction: row;
+        justify-content: center;
+      }
+      
+      .recording-controls {
+        gap: var(--space-xl);
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      
+      .recording-container {
+        max-width: 700px;
+      }
+      
+      .recording-visualizer {
+        height: 180px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Landing Page -->
+  <div id="landing" class="page active">
+    <header>
+      <div class="container">
+        <nav class="nav">
+          <div class="nav-logo">
+            Eloquence<span>.</span>
+          </div>
+          <div class="nav-links">
+            <a href="#" class="nav-link active">Home</a>
+            <a href="#" class="nav-link">Features</a>
+            <a href="#" class="nav-link">Pricing</a>
+            <a href="#" class="nav-link">Contact</a>
+          </div>
+          <div class="nav-actions">
+            <button class="btn btn-secondary" onclick="switchPage('login')">Log In</button>
+            <button class="btn btn-primary">Sign Up</button>
+          </div>
+          <button class="nav-toggle">
+            <i class="fas fa-bars"></i>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h1 class="hero-title">Elevate Your Language <span class="text-primary">Journey</span></h1>
+          <p class="hero-subtitle">Master pronunciation, comprehension, and fluency with our premium audio transcription and learning tools</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" onclick="switchPage('dashboard')">
+              <i class="fas fa-play btn-icon"></i>
+              Start Learning
+            </button>
+            <button class="btn btn-secondary">
+              <i class="fas fa-info-circle btn-icon"></i>
+              Learn More
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="container">
+        <h2 class="text-center mb-lg">Premium <span class="text-primary">Features</span></h2>
+        <div class="grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-microphone"></i>
+            </div>
+            <h3>Pristine Audio Recording</h3>
+            <p>Capture crystal-clear audio with our advanced noise-cancellation technology for perfect transcription results.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-language"></i>
+            </div>
+            <h3>Multi-language Support</h3>
+            <p>Practice in over 50 languages with native-level transcription and personalized romanization.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-brain"></i>
+            </div>
+            <h3>AI-Powered Learning</h3>
+            <p>Our system adapts to your learning style and provides personalized recommendations.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <h3>Detailed Analytics</h3>
+            <p>Track your progress with comprehensive metrics and beautiful visualizations.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-cloud"></i>
+            </div>
+            <h3>Cloud Synchronization</h3>
+            <p>Access your recordings and transcriptions from any device, anytime, anywhere.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-pencil-alt"></i>
+            </div>
+            <h3>Smart Notes</h3>
+            <p>Annotate your transcriptions with rich text formatting and link them to your learning materials.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="testimonials">
+      <div class="container">
+        <h2 class="text-center mb-lg">What Our <span class="text-primary">Learners</span> Say</h2>
+        <div class="grid">
+          <div class="testimonial-card">
+            <p class="testimonial-quote">"Eloquence transformed my language learning experience. The transcription accuracy is unmatched, and the romanization feature helps me perfect my pronunciation."</p>
+            <div class="testimonial-author">
+              <img src="https://i.pravatar.cc/150?img=32" alt="User Avatar" class="testimonial-avatar">
+              <div class="testimonial-info">
+                <div class="testimonial-name">Sophia Chen</div>
+                <div class="testimonial-role">Learning Mandarin • 8 months</div>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial-card">
+            <p class="testimonial-quote">"As a business professional learning Japanese, the ability to record meetings and get instant transcriptions has been invaluable. Worth every penny."</p>
+            <div class="testimonial-author">
+              <img src="https://i.pravatar.cc/150?img=11" alt="User Avatar" class="testimonial-avatar">
+              <div class="testimonial-info">
+                <div class="testimonial-name">David Müller</div>
+                <div class="testimonial-role">Learning Japanese • 1 year</div>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial-card">
+            <p class="testimonial-quote">"The note-taking system combined with transcription has made my Arabic studies so much more efficient. I'm progressing faster than ever."</p>
+            <div class="testimonial-author">
+              <img src="https://i.pravatar.cc/150?img=47" alt="User Avatar" class="testimonial-avatar">
+              <div class="testimonial-info">
+                <div class="testimonial-name">Laila Hassan</div>
+                <div class="testimonial-role">Learning Arabic • 6 months</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="container">
+        <div class="divider"></div>
+        <div class="flex-between mb-lg">
+          <div class="nav-logo">
+            Eloquence<span>.</span>
+          </div>
+          <div class="flex" style="gap: var(--space-md);">
+            <a href="#" class="btn-text">
+              <i class="fab fa-twitter"></i>
+            </a>
+            <a href="#" class="btn-text">
+              <i class="fab fa-instagram"></i>
+            </a>
+            <a href="#" class="btn-text">
+              <i class="fab fa-linkedin"></i>
+            </a>
+          </div>
+        </div>
+        <p class="text-center text-medium">© 2025 Eloquence. All rights reserved.</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Login Screen -->
+  <div id="login" class="page">
+    <div class="container">
+      <div class="flex-between mb-xl">
+        <button class="btn-text" onclick="switchPage('landing')">
+          <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <div class="nav-logo">
+          Eloquence<span>.</span>
+        </div>
+      </div>
+
+      <div class="card" style="max-width: 500px; margin: 0 auto;">
+        <h2 class="text-center mb-lg">Welcome <span class="text-primary">Back</span></h2>
+        <form>
+          <div class="form-group">
+            <label for="email" class="form-label">Email Address</label>
+            <input type="email" id="email" class="form-input" placeholder="Enter your email">
+          </div>
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" class="form-input" placeholder="Enter your password">
+          </div>
+          <div class="flex-between mb-lg">
+            <label style="display: flex; align-items: center; gap: var(--space-xs);">
+              <input type="checkbox"> <span class="text-medium">Remember me</span>
+            </label>
+            <a href="#" class="btn-text">Forgot Password?</a>
+          </div>
+          <button type="button" class="btn btn-primary" style="width: 100%;" onclick="switchPage('dashboard')">
+            Sign In
+          </button>
+        </form>
+        <div class="divider"></div>
+        <p class="text-center text-medium">Don't have an account? <a href="#">Sign Up</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="page">
+    <div class="container">
+      <header class="dashboard-header">
+        <h2 class="dashboard-greeting">Welcome back, <span class="text-primary">Alex</span></h2>
+        <p class="dashboard-subtitle">Your language learning journey continues</p>
+      </header>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">27</div>
+          <div class="stat-label">Recordings</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">18</div>
+          <div class="stat-label">Hours Practiced</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">89%</div>
+          <div class="stat-label">Accuracy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">42</div>
+          <div class="stat-label">Words Mastered</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="mb-0">Learning Progress</h3>
+          <select class="form-input" style="width: auto;">
+            <option>Last 7 days</option>
+            <option>Last 30 days</option>
+            <option>Last 3 months</option>
+          </select>
+        </div>
+        <div class="card-body" style="height: 200px; display: flex; align-items: flex-end; gap: 8px; padding: 0 10px;">
+          <div style="height: 70%; width: 12%; background: linear-gradient(180deg, var(--primary), var(--primary-dark)); border-radius: 4px;"></div>
+          <div style="height: 45%; width: 12%; background: linear-gradient(180deg, var(--primary), var(--primary-dark)); border-radius: 4px;"></div>
+          <div style="height: 80%; width: 12%; background: linear-gradient(180deg, var(--primary), var(--primary-dark)); border-radius: 4px;"></div>
+          <div style="height: 60%; width: 12%; background: linear-gradient(180deg, var(--primary), var(--primary-dark)); border-radius: 4px;"></div>
+          <div style="height: 90%; width: 12%; background: linear-gradient(180deg, var(--primary), var(--primary-dark)); border-radius: 4px;"></div>
+          <div style="height: 75%; width: 12%; background: linear-gradient(180deg, var(--primary), var(--primary-dark)); border-radius: 4px;"></div>
+          <div style="height: 85%; width: 12%; background: linear-gradient(180deg, var(--primary), var(--primary-dark)); border-radius: 4px;"></div>
+        </div>
+      </div>
+
+      <div class="recent-recordings">
+        <div class="flex-between mb-md">
+          <h3 class="mb-0">Recent Recordings</h3>
+          <button class="btn-text">See All</button>
+        </div>
+        
+        <div class="recording-card" onclick="switchPage('transcription')">
+          <div class="recording-info">
+            <div>
+              <h4 class="recording-title">Business Meeting Introduction</h4>
+              <div class="recording-meta">
+                <span>Japanese • 3:45 min</span>
+                <span>Today at 2:30 PM</span>
+              </div>
+            </div>
+            <div class="recording-actions">
+              <button class="btn-text"><i class="fas fa-play"></i></button>
+            </div>
+          </div>
+          <div class="recording-progress">
+            <div class="progress-bar" style="width: 100%;"></div>
+          </div>
+        </div>
+        
+        <div class="recording-card">
+          <div class="recording-info">
+            <div>
+              <h4 class="recording-title">Restaurant Ordering Practice</h4>
+              <div class="recording-meta">
+                <span>Italian • 2:12 min</span>
+                <span>Yesterday</span>
+              </div>
+            </div>
+            <div class="recording-actions">
+              <button class="btn-text"><i class="fas fa-play"></i></button>
+            </div>
+          </div>
+          <div class="recording-progress">
+            <div class="progress-bar" style="width: 100%;"></div>
+          </div>
+        </div>
+        
+        <div class="recording-card">
+          <div class="recording-info">
+            <div>
+              <h4 class="recording-title">Casual Conversation</h4>
+              <div class="recording-meta">
+                <span>French • 5:30 min</span>
+                <span>2 days ago</span>
+              </div>
+            </div>
+            <div class="recording-actions">
+              <button class="btn-text"><i class="fas fa-play"></i></button>
+            </div>
+          </div>
+          <div class="recording-progress">
+            <div class="progress-bar" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="app-nav">
+      <div class="container">
+        <div class="app-nav-links">
+          <a href="#" class="app-nav-link active" onclick="switchPage('dashboard')">
+            <i class="fas fa-home app-nav-icon"></i>
+            <span>Home</span>
+          </a>
+          <a href="#" class="app-nav-link" onclick="switchPage('recording')">
+            <i class="fas fa-microphone app-nav-icon"></i>
+            <span>Record</span>
+          </a>
+          <a href="#" class="app-nav-link">
+            <i class="fas fa-book app-nav-icon"></i>
+            <span>Learn</span>
+          </a>
+          <a href="#" class="app-nav-link">
+            <i class="fas fa-user app-nav-icon"></i>
+            <span>Profile</span>
+          </a>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Recording Flow -->
+  <div id="recording" class="page">
+    <div class="container">
+      <header class="flex-between mb-lg">
+        <button class="btn-text" onclick="switchPage('dashboard')">
+          <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <h2>New Recording</h2>
+        <div style="width: 20px;"></div>
+      </header>
+
+      <div class="recording-flow">
+        <div class="recording-container">
+          <div class="badge badge-primary mb-md">Japanese</div>
+          <h3 class="mb-md">Business Meeting Introduction</h3>
+          
+          <div class="recording-visualizer">
+            <div class="visualizer-container" id="visualizer">
+              <!-- Audio bars will be generated here by JS -->
+            </div>
+          </div>
+          
+          <div class="recording-timer" id="timer">00:00</div>
+          
+          <div class="recording-controls">
+            <button class="control-btn">
+              <i class="fas fa-trash"></i>
+            </button>
+            <button class="control-btn record-btn" id="recordButton">
+              <i class="fas fa-microphone"></i>
+            </button>
+            <button class="control-btn" onclick="switchPage('transcription')">
+              <i class="fas fa-check"></i>
+            </button>
+          </div>
+          
+          <div class="recording-info">
+            <div class="flex-between mb-sm">
+              <span>Quality:</span>
+              <span class="text-primary">Premium</span>
+            </div>
+            <div class="flex-between">
+              <span>Remaining Time:</span>
+              <span>30:00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="app-nav">
+      <div class="container">
+        <div class="app-nav-links">
+          <a href="#" class="app-nav-link" onclick="switchPage('dashboard')">
+            <i class="fas fa-home app-nav-icon"></i>
+            <span>Home</span>
+          </a>
+          <a href="#" class="app-nav-link active" onclick="switchPage('recording')">
+            <i class="fas fa-microphone app-nav-icon"></i>
+            <span>Record</span>
+          </a>
+          <a href="#" class="app-nav-link">
+            <i class="fas fa-book app-nav-icon"></i>
+            <span>Learn</span>
+          </a>
+          <a href="#" class="app-nav-link">
+            <i class="fas fa-user app-nav-icon"></i>
+            <span>Profile</span>
+          </a>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Transcription View -->
+  <div id="transcription" class="page">
+    <div class="container">
+      <header class="flex-between mb-lg">
+        <button class="btn-text" onclick="switchPage('dashboard')">
+          <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <h2>Transcription</h2>
+        <button class="btn-text" onclick="switchPage('notes')">
+          <i class="fas fa-pen"></i>
+        </button>
+      </header>
+
+      <div class="transcription-content">
+        <div class="transcription-header">
+          <h3 class="mb-xs">Business Meeting Introduction</h3>
+          <div class="transcription-meta">
+            <span>Japanese • 3:45 min</span>
+            <span>Today at 2:30 PM</span>
+          </div>
+        </div>
+        
+        <div class="transcription-audio">
+          <div class="audio-controls">
+            <button class="btn-text">
+              <i class="fas fa-play"></i>
+            </button>
+            <div class="audio-progress">
+              <div class="audio-progress-bar" style="width: 35%;"></div>
+              <div class="audio-progress-handle"></div>
+            </div>
+            <div class="audio-time">1:22 / 3:45</div>
+          </div>
+        </div>
+        
+        <div class="transcription-text">
+          <div class="transcription-paragraph active">
+            <div class="transcription-line original-text">
+              はじめまして、アレックスと申します。
+            </div>
+            <div class="transcription-line romanized-text">
+              Hajimemashite, Arekkusu to mōshimasu.
+            </div>
+          </div>
+          
+          <div class="transcription-paragraph">
+            <div class="transcription-line original-text">
+              本日はお時間をいただきありがとうございます。
+            </div>
+            <div class="transcription-line romanized-text">
+              Honjitsu wa ojikan o itadaki arigatō gozaimasu.
+            </div>
+          </div>
+          
+          <div class="transcription-paragraph">
+            <div class="transcription-line original-text">
+              私はエロクエンス社のマーケティング部門で働いております。
+            </div>
+            <div class="transcription-line romanized-text">
+              Watashi wa Erokuensu-sha no māketingu bumon de hataraite orimasu.
+            </div>
+          </div>
+          
+          <div class="transcription-paragraph">
+            <div class="transcription-line original-text">
+              今日は新しいプロジェクトについてご紹介させていただきます。
+            </div>
+            <div class="transcription-line romanized-text">
+              Kyō wa atarashii purojekuto ni tsuite go-shōkai sasete itadakimasu.
+            </div>
+          </div>
+        </div>
+        
+        <div class="transcription-actions">
+          <button class="btn btn-secondary">
+            <i class="fas fa-edit btn-icon"></i>
+            Edit Transcription
+          </button>
+          <button class="btn btn-primary" onclick="switchPage('notes')">
+            <i class="fas fa-pen btn-icon"></i>
+            Add Notes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="app-nav">
+      <div class="container">
+        <div class="app-nav-links">
+          <a href="#" class="app-nav-link" onclick="switchPage('dashboard')">
+            <i class="fas fa-home app-nav-icon"></i>
+            <span>Home</span>
+          </a>
+          <a href="#" class="app-nav-link" onclick="switchPage('recording')">
+            <i class="fas fa-microphone app-nav-icon"></i>
+            <span>Record</span>
+          </a>
+          <a href="#" class="app-nav-link">
+            <i class="fas fa-book app-nav-icon"></i>
+            <span>Learn</span>
+          </a>
+          <a href="#" class="app-nav-link">
+            <i class="fas fa-user app-nav-icon"></i>
+            <span>Profile</span>
+          </a>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Notes View -->
+  <div id="notes" class="page">
+    <div class="container">
+      <header class="flex-between mb-lg">
+        <button class="btn-text" onclick="switchPage('transcription')">
+          <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <h2>My Notes</h2>
+        <div style="width: 20px;"></div>
+      </header>
+
+      <div class="notes-header">
+        <h3 class="mb-xs">Business Meeting Introduction</h3>
+        <div class="transcription-meta">
+          <span>Japanese • 3:45 min</span>
+          <span>Last edited: 10 min ago</span>
+        </div>
+      </div>
+
+      <div class="notes-container">
+        <div class="notes-editor">
+          <div class="notes-toolbar">
+            <button class="toolbar-btn"><i class="fas fa-bold"></i></button>
+            <button class="toolbar-btn"><i class="fas fa-italic"></i></button>
+            <button class="toolbar-btn"><i class="fas fa-underline"></i></button>
+            <button class="toolbar-btn"><i class="fas fa-list-ul"></i></button>
+            <button class="toolbar-btn"><i class="fas fa-highlighter"></i></button>
+            <button class="toolbar-btn"><i class="fas fa-link"></i></button>
+          </div>
+          <textarea class="notes-textarea">Key business meeting phrases to remember:
+
+1. はじめまして (Hajimemashite) - Nice to meet you
+2. 申します (Mōshimasu) - My name is/I am called
+3. お時間をいただきありがとうございます (Ojikan o itadaki arigatō gozaimasu) - Thank you for your time
+4. 働いております (Hataraite orimasu) - I work at
+5. ご紹介させていただきます (Go-shōkai sasete itadakimasu) - Let me introduce
+
+Remember to use the polite form (-ます/masu) in business settings.
+
+*Cultural note: When introducing yourself in a Japanese business meeting, it's customary to exchange business cards (名刺交換 - meishi kōkan) with both hands and a slight bow.*</textarea>
+        </div>
+        
+        <div class="notes-actions">
+          <button class="btn btn-secondary">
+            <i class="fas fa-undo btn-icon"></i>
+            Discard Changes
+          </button>
+          <button class="btn btn-primary">
+            <i class="fas fa-save btn-icon"></i>
+            Save Notes
+          </button>
+        </div>
+      </div>
+      
+      <div class="card mt-lg">
+        <div class="card-header">
+          <h4>Vocabulary Items</h4>
+          <button class="btn-text">
+            <i class="fas fa-plus"></i> Add
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="flex-between mb-md">
+            <div>
+              <div class="text-primary mb-xs">はじめまして</div>
+              <div class="text-medium">Hajimemashite</div>
+            </div>
+            <div class="badge badge-accent">Beginner</div>
+          </div>
+          <div class="flex-between mb-md">
+            <div>
+              <div class="text-primary mb-xs">申します</div>
+              <div class="text-medium">Mōshimasu</div>
+            </div>
+            <div class="badge badge-accent">Beginner</div>
+          </div>
+          <div class="flex-between mb-md">
+            <div>
+              <div class="text-primary mb-xs">お時間をいただき</div>
+              <div class="text-medium">Ojikan o itadaki</div>
+            </div>
+            <div class="badge badge-accent">Intermediate</div>
+          </div>
+          <div class="flex-between">
+            <div>
+              <div class="text-primary mb-xs">ご紹介させていただきます</div>
+              <div class="text-medium">Go-shōkai sasete itadakimasu</div>
+            </div>
+            <div class="badge badge-accent">Advanced</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="app-nav">
+      <div class="container">
+        <div class="app-nav-links">
+          <a href="#" class="app-nav-link" onclick="switchPage('dashboard')">
+            <i class="fas fa-home app-nav-icon"></i>
+            <span>Home</span>
+          </a>
+          <a href="#" class="app-nav-link" onclick="switchPage('recording')">
+            <i class="fas fa-microphone app-nav-icon"></i>
+            <span>Record</span>
+          </a>
+          <a href="#" class="app-nav-link">
+            <i class="fas fa-book app-nav-icon"></i>
+            <span>Learn</span>
+          </a>
+          <a href="#" class="app-nav-link">
+            <i class="fas fa-user app-nav-icon"></i>
+            <span>Profile</span>
+          </a>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <script>
+    // Navigation between pages
+    function switchPage(pageId) {
+      const pages = document.querySelectorAll('.page');
+      pages.forEach(page => {
+        page.classList.remove('active');
+      });
+      document.getElementById(pageId).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+    
+    // Audio visualization effect
+    document.addEventListener('DOMContentLoaded', function() {
+      const visualizer = document.getElementById('visualizer');
+      const recordButton = document.getElementById('recordButton');
+      const timer = document.getElementById('timer');
+      
+      if (!visualizer || !recordButton || !timer) return;
+      
+      // Create audio bars
+      for (let i = 0; i < 30; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'audio-bar';
+        bar.style.height = '4px';
+        visualizer.appendChild(bar);
+      }
+      
+      const bars = document.querySelectorAll('.audio-bar');
+      let timerInterval;
+      let seconds = 0;
+      let isRecording = false;
+      
+      // Recording animation
+      function animateVisualizer() {
+        bars.forEach(bar => {
+          const height = Math.floor(Math.random() * 50) + 5;
+          bar.style.height = `${height}px`;
+        });
+      }
+      
+      // Update timer display
+      function updateTimer() {
+        seconds++;
+        const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const secs = (seconds % 60).toString().padStart(2, '0');
+        timer.textContent = `${mins}:${secs}`;
+      }
+      
+      // Toggle recording state
+      recordButton.addEventListener('click', function() {
+        isRecording = !isRecording;
+        
+        if (isRecording) {
+          recordButton.innerHTML = '<i class="fas fa-stop"></i>';
+          recordButton.style.backgroundColor = '#e94560';
+          
+          // Start visualizer animation
+          let visualizerInterval = setInterval(animateVisualizer, 100);
+          
+          // Start timer
+          timerInterval = setInterval(updateTimer, 1000);
+        } else {
+          recordButton.innerHTML = '<i class="fas fa-microphone"></i>';
+          recordButton.style.backgroundColor = '';
+          
+          // Reset visualizer
+          bars.forEach(bar => {
+            bar.style.height = '4px';
+          });
+          
+          // Stop timer
+          clearInterval(timerInterval);
+        }
+      });
+      
+      // Make transcription paragraphs interactive
+      const paragraphs = document.querySelectorAll('.transcription-paragraph');
+      paragraphs.forEach(paragraph => {
+        paragraph.addEventListener('click', function() {
+          paragraphs.forEach(p => p.classList.remove('active'));
+          this.classList.add('active');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
