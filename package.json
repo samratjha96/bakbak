@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
-    "start": "vite start"
+    "start": "vite start",
+    "lint": "npx prettier **/**/*.ts* --write"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.66.0",
