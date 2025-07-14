@@ -4,10 +4,10 @@ import { useSession, signOut, signIn } from '~/lib/auth-client';
 import { MicrophoneIcon } from '~/components/ui/Icons';
 
 interface HeaderProps {
-  showLanguageSelector?: boolean;
+  className?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ showLanguageSelector = true }) => {
+export const Header: React.FC<HeaderProps> = ({ className = '' }) => {
   const { data } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   
@@ -20,29 +20,6 @@ export const Header: React.FC<HeaderProps> = ({ showLanguageSelector = true }) =
               <MicrophoneIcon className="w-6 h-6" />
               <span className="hidden sm:inline font-medium ml-2">BakBak</span>
             </Link>
-            
-            {/* Language selector - visible on all screens but gets more space on larger screens */}
-            {showLanguageSelector && (
-              <div className="relative ml-6">
-                <div className="flex items-center">
-                  <select 
-                    id="language-select"
-                    className="appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 py-1.5 px-3 pr-8 rounded-md text-sm text-gray-900 dark:text-gray-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="ja">Japanese</option>
-                    <option value="ko">Korean</option>
-                    <option value="zh">Mandarin</option>
-                    <option value="fr">French</option>
-                    <option value="es">Spanish</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
           
           <div className="flex items-center gap-3">

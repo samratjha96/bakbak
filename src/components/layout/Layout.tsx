@@ -6,7 +6,6 @@ import { Footer } from './Footer';
 interface LayoutProps {
   children: React.ReactNode;
   hideNavigation?: boolean;
-  showLanguageSelector?: boolean;
   hideFooter?: boolean;
   className?: string;
   sidebarContent?: React.ReactNode;
@@ -17,7 +16,6 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({
   children,
   hideNavigation = false,
-  showLanguageSelector = true,
   hideFooter = false,
   className = '',
   sidebarContent,
@@ -26,7 +24,7 @@ export const Layout: React.FC<LayoutProps> = ({
 }) => {
   return (
     <div className={`min-h-screen flex flex-col ${className}`}>
-      <Header showLanguageSelector={showLanguageSelector} />
+      <Header />
       <Navigation hide={hideNavigation} />
       
       <div className="flex flex-col lg:flex-row flex-1">

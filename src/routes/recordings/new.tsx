@@ -7,31 +7,6 @@ import { useNavigate } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createRecording, formatDuration } from "~/utils/recordings";
 
-// Sidebar component for desktop
-const RecordingSidebar: React.FC = () => {
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-4">
-      <h2 className="font-semibold text-lg mb-4">Tips for Recording</h2>
-      
-      <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
-        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-          <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-200">Find a quiet environment</h3>
-          <p>Record in a quiet place with minimal background noise for the best transcription results.</p>
-        </div>
-        
-        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-          <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-200">Speak clearly</h3>
-          <p>Try to enunciate words clearly but maintain a natural speaking pace.</p>
-        </div>
-        
-        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-          <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-200">Keep microphone distance consistent</h3>
-          <p>Keep a consistent distance from your microphone throughout the recording.</p>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 function NewRecordingPage() {
   const [isRecording, setIsRecording] = React.useState(false);
@@ -131,130 +106,142 @@ function NewRecordingPage() {
   return (
     <Layout
       actionBarContent={actionBar}
-      sidebarContent={<RecordingSidebar />}
     >
-      <div className="container">
+      {/* Main content container with max-width constraint and centered horizontally */}
+      <div className="container mx-auto px-4 md:px-6 py-6 md:py-8 max-w-6xl">
         {/* Header - visible on all screen sizes */}
-        <div className="mb-6">
+        <div className="mb-6 md:mb-8">
           <h1 className="text-2xl font-semibold">New Recording</h1>
           <p className="text-gray-500 dark:text-gray-400">Record your language practice session</p>
         </div>
         
-        <div className="bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 rounded-lg p-6 mb-6 text-center">
-          <div className="relative h-[60px] md:h-[100px] flex items-center justify-center mb-4">
-            {/* Waveform placeholder */}
-            <div className="w-full h-10 md:h-16 bg-gradient-to-b from-gray-300 to-gray-300 dark:from-gray-700 dark:to-gray-700 bg-[length:100%_20%,100%_20%,100%_20%] bg-[position:0_0,0_50%,0_100%] bg-no-repeat opacity-50 rounded" />
-            
-            {/* Active waveform */}
-            {isRecording && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex gap-1 md:gap-2">
-                  {[...Array(10)].map((_, i) => (
-                    <div 
-                      key={i}
-                      className="w-[3px] md:w-[4px] h-[10px] bg-primary rounded-sm"
-                      style={{ 
-                        animation: 'waveform 0.5s infinite alternate',
-                        animationDelay: `${i * 0.1}s`
-                      }}
-                    />
-                  ))}
+        {/* Main content section */}
+        <div className="max-w-3xl mx-auto">
+          {/* Recording section */}
+          <div>
+            {/* Recording visualizer and controls */}
+            <div className="bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 rounded-lg p-4 md:p-6 mb-6">
+              {/* Waveform container with fixed aspect ratio */}
+              <div className="relative w-full aspect-[4/1] mb-6 flex items-center justify-center">
+                {/* Waveform placeholder */}
+                <div className="w-full h-10 md:h-16 bg-gradient-to-b from-gray-300 to-gray-300 dark:from-gray-700 dark:to-gray-700 bg-[length:100%_20%,100%_20%,100%_20%] bg-[position:0_0,0_50%,0_100%] bg-no-repeat opacity-50 rounded" />
+                
+                {/* Active waveform - centered absolutely */}
+                {isRecording && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex gap-1 md:gap-2">
+                      {[...Array(10)].map((_, i) => (
+                        <div 
+                          key={i}
+                          className="w-[3px] md:w-[4px] h-[10px] bg-primary rounded-sm"
+                          style={{ 
+                            animation: 'waveform 0.5s infinite alternate',
+                            animationDelay: `${i * 0.1}s`
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex flex-col items-center">
+                {/* Recording controls - centered flex layout */}
+                <div className="flex items-center justify-center gap-6 md:gap-8 mb-4">
+                  <button className="btn flex-none">
+                    <PlayIcon className="w-6 h-6 md:w-8 md:h-8" />
+                  </button>
+                  <button 
+                    className={`btn flex-none ${isRecording 
+                      ? 'bg-error text-white hover:bg-red-600' 
+                      : 'bg-white dark:bg-gray-800 shadow-md'
+                    } p-4 md:p-6 rounded-full shadow-md hover:shadow-lg transition-all`}
+                    onClick={toggleRecording}
+                  >
+                    <RecordIcon className="w-6 h-6 md:w-8 md:h-8" />
+                  </button>
+                  <button className="btn flex-none">
+                    <PlayIcon className="w-6 h-6 md:w-8 md:h-8" />
+                  </button>
+                </div>
+                
+                {/* Timer - prominent and centered */}
+                <div className="text-lg md:text-xl font-medium text-gray-700 dark:text-gray-300">
+                  {formattedTime}
                 </div>
               </div>
-            )}
-          </div>
-          
-          {/* Recording controls */}
-          <div className="flex justify-center gap-4 mb-4">
-            <button className="btn">
-              <PlayIcon className="w-6 h-6 md:w-8 md:h-8" />
-            </button>
-            <button 
-              className={`btn ${isRecording 
-                ? 'bg-error text-white hover:bg-red-600' 
-                : 'bg-white dark:bg-gray-800 shadow-md'
-              } p-4 md:p-6`}
-              onClick={toggleRecording}
-            >
-              <RecordIcon className="w-6 h-6 md:w-8 md:h-8" />
-            </button>
-            <button className="btn">
-              <PlayIcon className="w-6 h-6 md:w-8 md:h-8" />
-            </button>
-          </div>
-          
-          {/* Timer */}
-          <div className="text-sm md:text-base font-medium text-gray-500 dark:text-gray-400">
-            {formattedTime}
-          </div>
-        </div>
-        
-        {/* Recording details */}
-        <div className="mb-8 lg:mb-0">
-          <h2 className="text-lg font-semibold mb-3">Recording Details</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="recording-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Title
-              </label>
-              <input
-                id="recording-title"
-                type="text"
-                className="w-full min-h-[50px] p-4 border border-gray-200 dark:border-gray-800 rounded text-base text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)]"
-                placeholder="Enter recording title..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
             </div>
             
-            {/* Optional additional fields for desktop */}
-            <div className="md:block">
-              <label htmlFor="recording-language" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Language
-              </label>
-              <select
-                id="recording-language"
-                className="w-full h-[50px] px-4 border border-gray-200 dark:border-gray-800 rounded text-base text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)]"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-              >
-                <option value="ja">Japanese</option>
-                <option value="ko">Korean</option>
-                <option value="zh">Mandarin</option>
-                <option value="fr">French</option>
-                <option value="es">Spanish</option>
-              </select>
-            </div>
-            
-            <div className="md:block">
-              <label htmlFor="recording-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Notes (Optional)
-              </label>
-              <textarea
-                id="recording-notes"
-                className="w-full min-h-[100px] p-4 border border-gray-200 dark:border-gray-800 rounded text-base text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] resize-none"
-                placeholder="Add any notes about this recording..."
-                value={initialNotes}
-                onChange={(e) => setInitialNotes(e.target.value)}
-              ></textarea>
-            </div>
-            
-            {/* Desktop action buttons */}
-            <div className="hidden lg:flex justify-end gap-4 mt-8">
-              <button 
-                className="py-2 px-4 border border-gray-200 dark:border-gray-800 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                onClick={() => navigate({ to: '/recordings' })}
-              >
-                Cancel
-              </button>
-              <button 
-                className={`py-2 px-4 bg-primary text-white rounded hover:bg-secondary transition-colors ${createRecordingMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={handleSave}
-                disabled={createRecordingMutation.isPending}
-              >
-                Save Recording
-              </button>
+            {/* Recording details form */}
+            <div className="bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 rounded-lg p-4 md:p-6">
+              <h2 className="text-lg font-semibold mb-4">Recording Details</h2>
+              
+              <div className="space-y-5">
+                {/* Title field */}
+                <div className="form-group">
+                  <label htmlFor="recording-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Title
+                  </label>
+                  <input
+                    id="recording-title"
+                    type="text"
+                    className="w-full h-12 px-4 border border-gray-200 dark:border-gray-800 rounded-lg text-base text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20"
+                    placeholder="Enter recording title..."
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                </div>
+                
+                {/* Language selector */}
+                <div className="form-group">
+                  <label htmlFor="recording-language" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Language
+                  </label>
+                  <select
+                    id="recording-language"
+                    className="w-full h-12 px-4 border border-gray-200 dark:border-gray-800 rounded-lg text-base text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20"
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                  >
+                    <option value="ja">Japanese</option>
+                    <option value="ko">Korean</option>
+                    <option value="zh">Mandarin</option>
+                    <option value="fr">French</option>
+                    <option value="es">Spanish</option>
+                  </select>
+                </div>
+                
+                {/* Notes textarea */}
+                <div className="form-group">
+                  <label htmlFor="recording-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Notes (Optional)
+                  </label>
+                  <textarea
+                    id="recording-notes"
+                    className="w-full min-h-[120px] p-4 border border-gray-200 dark:border-gray-800 rounded-lg text-base text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 resize-none"
+                    placeholder="Add any notes about this recording..."
+                    value={initialNotes}
+                    onChange={(e) => setInitialNotes(e.target.value)}
+                  ></textarea>
+                </div>
+                
+                {/* Desktop action buttons - right aligned */}
+                <div className="hidden lg:flex justify-end gap-4 mt-6">
+                  <button 
+                    className="py-2.5 px-5 border border-gray-200 dark:border-gray-800 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    onClick={() => navigate({ to: '/recordings' })}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className={`py-2.5 px-5 bg-primary text-white rounded-lg hover:bg-secondary transition-colors ${createRecordingMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={handleSave}
+                    disabled={createRecordingMutation.isPending}
+                  >
+                    Save Recording
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
