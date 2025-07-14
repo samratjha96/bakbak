@@ -14,7 +14,6 @@ import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary";
 import { NotFound } from "~/components/NotFound";
 import appCss from "~/styles/app.css?url";
 import { seo } from "~/utils/seo";
-import { signIn, signOut, useSession } from "~/lib/auth-client";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -29,9 +28,9 @@ export const Route = createRootRouteWithContext<{
         content: "width=device-width, initial-scale=1",
       },
       ...seo({
-        title:
-          "TanStack Start | Type-Safe, Client-First, Full-Stack React Framework",
-        description: `TanStack Start is a type-safe, client-first, full-stack React framework. `,
+        title: "BakBak - Language Learning Transcription",
+        description:
+          "Record, transcribe, and study your language practice with powerful AI assistance",
       }),
     ],
     links: [
@@ -77,34 +76,12 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const { data } = useSession()
-
   return (
-    <html>
+    <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
-        <div className="p-2 flex gap-2 text-lg">
-          <Link
-            to="/"
-            activeProps={{
-              className: "font-bold",
-            }}
-            activeOptions={{ exact: true }}
-          >
-            Home
-          </Link>{" "}
-          {
-            data ? (
-              <button onClick={() => signOut()}>Sign Out</button>
-            ) : (
-              <button onClick={() => signIn.social({ provider: "google" })}>
-                Sign In
-              </button>
-            )}
-        </div>
-        <hr />
         {children}
         <TanStackRouterDevtools position="bottom-right" />
         <ReactQueryDevtools buttonPosition="bottom-left" />

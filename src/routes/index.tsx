@@ -1,12 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-export const Route = createFileRoute("/")({
-  component: Home,
-});
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { LandingScreen } from "~/components/screens";
 
-function Home() {
-  return (
-    <div className="p-2">
-      <h3>Welcome Home!!!</h3>
-    </div>
-  );
-}
+export const Route = createFileRoute("/")({
+  component: LandingScreen,
+  beforeLoad: () => {
+    // Redirect authenticated users to the recordings page
+    // For demonstration purposes, we'll always redirect to recordings
+    return redirect({ to: "/recordings" });
+  },
+});
