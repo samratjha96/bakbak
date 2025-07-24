@@ -254,7 +254,9 @@ export const UploadIcon: React.FC<IconProps> = ({ className = "w-6 h-6" }) => (
   </svg>
 );
 
-export const DownloadIcon: React.FC<IconProps> = ({ className = "w-6 h-6" }) => (
+export const DownloadIcon: React.FC<IconProps> = ({
+  className = "w-6 h-6",
+}) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     fill="none"

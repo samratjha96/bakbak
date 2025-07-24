@@ -3,8 +3,10 @@ import * as React from "react";
 import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
 import { StorageIcon, UploadIcon, DownloadIcon } from "~/components/ui/Icons";
-import { S3Service } from "~/lib/s3-service";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { S3FileUpload } from "~/components/upload/S3FileUpload";
+import { listBuckets, listObjects, getPresignedDownloadUrl } from "~/server/s3";
+import { useServerFn } from "@tanstack/react-start";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "~/lib/auth-client";
 
 // Query options for fetching S3 bucket list
@@ -12,9 +14,7 @@ const bucketsQueryOptions = () => ({
   queryKey: ["s3", "buckets"],
   queryFn: async () => {
     try {
-      const s3Service = new S3Service();
-      const result = await s3Service.listBuckets();
-      return result.Buckets || [];
+      return await listBuckets();
     } catch (error) {
       console.error("Error fetching S3 buckets:", error);
       return [];
@@ -27,9 +27,7 @@ const objectsQueryOptions = (bucket: string) => ({
   queryKey: ["s3", "objects", bucket],
   queryFn: async () => {
     try {
-      const s3Service = new S3Service(bucket);
-      const result = await s3Service.listObjects();
-      return result.Contents || [];
+      return await listObjects({ data: { bucket } });
     } catch (error) {
       console.error(`Error fetching objects from bucket ${bucket}:`, error);
       return [];
@@ -39,39 +37,27 @@ const objectsQueryOptions = (bucket: string) => ({
 
 // Component for displaying bucket contents
 const BucketContents: React.FC<{ bucketName: string }> = ({ bucketName }) => {
-  const { data: objects = [] } = useSuspenseQuery(objectsQueryOptions(bucketName));
+  const { data: objects = [] } = useSuspenseQuery(
+    objectsQueryOptions(bucketName),
+  );
   const [selectedFile, setSelectedFile] = React.useState<string | null>(null);
-  const s3Service = new S3Service(bucketName);
+  // No need for S3Service instance - using server functions instead
+
+  // Bind server function
+  const getDownloadUrl = useServerFn(getPresignedDownloadUrl);
 
   const handleDownload = async (key: string) => {
     try {
-      const result = await s3Service.downloadFile(key);
-      if (!result.Body) {
-        throw new Error("No file content received");
-      }
-      
-      // Create a download link
-      let blob;
-      if ('transformToBlob' in result.Body) {
-        blob = await (result.Body as any).transformToBlob();
-      } else if (result.Body instanceof Blob) {
-        blob = result.Body;
-      } else {
-        // Handle Node.js Readable stream
-        const chunks: Uint8Array[] = [];
-        for await (const chunk of result.Body as any) {
-          chunks.push(chunk);
-        }
-        blob = new Blob(chunks);
-      }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = key.split("/").pop() || key;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Use presigned URL for download instead of direct download
+      const presignedUrl = await getDownloadUrl({
+        data: {
+          bucket: bucketName,
+          key,
+        },
+      });
+
+      // Open the presigned URL in a new tab
+      window.open(presignedUrl, "_blank");
     } catch (error) {
       console.error(`Error downloading file ${key}:`, error);
       alert(`Failed to download file: ${error}`);
@@ -82,7 +68,8 @@ const BucketContents: React.FC<{ bucketName: string }> = ({ bucketName }) => {
   const formatFileSize = (size: number) => {
     if (size < 1024) return `${size} B`;
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
+    if (size < 1024 * 1024 * 1024)
+      return `${(size / 1024 / 1024).toFixed(1)} MB`;
     return `${(size / 1024 / 1024 / 1024).toFixed(1)} GB`;
   };
 
@@ -97,8 +84,12 @@ const BucketContents: React.FC<{ bucketName: string }> = ({ bucketName }) => {
     return (
       <div className="text-center py-8 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
         <StorageIcon className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">No files found in this bucket</h3>
-        <p className="text-gray-500 dark:text-gray-400 mt-2">Upload a file to get started</p>
+        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">
+          No files found in this bucket
+        </h3>
+        <p className="text-gray-500 dark:text-gray-400 mt-2">
+          Upload a file to get started
+        </p>
       </div>
     );
   }
@@ -129,7 +120,9 @@ const BucketContents: React.FC<{ bucketName: string }> = ({ bucketName }) => {
                 key={object.Key}
                 onClick={() => setSelectedFile(object.Key)}
                 className={`hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer ${
-                  selectedFile === object.Key ? "bg-gray-50 dark:bg-gray-800" : ""
+                  selectedFile === object.Key
+                    ? "bg-gray-50 dark:bg-gray-800"
+                    : ""
                 }`}
               >
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -153,9 +146,11 @@ const BucketContents: React.FC<{ bucketName: string }> = ({ bucketName }) => {
                       e.stopPropagation();
                       handleDownload(object.Key);
                     }}
-                    className="text-primary hover:text-secondary ml-3"
+                    className="text-primary hover:text-secondary ml-3 flex items-center gap-1"
+                    title="Download file"
                   >
                     <DownloadIcon className="w-5 h-5" />
+                    <span className="hidden md:inline">Download</span>
                   </button>
                 </td>
               </tr>
@@ -170,12 +165,12 @@ const BucketContents: React.FC<{ bucketName: string }> = ({ bucketName }) => {
 function StoragePage() {
   const { data: session } = useSession();
   const [selectedBucket, setSelectedBucket] = React.useState<string>("");
-  const [isUploading, setIsUploading] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  
+  const [showUploader, setShowUploader] = React.useState(false);
+  const queryClient = useQueryClient();
+
   // Get environment variable for bucket name
   const defaultBucket = process.env.AWS_S3_BUCKET || "";
-  
+
   // Fetch buckets
   const { data: buckets = [] } = useSuspenseQuery(bucketsQueryOptions());
 
@@ -188,38 +183,25 @@ function StoragePage() {
     }
   }, [buckets, defaultBucket]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !selectedBucket) return;
+  const handleUploadComplete = (url: string, key: string) => {
+    // Invalidate the query to refresh the file list
+    queryClient.invalidateQueries({
+      queryKey: ["s3", "objects", selectedBucket],
+    });
+    setShowUploader(false);
+  };
 
-    try {
-      setIsUploading(true);
-      const s3Service = new S3Service(selectedBucket);
-      
-      // Read the file as array buffer
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      
-      // Upload the file to S3
-      const key = `uploads/${file.name}`;
-      await s3Service.uploadFile(key, buffer, file.type);
-      
-      // Invalidate the query to refresh the file list
-      window.location.reload();
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      alert(`Failed to upload file: ${error}`);
-    } finally {
-      setIsUploading(false);
-    }
+  const handleUploadError = (error: Error) => {
+    console.error("Error uploading file:", error);
+    alert(`Failed to upload file: ${error.message}`);
   };
 
   const actionBar = (
     <ActionBar
       primaryAction={{
-        label: "Upload File",
+        label: showUploader ? "Cancel Upload" : "Upload File",
         icon: <UploadIcon className="w-4 h-4" />,
-        onClick: () => fileInputRef.current?.click(),
+        onClick: () => setShowUploader(!showUploader),
         primary: true,
       }}
     />
@@ -253,31 +235,37 @@ function StoragePage() {
           </div>
         )}
 
-        {/* Hidden file input */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleFileUpload}
-        />
-
-        {/* Loading state */}
-        {isUploading && (
-          <div className="text-center py-4">
-            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">Uploading...</p>
+        {/* File uploader */}
+        {showUploader && selectedBucket && (
+          <div className="mb-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">
+              Upload File to {selectedBucket}
+            </h2>
+            <S3FileUpload
+              bucketName={selectedBucket}
+              onUploadComplete={handleUploadComplete}
+              onUploadError={handleUploadError}
+              acceptedFileTypes="*"
+              maxSizeMB={100}
+              folder="uploads"
+              showPreview={true}
+            />
           </div>
         )}
 
         {/* Bucket contents */}
-        {!isUploading && selectedBucket && (
+        {selectedBucket && (
           <div className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">Bucket Contents: {selectedBucket}</h2>
+            <h2 className="text-lg font-semibold mb-4">
+              Bucket Contents: {selectedBucket}
+            </h2>
             <React.Suspense
               fallback={
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-2 text-gray-600 dark:text-gray-400">Loading files...</p>
+                  <p className="mt-2 text-gray-600 dark:text-gray-400">
+                    Loading files...
+                  </p>
                 </div>
               }
             >
@@ -289,7 +277,9 @@ function StoragePage() {
         {buckets.length === 0 && (
           <div className="text-center py-8 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
             <StorageIcon className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-            <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">No S3 buckets found</h3>
+            <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">
+              No S3 buckets found
+            </h3>
             <p className="text-gray-500 dark:text-gray-400 mt-2 mb-4">
               Make sure your AWS credentials are correctly configured
             </p>
