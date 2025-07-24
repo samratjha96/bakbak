@@ -144,9 +144,9 @@ export const getS3Url = createServerFn()
   .handler(async ({ data }) => {
     const bucket = data.bucket || defaultBucket;
     // Get region from environment or default to us-east-1
-  const region = process.env.AWS_REGION || "us-east-1";
-  // Use path-style URL format to match our client configuration
-  return `https://s3.${region}.amazonaws.com/${bucket}/${data.key}`;
+    const region = process.env.AWS_REGION || "us-east-1";
+    // Use path-style URL format to match our client configuration
+    return `https://s3.${region}.amazonaws.com/${bucket}/${data.key}`;
   });
 
 /**

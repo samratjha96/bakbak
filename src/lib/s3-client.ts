@@ -18,10 +18,10 @@ export const s3Client = new S3Client({
   requestHandler: new NodeHttpHandler({
     // Increase timeout for better stability with large files
     connectionTimeout: 5000,
-    socketTimeout: 30000
+    socketTimeout: 30000,
   }),
   // Force path-style addressing is essential to avoid redirects with certain bucket names
   forcePathStyle: true,
   // Set the endpoint based on the region dynamically
-  endpoint: `https://s3.${region}.amazonaws.com`
+  endpoint: `https://s3.${region}.amazonaws.com`,
 });
