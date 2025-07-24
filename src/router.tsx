@@ -12,6 +12,25 @@ import { NotFound } from "./components/NotFound";
 export function createRouter() {
   const queryClient = new QueryClient();
 
+  // Add global error handler for dynamic imports
+  if (typeof window !== "undefined") {
+    window.addEventListener("error", (event) => {
+      const error = event.error;
+
+      // Check if this is a chunk loading error
+      if (
+        error &&
+        (error.message?.includes(
+          "Failed to fetch dynamically imported module",
+        ) ||
+          error.message?.includes("Import failed for module"))
+      ) {
+        console.error("Failed to load chunk, reloading page...", error);
+        window.location.reload();
+      }
+    });
+  }
+
   return routerWithQueryClient(
     createTanStackRouter({
       routeTree,

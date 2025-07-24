@@ -7,63 +7,92 @@ import {
   PlayIcon,
   CloseIcon,
   SaveIcon,
+  PauseIcon,
 } from "~/components/ui/Icons";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createRecording, formatDuration } from "~/utils/recordings";
+import { useAudioRecorder } from "~/hooks/useAudioRecorder";
+import { AudioWaveform } from "~/components/AudioWaveform";
+import { uploadAudioRecording } from "~/utils/audioUploader";
 
 function NewRecordingPage() {
-  const [isRecording, setIsRecording] = React.useState(false);
-  const [timer, setTimer] = React.useState(0);
   const [title, setTitle] = React.useState("");
   const [language, setLanguage] = React.useState("ja");
   const [initialNotes, setInitialNotes] = React.useState("");
+  const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Timer ref for cleanup
-  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+  // Use our custom hook for audio recording
+  const {
+    isRecording,
+    isPaused,
+    duration,
+    audioBlob,
+    audioUrl: recordedAudioUrl,
+    analyserNode,
+    error,
+    startRecording,
+    stopRecording,
+    pauseRecording,
+    resumeRecording,
+    resetRecording,
+  } = useAudioRecorder();
 
-  const startRecording = () => {
-    setIsRecording(true);
-    setTimer(0);
-
-    // Start timer
-    timerRef.current = setInterval(() => {
-      setTimer((prev) => prev + 1);
-    }, 1000);
-  };
-
-  const stopRecording = () => {
-    setIsRecording(false);
-
-    // Clear timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  const toggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
-
-  // Format timer as MM:SS
-  const formattedTime = formatDuration(timer);
-
-  // Clean up timer on unmount
+  // Update the audioUrl when recording is complete
   React.useEffect(() => {
+    if (recordedAudioUrl) {
+      setAudioUrl(recordedAudioUrl);
+    }
+  }, [recordedAudioUrl]);
+
+  // Handle play/pause of recorded audio
+  const togglePlayback = () => {
+    if (!audioRef.current || !audioUrl) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch((err) => {
+        console.error("Error playing audio:", err);
+      });
+    }
+  };
+
+  // Listen for audio play/pause events
+  React.useEffect(() => {
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => setIsPlaying(false);
+
+    audioElement.addEventListener("play", handlePlay);
+    audioElement.addEventListener("pause", handlePause);
+    audioElement.addEventListener("ended", handleEnded);
+
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      audioElement.removeEventListener("play", handlePlay);
+      audioElement.removeEventListener("pause", handlePause);
+      audioElement.removeEventListener("ended", handleEnded);
     };
-  }, []);
+  }, [audioRef.current, audioUrl]);
+
+  // Show error messages if recording fails
+  React.useEffect(() => {
+    if (error) {
+      console.error("Recording error:", error);
+      // You could add a toast notification here
+    }
+  }, [error]);
+
+  // Format time as MM:SS
+  const formattedTime = formatDuration(duration);
 
   // Mutation to create a new recording
   const createRecordingMutation = useMutation({
@@ -74,22 +103,47 @@ function NewRecordingPage() {
     },
   });
 
-  const handleSave = () => {
-    // Create a new recording
-    createRecordingMutation.mutate({
-      data: {
-        title: title || "Untitled Recording",
-        language,
-        duration: timer,
-        audioUrl: "", // In a real app, we would save the audio file
-        notes: initialNotes
-          ? {
-              content: initialNotes,
-              vocabulary: [],
-            }
-          : undefined,
-      },
-    });
+  // Track the upload status
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
+
+  const handleSave = async () => {
+    if (!audioBlob) {
+      console.error("No audio recording to save");
+      setUploadError(
+        "No audio recording to save. Please record something first.",
+      );
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      // Upload the audio file to S3
+      const uploadedUrl = await uploadAudioRecording(audioBlob, language);
+
+      // Create a new recording with the uploaded URL
+      createRecordingMutation.mutate({
+        data: {
+          title: title || "Untitled Recording",
+          language,
+          duration: duration,
+          audioUrl: uploadedUrl,
+          notes: initialNotes
+            ? {
+                content: initialNotes,
+                vocabulary: [],
+              }
+            : undefined,
+        },
+      });
+    } catch (err) {
+      console.error("Error saving recording:", err);
+      setUploadError("Failed to upload recording. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   // Action bar for both mobile and desktop
@@ -101,10 +155,11 @@ function NewRecordingPage() {
         to: "/recordings",
       }}
       primaryAction={{
-        label: "Save Recording",
+        label: isUploading ? "Uploading..." : "Save Recording",
         icon: <SaveIcon className="w-4 h-4" />,
         onClick: handleSave,
         primary: true,
+        disabled: createRecordingMutation.isPending || isUploading,
       }}
     />
   );
@@ -129,48 +184,75 @@ function NewRecordingPage() {
             <div className="bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 rounded-lg p-4 md:p-6 mb-6">
               {/* Waveform container with fixed aspect ratio */}
               <div className="relative w-full aspect-[4/1] mb-6 flex items-center justify-center">
-                {/* Waveform placeholder */}
-                <div className="w-full h-10 md:h-16 bg-gradient-to-b from-gray-300 to-gray-300 dark:from-gray-700 dark:to-gray-700 bg-[length:100%_20%,100%_20%,100%_20%] bg-[position:0_0,0_50%,0_100%] bg-no-repeat opacity-50 rounded" />
-
-                {/* Active waveform - centered absolutely */}
-                {isRecording && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex gap-1 md:gap-2">
-                      {[...Array(10)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-[3px] md:w-[4px] h-[10px] bg-primary rounded-sm"
-                          style={{
-                            animation: "waveform 0.5s infinite alternate",
-                            animationDelay: `${i * 0.1}s`,
-                          }}
-                        />
-                      ))}
-                    </div>
+                {/* Audio waveform visualization */}
+                {analyserNode ? (
+                  <div className="w-full h-full">
+                    <AudioWaveform
+                      analyserNode={analyserNode}
+                      isPaused={isPaused}
+                      width={300}
+                      height={60}
+                      barColor="#101828"
+                    />
                   </div>
+                ) : (
+                  /* Waveform placeholder when not recording */
+                  <div className="w-full h-10 md:h-16 bg-gradient-to-b from-gray-300 to-gray-300 dark:from-gray-700 dark:to-gray-700 bg-[length:100%_20%,100%_20%,100%_20%] bg-[position:0_0,0_50%,0_100%] bg-no-repeat opacity-50 rounded" />
                 )}
               </div>
 
               <div className="flex flex-col items-center">
                 {/* Recording controls - centered flex layout */}
                 <div className="flex items-center justify-center gap-6 md:gap-8 mb-4">
-                  <button className="btn flex-none">
-                    <PlayIcon className="w-6 h-6 md:w-8 md:h-8" />
-                  </button>
+                  {/* Play/Pause button - only enabled when there's recorded audio */}
                   <button
-                    className={`btn flex-none ${
-                      isRecording
-                        ? "bg-error text-white hover:bg-red-600"
-                        : "bg-white dark:bg-gray-800 shadow-md"
-                    } p-4 md:p-6 rounded-full shadow-md hover:shadow-lg transition-all`}
-                    onClick={toggleRecording}
+                    className={`btn flex-none ${!audioUrl ? "opacity-50 cursor-not-allowed" : ""}`}
+                    onClick={togglePlayback}
+                    disabled={!audioUrl}
                   >
-                    <RecordIcon className="w-6 h-6 md:w-8 md:h-8" />
+                    {isPlaying ? (
+                      <PauseIcon className="w-6 h-6 md:w-8 md:h-8" />
+                    ) : (
+                      <PlayIcon className="w-6 h-6 md:w-8 md:h-8" />
+                    )}
                   </button>
-                  <button className="btn flex-none">
-                    <PlayIcon className="w-6 h-6 md:w-8 md:h-8" />
-                  </button>
+
+                  {/* Record/Stop button */}
+                  {isRecording ? (
+                    <button
+                      className="btn flex-none bg-error text-white hover:bg-red-600 p-4 md:p-6 rounded-full shadow-md hover:shadow-lg transition-all"
+                      onClick={stopRecording}
+                    >
+                      <RecordIcon className="w-6 h-6 md:w-8 md:h-8" />
+                    </button>
+                  ) : (
+                    <button
+                      className="btn flex-none bg-white dark:bg-gray-800 shadow-md p-4 md:p-6 rounded-full shadow-md hover:shadow-lg transition-all"
+                      onClick={startRecording}
+                    >
+                      <RecordIcon className="w-6 h-6 md:w-8 md:h-8" />
+                    </button>
+                  )}
+
+                  {/* Pause/Resume button - only visible when recording */}
+                  {isRecording && (
+                    <button
+                      className="btn flex-none"
+                      onClick={isPaused ? resumeRecording : pauseRecording}
+                    >
+                      {isPaused ? (
+                        <PlayIcon className="w-6 h-6 md:w-8 md:h-8" />
+                      ) : (
+                        <PauseIcon className="w-6 h-6 md:w-8 md:h-8" />
+                      )}
+                    </button>
+                  )}
                 </div>
+
+                {/* Hidden audio element for playback */}
+                {audioUrl && (
+                  <audio ref={audioRef} src={audioUrl} className="hidden" />
+                )}
 
                 {/* Timer - prominent and centered */}
                 <div className="text-lg md:text-xl font-medium text-gray-700 dark:text-gray-300">
@@ -242,6 +324,13 @@ function NewRecordingPage() {
                 </div>
 
                 {/* Desktop action buttons - right aligned */}
+                {/* Show upload error if any */}
+                {uploadError && (
+                  <div className="p-3 mb-4 text-sm text-error-700 bg-error-100 rounded-lg">
+                    {uploadError}
+                  </div>
+                )}
+
                 <div className="hidden lg:flex justify-end gap-4 mt-6">
                   <button
                     className="py-2.5 px-5 border border-gray-200 dark:border-gray-800 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -250,9 +339,9 @@ function NewRecordingPage() {
                     Cancel
                   </button>
                   <button
-                    className={`py-2.5 px-5 bg-primary text-white rounded-lg hover:bg-secondary transition-colors ${createRecordingMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`py-2.5 px-5 bg-primary text-white rounded-lg hover:bg-secondary transition-colors ${createRecordingMutation.isPending || isUploading ? "opacity-50 cursor-not-allowed" : ""}`}
                     onClick={handleSave}
-                    disabled={createRecordingMutation.isPending}
+                    disabled={createRecordingMutation.isPending || isUploading}
                   >
                     Save Recording
                   </button>

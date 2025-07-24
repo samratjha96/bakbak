@@ -68,6 +68,22 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootComponent() {
+  // Add vite:preloadError event listener to handle outdated chunks
+  React.useEffect(() => {
+    const handleVitePreloadError = () => {
+      console.log("Detected outdated chunk, reloading page...");
+      window.location.reload();
+    };
+
+    // Add event listener
+    window.addEventListener("vite:preloadError", handleVitePreloadError);
+
+    // Remove event listener on cleanup
+    return () => {
+      window.removeEventListener("vite:preloadError", handleVitePreloadError);
+    };
+  }, []);
+
   return (
     <RootDocument>
       <Outlet />
