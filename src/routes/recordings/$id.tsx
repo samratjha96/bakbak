@@ -1,16 +1,20 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import * as React from 'react';
-import { Layout } from '~/components/layout';
-import { ActionBar } from '~/components/layout';
-import { BackIcon, PlayIcon, EditIcon, SaveIcon } from '~/components/ui/Icons';
+import * as React from "react";
+import { Layout } from "~/components/layout";
+import { ActionBar } from "~/components/layout";
+import { BackIcon, PlayIcon, EditIcon, SaveIcon } from "~/components/ui/Icons";
 import { Link } from "@tanstack/react-router";
-import { useNavigate } from '@tanstack/react-router';
-import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
-import { 
+import { useNavigate } from "@tanstack/react-router";
+import {
+  useMutation,
+  useSuspenseQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
   recordingQueryOptions,
   formatDuration,
   updateRecordingTranscription,
-  updateRecordingNotes
+  updateRecordingNotes,
 } from "~/utils/recordings";
 
 // A dynamic recording view that shows transcription and notes in one page
@@ -18,51 +22,55 @@ function RecordingDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   // Fetch recording data
   const { data: recording } = useSuspenseQuery(recordingQueryOptions(id));
-  
-  const [transcriptionText, setTranscriptionText] = React.useState(recording?.transcription?.text || '');
-  const [notesContent, setNotesContent] = React.useState(recording?.notes?.content || '');
+
+  const [transcriptionText, setTranscriptionText] = React.useState(
+    recording?.transcription?.text || "",
+  );
+  const [notesContent, setNotesContent] = React.useState(
+    recording?.notes?.content || "",
+  );
   const [editingTranscription, setEditingTranscription] = React.useState(false);
   const [editingNotes, setEditingNotes] = React.useState(false);
-  
+
   React.useEffect(() => {
     if (recording) {
-      setTranscriptionText(recording.transcription?.text || '');
-      setNotesContent(recording.notes?.content || '');
+      setTranscriptionText(recording.transcription?.text || "");
+      setNotesContent(recording.notes?.content || "");
     }
   }, [recording]);
-  
+
   // Format duration as MM:SS
   const formattedDuration = formatDuration(recording.duration);
-  
+
   // Format date
   const formattedDate = React.useMemo(() => {
     return new Date(recording.createdAt).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   }, [recording.createdAt]);
-  
+
   // Mutations for updating transcription and notes
   const updateTranscriptionMutation = useMutation({
     mutationFn: updateRecordingTranscription,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recording', id] });
+      queryClient.invalidateQueries({ queryKey: ["recording", id] });
       setEditingTranscription(false);
-    }
+    },
   });
-  
+
   const updateNotesMutation = useMutation({
     mutationFn: updateRecordingNotes,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recording', id] });
+      queryClient.invalidateQueries({ queryKey: ["recording", id] });
       setEditingNotes(false);
-    }
+    },
   });
-  
+
   const handleSaveTranscription = () => {
     updateTranscriptionMutation.mutate({
       data: {
@@ -70,44 +78,44 @@ function RecordingDetailPage() {
         transcription: {
           text: transcriptionText,
           isComplete: true,
-        }
-      }
+        },
+      },
     });
   };
-  
+
   const handleSaveNotes = () => {
     updateNotesMutation.mutate({
       data: {
         id,
         notes: {
-          content: notesContent
-        }
-      }
+          content: notesContent,
+        },
+      },
     });
   };
-  
+
   const vocabularyItems = recording.notes?.vocabulary || [];
-  
+
   // Action bar for both mobile and desktop
   const actionBar = (
     <ActionBar
       secondaryAction={{
-        label: 'Back',
+        label: "Back",
         icon: <BackIcon className="w-4 h-4" />,
-        to: '/recordings',
+        to: "/recordings",
       }}
       primaryAction={{
-        label: 'Save Changes',
+        label: "Save Changes",
         icon: <SaveIcon className="w-4 h-4" />,
         onClick: () => {
           if (editingTranscription) handleSaveTranscription();
           if (editingNotes) handleSaveNotes();
         },
-        primary: true
+        primary: true,
       }}
     />
   );
-  
+
   return (
     <Layout actionBarContent={actionBar}>
       <div className="container py-4">
@@ -122,26 +130,26 @@ function RecordingDetailPage() {
               <span>{formattedDate}</span>
             </div>
           </div>
-          
+
           <button className="flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             <PlayIcon className="w-5 h-5 text-primary" />
             Play Recording
           </button>
         </div>
-        
+
         {/* Transcription Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">Transcription</h2>
-            <button 
-              onClick={() => setEditingTranscription(!editingTranscription)} 
+            <button
+              onClick={() => setEditingTranscription(!editingTranscription)}
               className="flex items-center text-sm text-primary hover:text-secondary"
             >
               <EditIcon className="w-4 h-4 mr-1" />
-              {editingTranscription ? 'Cancel' : 'Edit'}
+              {editingTranscription ? "Cancel" : "Edit"}
             </button>
           </div>
-          
+
           {editingTranscription ? (
             <div>
               <textarea
@@ -150,7 +158,7 @@ function RecordingDetailPage() {
                 onChange={(e) => setTranscriptionText(e.target.value)}
               />
               <div className="flex justify-end">
-                <button 
+                <button
                   onClick={handleSaveTranscription}
                   className="py-1 px-4 bg-primary text-white rounded hover:bg-secondary transition-colors"
                 >
@@ -161,9 +169,9 @@ function RecordingDetailPage() {
           ) : (
             <>
               <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-800 rounded-lg mb-2">
-                {transcriptionText || 'No transcription available yet.'}
+                {transcriptionText || "No transcription available yet."}
               </div>
-              
+
               {recording.transcription?.romanization && (
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-sm text-gray-500 dark:text-gray-400">
                   {recording.transcription.romanization}
@@ -172,20 +180,20 @@ function RecordingDetailPage() {
             </>
           )}
         </div>
-        
+
         {/* Notes Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">Notes</h2>
-            <button 
+            <button
               onClick={() => setEditingNotes(!editingNotes)}
               className="flex items-center text-sm text-primary hover:text-secondary"
             >
               <EditIcon className="w-4 h-4 mr-1" />
-              {editingNotes ? 'Cancel' : 'Edit'}
+              {editingNotes ? "Cancel" : "Edit"}
             </button>
           </div>
-          
+
           {editingNotes ? (
             <div>
               <textarea
@@ -194,7 +202,7 @@ function RecordingDetailPage() {
                 onChange={(e) => setNotesContent(e.target.value)}
               />
               <div className="flex justify-end">
-                <button 
+                <button
                   onClick={handleSaveNotes}
                   className="py-1 px-4 bg-primary text-white rounded hover:bg-secondary transition-colors"
                 >
@@ -204,11 +212,11 @@ function RecordingDetailPage() {
             </div>
           ) : (
             <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-800 rounded-lg mb-2">
-              {notesContent || 'No notes available yet.'}
+              {notesContent || "No notes available yet."}
             </div>
           )}
         </div>
-        
+
         {/* Vocabulary Section */}
         {vocabularyItems.length > 0 && (
           <div className="mb-8">
@@ -231,7 +239,9 @@ function RecordingDetailPage() {
 export const Route = createFileRoute("/recordings/$id")({
   loader: async ({ params: { id }, context }) => {
     try {
-      const data = await context.queryClient.ensureQueryData(recordingQueryOptions(id));
+      const data = await context.queryClient.ensureQueryData(
+        recordingQueryOptions(id),
+      );
       return {
         title: data.title,
       };
@@ -248,10 +258,7 @@ export const Route = createFileRoute("/recordings/$id")({
       <Layout>
         <div className="container py-8 text-center">
           <h2 className="text-xl font-medium mb-4">Recording not found</h2>
-          <Link 
-            to="/recordings"
-            className="text-primary hover:text-secondary"
-          >
+          <Link to="/recordings" className="text-primary hover:text-secondary">
             Return to Recordings
           </Link>
         </div>
