@@ -5,6 +5,7 @@ import {
   MicrophoneIcon,
   DocumentIcon,
   TranslateIcon,
+  StorageIcon,
 } from "~/components/ui/Icons";
 
 interface NavigationProps {
@@ -27,6 +28,11 @@ const navItems: NavItem[] = [
     label: "New Recording",
     to: "/recordings/new",
     icon: <MicrophoneIcon className="w-5 h-5" />,
+  },
+  {
+    label: "Storage",
+    to: "/storage",
+    icon: <StorageIcon className="w-5 h-5" />,
   },
 ];
 
