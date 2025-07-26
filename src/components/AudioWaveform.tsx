@@ -3,6 +3,7 @@ import { useRef, useEffect } from "react";
 interface AudioWaveformProps {
   analyserNode: AnalyserNode | null;
   isPaused: boolean;
+  isRecording: boolean;
   width?: number;
   height?: number;
   barWidth?: number;
@@ -13,6 +14,7 @@ interface AudioWaveformProps {
 export function AudioWaveform({
   analyserNode,
   isPaused,
+  isRecording,
   width = 300,
   height = 60,
   barWidth = 4,
@@ -22,6 +24,7 @@ export function AudioWaveform({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
 
+  // Main effect to handle visualization
   useEffect(() => {
     if (!analyserNode || !canvasRef.current) return;
 
@@ -40,24 +43,25 @@ export function AudioWaveform({
     const bufferLength = analyserNode.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
-    const draw = () => {
-      if (isPaused) {
-        // Don't animate if paused, but don't cancel the frame either
-        animationRef.current = requestAnimationFrame(draw);
-        return;
-      }
-
-      animationRef.current = requestAnimationFrame(draw);
+    // Get actual data from the analyser if we're recording
+    if (isRecording) {
       analyserNode.getByteFrequencyData(dataArray);
+    } else {
+      // Generate sample data for non-recording state
+      for (let i = 0; i < bufferLength; i++) {
+        // Generate random values for a nice static waveform
+        dataArray[i] = Math.floor(Math.random() * 40) + 10;
+      }
+    }
 
+    // This function draws bars based on the current dataArray
+    const drawBars = () => {
       // Clear canvas
       canvasCtx.clearRect(0, 0, width, height);
 
       // Calculate how many bars we can fit
       const totalBarWidth = barWidth + barGap;
       const numBars = Math.min(Math.floor(width / totalBarWidth), bufferLength);
-
-      // Sample step - we don't need to use all frequency data
       const step = Math.ceil(bufferLength / numBars);
 
       // Draw each bar
@@ -84,16 +88,54 @@ export function AudioWaveform({
       }
     };
 
-    // Start the animation
-    draw();
+    // The animation function
+    const animate = () => {
+      // Only update data if we're recording and not paused
+      if (isRecording && !isPaused) {
+        analyserNode.getByteFrequencyData(dataArray);
+      }
+
+      drawBars();
+
+      // Only continue animation if we're recording
+      if (isRecording) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    // Draw initial visualization
+    drawBars();
+
+    // Start animation loop only if recording
+    if (isRecording) {
+      animationRef.current = requestAnimationFrame(animate);
+    }
 
     // Cleanup
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
+        animationRef.current = undefined;
       }
     };
-  }, [analyserNode, barColor, barGap, barWidth, height, isPaused, width]);
+  }, [
+    analyserNode,
+    barColor,
+    barGap,
+    barWidth,
+    height,
+    isPaused,
+    isRecording,
+    width,
+  ]);
+
+  // When isRecording changes from true to false, explicitly cancel animations
+  useEffect(() => {
+    if (!isRecording && animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = undefined;
+    }
+  }, [isRecording]);
 
   return (
     <canvas

@@ -15,6 +15,7 @@ import { createRecording, formatDuration } from "~/utils/recordings";
 import { useAudioRecorder } from "~/hooks/useAudioRecorder";
 import { AudioWaveform } from "~/components/AudioWaveform";
 import { uploadAudioRecording } from "~/utils/audioUploader";
+import { languages } from "~/config/languages";
 
 function NewRecordingPage() {
   const [title, setTitle] = React.useState("");
@@ -190,6 +191,7 @@ function NewRecordingPage() {
                     <AudioWaveform
                       analyserNode={analyserNode}
                       isPaused={isPaused}
+                      isRecording={isRecording}
                       width={300}
                       height={60}
                       barColor="#101828"
@@ -298,11 +300,11 @@ function NewRecordingPage() {
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
                   >
-                    <option value="ja">Japanese</option>
-                    <option value="ko">Korean</option>
-                    <option value="zh">Mandarin</option>
-                    <option value="fr">French</option>
-                    <option value="es">Spanish</option>
+                    {languages.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.name}{lang.nativeName ? ` (${lang.nativeName})` : ""}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

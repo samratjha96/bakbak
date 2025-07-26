@@ -69,4 +69,11 @@ The application uses TanStack Query for data fetching:
 
 - This project is set up as a demonstration of TanStack Router features
 - The application shows examples of route layouts, dynamic routes, and API routes
-- The project follows a typical TanStack Router structure with file-based routing
+
+## Code Quality and Maintenance
+
+- Always run npx prettier **/*.ts* --write after a big feature to lint the codebase
+
+## Build and Run Guidelines
+
+- Use npm for all build and run commands
