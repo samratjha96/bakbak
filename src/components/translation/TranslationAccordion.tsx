@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   TranslateIcon,
@@ -7,10 +7,10 @@ import {
 } from "~/components/ui/Icons";
 import { TranslationStatus } from "./TranslationStatus";
 import type { TranslationStatus as TStatus } from "./TranslationStatus";
-import { updateRecordingTranslation } from "~/utils/recordings";
+import { updateRecordingTranslation } from "~/api/recordings";
 import { translationDataQueryOptions } from "~/utils/dataAccess";
 import { createLogger } from "~/utils/logger";
-import { handleComponentError } from "~/utils/errorHandling";
+import { getErrorMessage } from "~/utils/errorHandling";
 
 // Create component-specific logger
 const logger = createLogger("TranslationAccordion");
@@ -53,7 +53,6 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
     data: translationData,
     isLoading,
     error,
-    refetch,
   } = useQuery({
     ...translationDataQueryOptions(recordingId),
     select: (data) => ({
@@ -67,35 +66,33 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
     // Only enable if we have a recording ID and the accordion is open
     enabled: !!recordingId && isOpen,
     onError: (err) => {
-      handleComponentError(
-        err,
-        `TranslationAccordion.fetchTranslation(${recordingId})`,
+      logger.error(
+        `Error fetching translation: ${getErrorMessage(err, `TranslationAccordion(${recordingId})`)}`,
       );
     },
   });
 
-  // Update our local state when data changes
-  useEffect(() => {
-    if (translationData) {
-      setTranslationText(translationData.translationText || "");
-      setTranslationLanguage(
-        translationData.translationLanguage || initialTranslationLanguage,
-      );
-      setLastUpdated(
-        translationData.translationLastUpdated || initialLastUpdated,
-      );
+  // Use derived values from query data instead of separate state
+  const displayTranslationText = useMemo(
+    () => translationData?.translationText || initialTranslationText || "",
+    [translationData?.translationText, initialTranslationText],
+  );
 
-      // Set status based on data
-      if (translationData.translationText) {
-        setStatus("COMPLETED");
-      }
-    }
-  }, [
-    translationData,
-    initialTranslationLanguage,
-    initialLastUpdated,
-    initialTranslationText,
-  ]);
+  const displayTranslationLanguage = useMemo(
+    () =>
+      translationData?.translationLanguage || initialTranslationLanguage || "",
+    [translationData?.translationLanguage, initialTranslationLanguage],
+  );
+
+  const displayLastUpdated = useMemo(
+    () => translationData?.translationLastUpdated || initialLastUpdated,
+    [translationData?.translationLastUpdated, initialLastUpdated],
+  );
+
+  const displayStatus = useMemo(
+    () => (displayTranslationText ? "COMPLETED" : initialStatus),
+    [displayTranslationText, initialStatus],
+  );
 
   // Mutation to create translation using server function
   const createTranslationMutation = useMutation({
@@ -104,68 +101,52 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
         `Starting translation for recording ${recordingId} to language ${targetLanguage}`,
       );
 
-      try {
-        // Use the targeted query function for fetching data
-        const recording = await queryClient.fetchQuery({
-          ...translationDataQueryOptions(recordingId),
-        });
+      // Verify transcription exists by fetching basic recording data
+      const recordingData = await queryClient.fetchQuery({
+        queryKey: ["recording", recordingId],
+        queryFn: () => queryClient.getQueryData(["recording", recordingId]),
+      });
 
-        // Verify transcription exists by fetching basic recording data
-        // This is safer than making assumptions about the recording state
-        const recordingData = await queryClient.fetchQuery({
-          queryKey: ["recording", recordingId],
-          queryFn: () => queryClient.getQueryData(["recording", recordingId]),
-        });
-
-        if (!recordingData.isTranscribed || !recordingData.transcriptionText) {
-          throw new Error("No transcription available to translate");
-        }
-
-        logger.info(
-          `Found transcription, creating translation for ${recordingId}`,
-        );
-
-        // Create a simulated translation (in a real app, this would use a translation service)
-        const translatedText = `${recordingData.transcriptionText}\n\n[Translated to ${targetLanguage}]`;
-
-        // Use the server function to update the recording with translation
-        const updatedRecording = await updateRecordingTranslation({
-          data: {
-            id: recordingId,
-            translationText: translatedText,
-            translationLanguage: targetLanguage,
-          },
-        });
-
-        logger.info(`Translation successfully created for ${recordingId}`);
-
-        // Return the updated translation data
-        return {
-          translationText: updatedRecording.translationText,
-          translationLanguage: updatedRecording.translationLanguage,
-          translationLastUpdated: updatedRecording.translationLastUpdated,
-        };
-      } catch (error) {
-        return handleComponentError(
-          error,
-          `TranslationAccordion.createTranslation(${recordingId})`,
-        );
+      if (!recordingData.isTranscribed || !recordingData.transcriptionText) {
+        throw new Error("No transcription available to translate");
       }
+
+      logger.info(
+        `Found transcription, creating translation for ${recordingId}`,
+      );
+
+      // Create a simulated translation (in a real app, this would use a translation service)
+      const translatedText = `${recordingData.transcriptionText}\n\n[Translated to ${targetLanguage}]`;
+
+      // Use the server function to update the recording with translation
+      const updatedRecording = await updateRecordingTranslation({
+        data: {
+          id: recordingId,
+          translationText: translatedText,
+          translationLanguage: targetLanguage,
+        },
+      });
+
+      logger.info(`Translation successfully created for ${recordingId}`);
+
+      // Return the updated translation data
+      return {
+        translationText: updatedRecording.translationText,
+        translationLanguage: updatedRecording.translationLanguage,
+        translationLastUpdated: updatedRecording.translationLastUpdated,
+      };
     },
     onSuccess: () => {
-      // Set status to completed
-      setStatus("COMPLETED");
-
-      // Invalidate queries to refresh data
+      // Just invalidate queries - React Query will handle refetching
       queryClient.invalidateQueries({ queryKey: ["translation", recordingId] });
       queryClient.invalidateQueries({ queryKey: ["recording", recordingId] });
-
-      // Refetch the translation
-      refetch();
     },
-    onError: () => {
+    onError: (error) => {
       // Set status to failed
       setStatus("FAILED");
+      logger.error(
+        `Error creating translation: ${getErrorMessage(error, `TranslationAccordion.createTranslation(${recordingId})`)}`,
+      );
     },
   });
 
@@ -191,17 +172,17 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
         <div className="flex items-center space-x-2">
           <TranslateIcon className="w-5 h-5 text-primary dark:text-primary-light" />
           <span className="font-medium">Translation</span>
-          {translationLanguage && (
+          {displayTranslationLanguage && (
             <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
-              ({translationLanguage})
+              ({displayTranslationLanguage})
             </span>
           )}
         </div>
         <div className="flex items-center">
           {/* Last updated timestamp if available */}
-          {lastUpdated && (
+          {displayLastUpdated && (
             <span className="text-xs text-gray-500 dark:text-gray-400 mr-3">
-              Updated {new Date(lastUpdated).toLocaleDateString()}
+              Updated {new Date(displayLastUpdated).toLocaleDateString()}
             </span>
           )}
           {/* Chevron icon */}
@@ -224,7 +205,7 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
           {status === "IN_PROGRESS" && (
             <TranslationStatus
               status={status}
-              lastUpdated={lastUpdated}
+              lastUpdated={displayLastUpdated}
               className="mb-4"
             />
           )}
@@ -267,7 +248,7 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
           {/* If there's no translation yet */}
           {!isLoading &&
             !error &&
-            !translationText &&
+            !displayTranslationText &&
             !createTranslationMutation.isPending && (
               <div className="text-center py-4">
                 <p className="text-gray-500 dark:text-gray-400 mb-4">
@@ -285,17 +266,17 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
             )}
 
           {/* If translation is available */}
-          {!isLoading && !error && translationText && (
+          {!isLoading && !error && displayTranslationText && (
             <>
-              {status === "COMPLETED" && (
+              {displayStatus === "COMPLETED" && (
                 <TranslationStatus
-                  status={status}
-                  lastUpdated={lastUpdated}
+                  status={displayStatus}
+                  lastUpdated={displayLastUpdated}
                   className="mb-4"
                 />
               )}
               <div className="whitespace-pre-wrap bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                {translationText}
+                {displayTranslationText}
               </div>
             </>
           )}

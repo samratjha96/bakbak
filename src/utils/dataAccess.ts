@@ -9,7 +9,7 @@ import {
   Transcription,
   TranscriptionStatus,
 } from "~/types/recording";
-import { fetchRecording } from "./recordings";
+import { fetchRecording } from "~/api/recordings";
 import { createLogger } from "./logger";
 import { AppError } from "./errorHandling";
 

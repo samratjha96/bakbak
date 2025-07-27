@@ -8,7 +8,7 @@ export const formatDuration = (seconds: number): string => {
     .toString()
     .padStart(2, "0");
   const remainingSeconds = (seconds % 60).toString().padStart(2, "0");
-  return `${minutes}:${seconds}`;
+  return `${minutes}:${remainingSeconds}`;
 };
 
 /**
@@ -48,6 +48,5 @@ export const getUniqueLanguagesCount = (recordings: Recording[]): number => {
 export const getRecordingsThisWeek = (recordings: Recording[]): number => {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
   return recordings.filter((r) => r.createdAt > weekAgo).length;
 };

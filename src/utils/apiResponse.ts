@@ -1,6 +1,7 @@
 /**
  * Simplified API response utilities
  */
+import { HTTP_STATUS } from "./httpStatus";
 
 // Standard headers for JSON responses
 const JSON_HEADERS = {
@@ -49,11 +50,38 @@ export function apiError(
   );
 }
 
-// Export HTTP status constants for common use cases
-export const HTTP_STATUS = {
-  OK: 200,
-  BAD_REQUEST: 400,
-  NOT_FOUND: 404,
-  METHOD_NOT_ALLOWED: 405,
-  INTERNAL_SERVER_ERROR: 500,
-};
+/**
+ * Creates a standardized not found response
+ * @param message - Optional custom message
+ * @returns Response object with 404 status
+ */
+export function apiNotFound(message = "Resource not found"): Response {
+  return apiError(message, HTTP_STATUS.NOT_FOUND);
+}
+
+/**
+ * Creates a standardized bad request response
+ * @param message - Optional custom message
+ * @returns Response object with 400 status
+ */
+export function apiBadRequest(message = "Invalid request"): Response {
+  return apiError(message, HTTP_STATUS.BAD_REQUEST);
+}
+
+/**
+ * Creates a standardized method not allowed response
+ * @param allowedMethods - List of allowed HTTP methods
+ * @returns Response object with 405 status
+ */
+export function apiMethodNotAllowed(allowedMethods: string[] = []): Response {
+  const additionalHeaders =
+    allowedMethods.length > 0
+      ? { Allow: allowedMethods.join(", ") }
+      : undefined;
+
+  return apiError(
+    "Method not allowed",
+    HTTP_STATUS.METHOD_NOT_ALLOWED,
+    additionalHeaders,
+  );
+}

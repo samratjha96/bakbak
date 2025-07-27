@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import * as React from "react";
 import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
@@ -11,11 +12,89 @@ import {
 } from "~/components/ui/Icons";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createRecording, formatDuration } from "~/utils/recordings";
+import { createRecording } from "~/api/recordings";
+import { formatDuration } from "~/utils/formatting";
 import { useAudioRecorder } from "~/hooks/useAudioRecorder";
 import { AudioWaveform } from "~/components/AudioWaveform";
-import { uploadAudioRecording } from "~/utils/audioUploader";
 import { languages } from "~/config/languages";
+import { useSession } from "~/lib/auth-client";
+import { getPresignedUploadUrl, getS3Url } from "~/server/s3";
+import { RecordingStoragePaths } from "~/services/storage/RecordingStoragePaths";
+
+// Server function co-located with the route that uses it
+const uploadAudioRecording = createServerFn({ method: "POST" })
+  .validator((data) => {
+    if (!(data instanceof FormData)) {
+      throw new Error("Invalid form data");
+    }
+
+    const audioFile = data.get("audioFile") as File;
+    const userId = data.get("userId") as string;
+    const fileExtension = (data.get("fileExtension") as string) || "webm";
+
+    if (!userId) {
+      throw new Error("User ID is required for recording upload");
+    }
+
+    if (!audioFile || !(audioFile instanceof File)) {
+      throw new Error("Valid audio file is required for upload");
+    }
+
+    return { audioFile, userId, fileExtension };
+  })
+  .handler(async ({ data: { audioFile, userId, fileExtension } }) => {
+    // Convert File to Blob for S3 upload
+    const audioBlob = new Blob([await audioFile.arrayBuffer()], {
+      type: `audio/${fileExtension}`,
+    });
+
+    // Generate a structured path using the RecordingStoragePaths utility
+    const storagePath = RecordingStoragePaths.getAudioPath(
+      userId,
+      fileExtension,
+    );
+    const recordingUUID =
+      RecordingStoragePaths.extractRecordingUUID(storagePath);
+
+    if (!recordingUUID) {
+      throw new Error(
+        "Failed to generate recording UUID - check system requirements",
+      );
+    }
+
+    // Get a presigned URL from the server function
+    const presignedUrl = await getPresignedUploadUrl({
+      data: {
+        key: storagePath,
+        contentType: `audio/${fileExtension}`,
+      },
+    });
+
+    // Upload the file directly to S3
+    const response = await fetch(presignedUrl, {
+      method: "PUT",
+      body: audioBlob,
+      headers: {
+        "Content-Type": `audio/${fileExtension}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `S3 upload failed with status ${response.status}: ${response.statusText}`,
+      );
+    }
+
+    // Get the public URL for the uploaded file
+    const fileUrl = await getS3Url({ data: { key: storagePath } });
+
+    return {
+      url: fileUrl,
+      recordingUUID,
+      storagePath,
+      userId,
+    };
+  });
 
 function NewRecordingPage() {
   const [title, setTitle] = React.useState("");
@@ -27,6 +106,7 @@ function NewRecordingPage() {
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   // Use our custom hook for audio recording
   const {
@@ -117,12 +197,28 @@ function NewRecordingPage() {
       return;
     }
 
+    if (!session?.user?.id) {
+      setUploadError("You must be logged in to save recordings.");
+      return;
+    }
+
     setIsUploading(true);
     setUploadError(null);
 
     try {
-      // Upload the audio file to S3
-      const uploadedUrl = await uploadAudioRecording(audioBlob, language);
+      // Create FormData for the server function
+      const formData = new FormData();
+      const audioFile = new File([audioBlob], `recording.webm`, {
+        type: `audio/webm`,
+        lastModified: Date.now(),
+      });
+
+      formData.append("audioFile", audioFile);
+      formData.append("userId", session.user.id);
+      formData.append("fileExtension", "webm");
+
+      // Upload using the co-located server function
+      const uploadResult = await uploadAudioRecording({ data: formData });
 
       // Create a new recording with the uploaded URL
       createRecordingMutation.mutate({
@@ -130,22 +226,22 @@ function NewRecordingPage() {
           title: title || "Untitled Recording",
           language,
           duration: duration,
-          audioUrl: uploadedUrl,
+          audioUrl: uploadResult.url,
           notes: initialNotes
             ? {
                 content: initialNotes,
                 vocabulary: [],
               }
             : undefined,
-          // The backend will automatically set these defaults:
-          // isTranscribed: false,
-          // transcriptionStatus: "NOT_STARTED",
-          // isTranslated: false
         },
       });
-    } catch (err) {
-      console.error("Error saving recording:", err);
-      setUploadError("Failed to upload recording. Please try again.");
+    } catch (error) {
+      console.error("Error uploading recording:", error);
+      setUploadError(
+        error instanceof Error
+          ? error.message
+          : "Failed to upload recording. Please try again.",
+      );
     } finally {
       setIsUploading(false);
     }

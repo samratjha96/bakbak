@@ -6,11 +6,8 @@ import { Link } from "@tanstack/react-router";
 import * as React from "react";
 import { useSession } from "~/lib/auth-client";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import {
-  recordingsQueryOptions,
-  formatDuration,
-  formatRelativeDate,
-} from "~/utils/recordings";
+import { recordingsQuery } from "~/api/recordings";
+import { formatDuration, formatRelativeDate } from "~/utils/formatting";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
 
@@ -151,10 +148,10 @@ const RecordingsSidebar: React.FC<{
 
 function RecordingsPage() {
   const { data: session } = useSession();
-  const recordingsQuery = useSuspenseQuery(recordingsQueryOptions());
-  const recordings = recordingsQuery.data;
-  const isLoading = recordingsQuery.isLoading;
-  const isError = recordingsQuery.isError;
+  const recordingsQueryResult = useSuspenseQuery(recordingsQuery());
+  const recordings = recordingsQueryResult.data;
+  const isLoading = recordingsQueryResult.isLoading;
+  const isError = recordingsQueryResult.isError;
   const userName = session?.user?.name?.split(" ")[0] || "User";
 
   const activities = [
@@ -266,7 +263,7 @@ function RecordingsPage() {
 
 export const Route = createFileRoute("/recordings/")({
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(recordingsQueryOptions());
+    await context.queryClient.ensureQueryData(recordingsQuery());
     return {};
   },
   component: RecordingsPage,

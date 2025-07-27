@@ -11,11 +11,11 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import {
-  recordingQueryOptions,
-  formatDuration,
+  recordingQuery,
   updateRecordingTranscription,
   updateRecordingNotes,
-} from "~/utils/recordings";
+} from "~/api/recordings";
+import { formatDuration } from "~/utils/formatting";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";
 import { TranscriptionDisplay } from "~/components/transcription/TranscriptionDisplay";
 import { TranslationAccordion } from "~/components/translation/TranslationAccordion";
@@ -27,10 +27,10 @@ function RecordingDetailPage() {
   const queryClient = useQueryClient();
 
   // Fetch recording data
-  const recordingQuery = useSuspenseQuery(recordingQueryOptions(id));
-  const { data: recording } = recordingQuery;
-  const isLoading = recordingQuery.isLoading;
-  const isError = recordingQuery.isError;
+  const recordingQueryResult = useSuspenseQuery(recordingQuery(id));
+  const { data: recording } = recordingQueryResult;
+  const isLoading = recordingQueryResult.isLoading;
+  const isError = recordingQueryResult.isError;
 
   const [transcriptionText, setTranscriptionText] = React.useState(
     recording?.transcriptionText || recording?.transcription?.text || "",
@@ -297,7 +297,7 @@ export const Route = createFileRoute("/recordings/$id")({
   loader: async ({ params: { id }, context }) => {
     try {
       const data = await context.queryClient.ensureQueryData(
-        recordingQueryOptions(id),
+        recordingQuery(id),
       );
       return {
         title: data.title,

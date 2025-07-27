@@ -3,7 +3,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { EditIcon, SaveIcon } from "~/components/ui/Icons";
 import { TranscriptionStatus } from "./TranscriptionStatus";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
-import { updateRecordingTranscription } from "~/utils/recordings";
+import { updateRecordingTranscription } from "~/api/recordings";
 import { transcriptionDataQueryOptions } from "~/utils/dataAccess";
 import { createLogger } from "~/utils/logger";
 import { getErrorMessage } from "~/utils/errorHandling";

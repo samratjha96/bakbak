@@ -4,7 +4,8 @@
 import { createMiddleware } from "@tanstack/react-start";
 import { createLogger } from "~/utils/logger";
 import { handleApiError } from "~/utils/errorHandling";
-import { apiError, apiSuccess, HTTP_STATUS } from "~/utils/apiResponse";
+import { apiError, apiSuccess } from "~/utils/apiResponse";
+import { HTTP_STATUS } from "~/utils/httpStatus";
 
 // Create a logger for the API middleware
 const logger = createLogger("ApiMiddleware");

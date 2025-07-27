@@ -3,7 +3,7 @@
  */
 import { createLogger } from "./logger";
 import { notFound } from "@tanstack/react-router";
-import { HTTP_STATUS } from "./apiResponse";
+import { HTTP_STATUS } from "./httpStatus";
 
 const logger = createLogger("ErrorHandler");
 

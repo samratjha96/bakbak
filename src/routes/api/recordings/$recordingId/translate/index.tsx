@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
-import { fetchRecording, updateRecordingTranslation } from "~/utils/recordings";
+import { fetchRecording, updateRecordingTranslation } from "~/api/recordings";
 import { z } from "zod";
 
 // Create a server function to handle POST request for initiating translation

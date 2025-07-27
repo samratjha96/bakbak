@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
-import { fetchRecording } from "~/utils/recordings";
+import { fetchRecording } from "~/api/recordings";
 import { z } from "zod";
 import { transcriptionService } from "~/services/transcription";
 import {
@@ -15,7 +15,6 @@ import { handleApiError } from "~/utils/errorHandling";
 import {
   apiResponseMiddleware,
   methodGuardMiddleware,
-  validateParamsMiddleware,
 } from "~/middleware/apiMiddleware";
 
 // Create a logger for this API route
@@ -23,11 +22,8 @@ const logger = createLogger("API.TranscribeStatusRoute");
 
 // Create a server function to handle the transcription status request
 const getTranscriptionStatus = createServerFn({ method: "GET" })
+  .middleware([apiResponseMiddleware, methodGuardMiddleware(["GET"])])
   .validator((params: { recordingId: string }) => params)
-  // Apply middleware for consistent API responses
-  .use(apiResponseMiddleware)
-  .use(methodGuardMiddleware(["GET"]))
-  .use(validateParamsMiddleware)
   .handler(async ({ data: { recordingId } }) => {
     // Fetch the recording
     let recording;

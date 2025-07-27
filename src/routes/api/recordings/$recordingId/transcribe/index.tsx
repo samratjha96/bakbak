@@ -4,7 +4,7 @@ import { notFound } from "@tanstack/react-router";
 import {
   fetchRecording,
   updateRecordingTranscriptionStatus,
-} from "~/utils/recordings";
+} from "~/api/recordings";
 import { z } from "zod";
 import { apiSuccess, apiError, apiNotFound } from "~/utils/apiResponse";
 import { createLogger } from "~/utils/logger";
@@ -12,7 +12,6 @@ import { handleApiError } from "~/utils/errorHandling";
 import {
   apiResponseMiddleware,
   methodGuardMiddleware,
-  validateParamsMiddleware,
 } from "~/middleware/apiMiddleware";
 
 // Create a logger for this API route
@@ -20,13 +19,10 @@ const logger = createLogger("API.TranscribeRoute");
 
 // Create a server function to handle the transcription request
 const startTranscription = createServerFn({ method: "POST" })
+  .middleware([apiResponseMiddleware, methodGuardMiddleware(["POST"])])
   .validator(
     (params: { recordingId: string; target_language?: string }) => params,
   )
-  // Apply middleware for consistent API responses
-  .use(apiResponseMiddleware)
-  .use(methodGuardMiddleware(["POST"]))
-  .use(validateParamsMiddleware)
   .handler(async ({ data: { recordingId, target_language } }) => {
     // Fetch the recording
     let recording;

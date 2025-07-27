@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
-import { fetchRecording, updateRecordingTranslation } from "~/utils/recordings";
+import { fetchRecording, updateRecordingTranslation } from "~/api/recordings";
 import { z } from "zod";
 import {
   apiSuccess,
@@ -14,7 +14,6 @@ import { handleApiError } from "~/utils/errorHandling";
 import {
   apiResponseMiddleware,
   methodGuardMiddleware,
-  validateParamsMiddleware,
   parseJsonBodyMiddleware,
 } from "~/middleware/apiMiddleware";
 
@@ -23,11 +22,8 @@ const logger = createLogger("API.TranslationRoute");
 
 // Create a server function to handle GET request for translation
 const getTranslation = createServerFn({ method: "GET" })
+  .middleware([apiResponseMiddleware, methodGuardMiddleware(["GET"])])
   .validator((params: { recordingId: string }) => params)
-  // Apply middleware for consistent API responses
-  .use(apiResponseMiddleware)
-  .use(methodGuardMiddleware(["GET"]))
-  .use(validateParamsMiddleware)
   .handler(async ({ data: { recordingId } }) => {
     // Fetch the recording
     let recording;
@@ -59,6 +55,11 @@ const getTranslation = createServerFn({ method: "GET" })
 
 // Create a server function to handle POST request for creating translation
 const createTranslation = createServerFn({ method: "POST" })
+  .middleware([
+    apiResponseMiddleware,
+    methodGuardMiddleware(["POST"]),
+    parseJsonBodyMiddleware,
+  ])
   .validator(
     (params: {
       recordingId: string;
@@ -67,11 +68,6 @@ const createTranslation = createServerFn({ method: "POST" })
       translationUrl?: string;
     }) => params,
   )
-  // Apply middleware for consistent API responses
-  .use(apiResponseMiddleware)
-  .use(methodGuardMiddleware(["POST"]))
-  .use(validateParamsMiddleware)
-  .use(parseJsonBodyMiddleware)
   .handler(async ({ data }) => {
     const {
       recordingId,

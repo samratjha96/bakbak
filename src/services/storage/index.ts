@@ -1,9 +1,4 @@
-export type { StorageService } from "./StorageService";
-export { S3StorageService } from "./S3StorageService";
+export { S3, s3 } from "~/lib/s3";
+
+// Storage path utilities
 export { RecordingStoragePaths } from "./RecordingStoragePaths";
-export {
-  getStorageService,
-  setStorageService,
-  createStorageService,
-  storageService,
-} from "./service";
