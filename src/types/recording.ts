@@ -7,6 +7,16 @@ export interface Recording {
   audioUrl?: string;
   transcription?: Transcription;
   notes?: Notes;
+  isTranscribed: boolean;
+  transcriptionStatus: TranscriptionStatus;
+  transcriptionUrl?: string;
+  transcriptionText?: string;
+  transcriptionLastUpdated?: Date;
+  isTranslated: boolean;
+  translationUrl?: string;
+  translationText?: string;
+  translationLanguage?: string;
+  translationLastUpdated?: Date;
 }
 
 export interface Transcription {
@@ -32,3 +42,9 @@ export type RecordingStatus =
   | "recorded"
   | "transcribing"
   | "completed";
+
+export type TranscriptionStatus =
+  | "NOT_STARTED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "FAILED";

@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.850.0",
+    "@aws-sdk/client-transcribe": "^3.848.0",
+    "@aws-sdk/client-translate": "^3.848.0",
     "@aws-sdk/credential-provider-node": "^3.848.0",
     "@aws-sdk/credential-providers": "^3.848.0",
     "@aws-sdk/fetch-http-handler": "^3.370.0",

@@ -5,6 +5,7 @@ yarn.lock
 .DS_Store
 .cache
 .env
+.env.local
 .vercel
 .output
 /build/
@@ -18,3 +19,6 @@ yarn.lock
 /playwright/.cache/
 
 data
+.nitro
+.tanstack
+tasks/

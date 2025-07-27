@@ -16,6 +16,9 @@ import {
   updateRecordingTranscription,
   updateRecordingNotes,
 } from "~/utils/recordings";
+import { TranscribeButton } from "~/components/transcription/TranscribeButton";
+import { TranscriptionDisplay } from "~/components/transcription/TranscriptionDisplay";
+import { TranslationAccordion } from "~/components/translation/TranslationAccordion";
 
 // A dynamic recording view that shows transcription and notes in one page
 function RecordingDetailPage() {
@@ -24,10 +27,13 @@ function RecordingDetailPage() {
   const queryClient = useQueryClient();
 
   // Fetch recording data
-  const { data: recording } = useSuspenseQuery(recordingQueryOptions(id));
+  const recordingQuery = useSuspenseQuery(recordingQueryOptions(id));
+  const { data: recording } = recordingQuery;
+  const isLoading = recordingQuery.isLoading;
+  const isError = recordingQuery.isError;
 
   const [transcriptionText, setTranscriptionText] = React.useState(
-    recording?.transcription?.text || "",
+    recording?.transcriptionText || recording?.transcription?.text || "",
   );
   const [notesContent, setNotesContent] = React.useState(
     recording?.notes?.content || "",
@@ -37,7 +43,9 @@ function RecordingDetailPage() {
 
   React.useEffect(() => {
     if (recording) {
-      setTranscriptionText(recording.transcription?.text || "");
+      setTranscriptionText(
+        recording.transcriptionText || recording.transcription?.text || "",
+      );
       setNotesContent(recording.notes?.content || "");
     }
   }, [recording]);
@@ -104,15 +112,23 @@ function RecordingDetailPage() {
         icon: <BackIcon className="w-4 h-4" />,
         to: "/recordings",
       }}
-      primaryAction={{
-        label: "Save Changes",
-        icon: <SaveIcon className="w-4 h-4" />,
-        onClick: () => {
-          if (editingTranscription) handleSaveTranscription();
-          if (editingNotes) handleSaveNotes();
-        },
-        primary: true,
-      }}
+      primaryAction={
+        editingTranscription || editingNotes
+          ? {
+              label: "Save Changes",
+              icon: <SaveIcon className="w-4 h-4" />,
+              onClick: () => {
+                if (editingTranscription) handleSaveTranscription();
+                if (editingNotes) handleSaveNotes();
+              },
+              primary: true,
+            }
+          : {
+              label: "",
+              icon: <></>,
+              onClick: () => {},
+            }
+      }
     />
   );
 
@@ -141,17 +157,48 @@ function RecordingDetailPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">Transcription</h2>
-            <button
-              onClick={() => setEditingTranscription(!editingTranscription)}
-              className="flex items-center text-sm text-primary hover:text-secondary"
-            >
-              <EditIcon className="w-4 h-4 mr-1" />
-              {editingTranscription ? "Cancel" : "Edit"}
-            </button>
+            {recording.isTranscribed && (
+              <button
+                onClick={() => setEditingTranscription(!editingTranscription)}
+                className="flex items-center text-sm text-primary hover:text-secondary"
+              >
+                <EditIcon className="w-4 h-4 mr-1" />
+                {editingTranscription ? "Cancel" : "Edit"}
+              </button>
+            )}
           </div>
 
+          {!recording.isTranscribed &&
+            recording.transcriptionStatus !== "IN_PROGRESS" && (
+              <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col items-center">
+                <p className="text-gray-600 dark:text-gray-400 mb-4 text-center">
+                  This recording hasn't been transcribed yet.
+                </p>
+                <TranscribeButton
+                  recordingId={id}
+                  variant="primary"
+                  size="md"
+                />
+              </div>
+            )}
+
+          {(recording.isTranscribed ||
+            recording.transcriptionStatus === "IN_PROGRESS") && (
+            <TranscriptionDisplay
+              recordingId={id}
+              initialTranscriptionText={
+                recording.transcriptionText ||
+                recording.transcription?.text ||
+                ""
+              }
+              initialStatus={recording.transcriptionStatus}
+              initialLastUpdated={recording.transcriptionLastUpdated}
+              readOnly={!editingTranscription}
+            />
+          )}
+
           {editingTranscription ? (
-            <div>
+            <div className="mt-4">
               <textarea
                 className="w-full min-h-[120px] p-4 border border-gray-200 dark:border-gray-800 rounded-lg text-base text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] mb-2 resize-none"
                 value={transcriptionText}
@@ -166,20 +213,30 @@ function RecordingDetailPage() {
                 </button>
               </div>
             </div>
-          ) : (
-            <>
-              <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-800 rounded-lg mb-2">
-                {transcriptionText || "No transcription available yet."}
-              </div>
+          ) : null}
 
-              {recording.transcription?.romanization && (
-                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-sm text-gray-500 dark:text-gray-400">
-                  {recording.transcription.romanization}
-                </div>
-              )}
-            </>
+          {recording.transcription?.romanization && (
+            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-sm text-gray-500 dark:text-gray-400 mt-2">
+              <div className="font-medium mb-1">Romanization</div>
+              {recording.transcription.romanization}
+            </div>
           )}
         </div>
+
+        {/* Translation Section - Only show if transcription exists */}
+        {recording.isTranscribed && (
+          <div className="mb-8">
+            <TranslationAccordion
+              recordingId={id}
+              initialTranslationText={recording.translationText}
+              initialTranslationLanguage={recording.translationLanguage}
+              initialLastUpdated={recording.translationLastUpdated}
+              initialStatus={
+                recording.isTranslated ? "COMPLETED" : "NOT_STARTED"
+              }
+            />
+          </div>
+        )}
 
         {/* Notes Section */}
         <div className="mb-8">

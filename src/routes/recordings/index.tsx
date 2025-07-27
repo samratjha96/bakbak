@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
-import { MicrophoneIcon, PlusIcon } from "~/components/ui/Icons";
+import { MicrophoneIcon, PlusIcon, DocumentIcon } from "~/components/ui/Icons";
 import { Link } from "@tanstack/react-router";
 import * as React from "react";
 import { useSession } from "~/lib/auth-client";
@@ -11,6 +11,8 @@ import {
   formatDuration,
   formatRelativeDate,
 } from "~/utils/recordings";
+import { TranscribeButton } from "~/components/transcription/TranscribeButton";
+import { TranscriptionStatus as TStatus } from "~/types/recording";
 
 interface StatCardProps {
   value: string | number;
@@ -42,7 +44,17 @@ const RecordingItem: React.FC<{
   language?: string;
   duration: number;
   date: string;
-}> = ({ id, title, language, duration, date }) => {
+  isTranscribed?: boolean;
+  transcriptionStatus?: TStatus;
+}> = ({
+  id,
+  title,
+  language,
+  duration,
+  date,
+  isTranscribed = false,
+  transcriptionStatus = "NOT_STARTED",
+}) => {
   // Format duration as MM:SS
   const formattedDuration = formatDuration(duration);
 
@@ -52,8 +64,22 @@ const RecordingItem: React.FC<{
         <MicrophoneIcon className="w-5 h-5 text-primary" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
-          {title}
+        <div className="flex items-center">
+          <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
+            {title}
+          </div>
+          {isTranscribed && (
+            <div className="ml-2 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs rounded-sm flex items-center">
+              <DocumentIcon className="w-3 h-3 mr-1" />
+              <span>Transcribed</span>
+            </div>
+          )}
+          {transcriptionStatus === "IN_PROGRESS" && (
+            <div className="ml-2 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-sm flex items-center">
+              <div className="w-3 h-3 mr-1 rounded-full border-2 border-solid border-current border-r-transparent animate-spin"></div>
+              <span>Processing</span>
+            </div>
+          )}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap mt-1 gap-1.5">
           <span>{language}</span>
@@ -63,13 +89,23 @@ const RecordingItem: React.FC<{
           <span>{date}</span>
         </div>
       </div>
-      <Link
-        to="/recordings/$id"
-        params={{ id }}
-        className="text-primary hover:text-secondary flex-shrink-0 ml-2"
-      >
-        View
-      </Link>
+      <div className="flex items-center gap-2">
+        {!isTranscribed && transcriptionStatus !== "IN_PROGRESS" && (
+          <TranscribeButton
+            recordingId={id}
+            variant="outline"
+            size="sm"
+            className="px-2 py-1 text-xs"
+          />
+        )}
+        <Link
+          to="/recordings/$id"
+          params={{ id }}
+          className="text-primary hover:text-secondary flex-shrink-0"
+        >
+          View
+        </Link>
+      </div>
     </div>
   );
 };
@@ -117,6 +153,8 @@ function RecordingsPage() {
   const { data: session } = useSession();
   const recordingsQuery = useSuspenseQuery(recordingsQueryOptions());
   const recordings = recordingsQuery.data;
+  const isLoading = recordingsQuery.isLoading;
+  const isError = recordingsQuery.isError;
   const userName = session?.user?.name?.split(" ")[0] || "User";
 
   const activities = [
@@ -214,6 +252,8 @@ function RecordingsPage() {
                   language={recording.language}
                   duration={recording.duration}
                   date={formatRelativeDate(new Date(recording.createdAt))}
+                  isTranscribed={recording.isTranscribed}
+                  transcriptionStatus={recording.transcriptionStatus}
                 />
               </React.Fragment>
             ))}

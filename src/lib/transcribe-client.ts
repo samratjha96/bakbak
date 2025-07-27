@@ -1,18 +1,14 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import { TranscribeClient } from "@aws-sdk/client-transcribe";
 import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { NodeHttpHandler } from "@aws-sdk/node-http-handler";
 import { AWS_CONFIG } from "./aws-config";
 
-// Create an S3Client instance using the central AWS configuration
-export const s3Client = new S3Client({
+// Create a TranscribeClient instance using the central AWS configuration
+export const transcribeClient = new TranscribeClient({
   region: AWS_CONFIG.region,
   credentials: defaultProvider(), // This will automatically use the best available credentials
   requestHandler: new NodeHttpHandler({
     connectionTimeout: AWS_CONFIG.timeouts.connectionTimeout,
     socketTimeout: AWS_CONFIG.timeouts.socketTimeout,
   }),
-  // Force path-style addressing is essential to avoid redirects with certain bucket names
-  forcePathStyle: true,
-  // Set the endpoint based on the region dynamically
-  endpoint: `https://s3.${AWS_CONFIG.region}.amazonaws.com`,
 });

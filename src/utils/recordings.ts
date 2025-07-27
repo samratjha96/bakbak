@@ -1,7 +1,12 @@
 import { queryOptions } from "@tanstack/react-query";
 import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { Recording, Transcription, Notes } from "~/types/recording";
+import {
+  Recording,
+  Transcription,
+  Notes,
+  TranscriptionStatus,
+} from "~/types/recording";
 
 // Mock data for demonstration
 const mockRecordings: Recording[] = [
@@ -32,6 +37,16 @@ Remember to practice the proper intonation for "よろしくお願いします" 
         { word: "よろしくお願いします", meaning: "Nice to meet you" },
       ],
     },
+    isTranscribed: true,
+    transcriptionStatus: "COMPLETED" as TranscriptionStatus,
+    transcriptionText:
+      "こんにちは、私の名前はアレックスです。日本語を勉強しています。よろしくお願いします。",
+    transcriptionLastUpdated: new Date(),
+    isTranslated: true,
+    translationText:
+      "Hello, my name is Alex. I am studying Japanese. Nice to meet you.",
+    translationLanguage: "en",
+    translationLastUpdated: new Date(),
   },
   {
     id: "2",
@@ -39,6 +54,9 @@ Remember to practice the proper intonation for "よろしくお願いします" 
     language: "French",
     duration: 158, // 2:38
     createdAt: new Date(Date.now() - 86400000), // yesterday
+    isTranscribed: false,
+    transcriptionStatus: "NOT_STARTED" as TranscriptionStatus,
+    isTranslated: false,
   },
   {
     id: "3",
@@ -46,6 +64,9 @@ Remember to practice the proper intonation for "よろしくお願いします" 
     language: "Korean",
     duration: 222, // 3:42
     createdAt: new Date(Date.now() - 172800000), // 2 days ago
+    isTranscribed: false,
+    transcriptionStatus: "NOT_STARTED" as TranscriptionStatus,
+    isTranslated: false,
   },
 ];
 
@@ -58,6 +79,8 @@ export const fetchRecordings = createServerFn({ method: "GET" }).handler(
     return mockRecordings;
   },
 );
+
+// API functions
 
 export const recordingsQueryOptions = () =>
   queryOptions({
@@ -88,7 +111,18 @@ export const recordingQueryOptions = (recordingId: string) =>
   });
 
 export const createRecording = createServerFn({ method: "POST" })
-  .validator((data: Omit<Recording, "id" | "createdAt">) => data)
+  .validator(
+    (
+      data: Omit<
+        Recording,
+        | "id"
+        | "createdAt"
+        | "isTranscribed"
+        | "transcriptionStatus"
+        | "isTranslated"
+      >,
+    ) => data,
+  )
   .handler(async ({ data }) => {
     console.info("Creating new recording...");
     // Simulate API delay
@@ -98,6 +132,9 @@ export const createRecording = createServerFn({ method: "POST" })
       ...data,
       id: Date.now().toString(),
       createdAt: new Date(),
+      isTranscribed: false,
+      transcriptionStatus: "NOT_STARTED" as TranscriptionStatus,
+      isTranslated: false,
     };
 
     // In a real app, we'd save this to a database
@@ -127,6 +164,18 @@ export const updateRecordingTranscription = createServerFn({ method: "POST" })
       lastUpdated: new Date(),
     };
 
+    // Update the new transcription fields as well
+    if (data.transcription.text) {
+      recording.transcriptionText = data.transcription.text;
+    }
+
+    if (data.transcription.isComplete) {
+      recording.isTranscribed = data.transcription.isComplete;
+      recording.transcriptionStatus = "COMPLETED" as TranscriptionStatus;
+    }
+
+    recording.transcriptionLastUpdated = new Date();
+
     return recording;
   });
 
@@ -148,6 +197,77 @@ export const updateRecordingNotes = createServerFn({ method: "POST" })
       ...data.notes,
       lastUpdated: new Date(),
     };
+
+    return recording;
+  });
+
+export const updateRecordingTranscriptionStatus = createServerFn({
+  method: "POST",
+})
+  .validator(
+    (data: {
+      id: string;
+      status: TranscriptionStatus;
+      transcriptionText?: string;
+      transcriptionUrl?: string;
+    }) => data,
+  )
+  .handler(async ({ data }) => {
+    console.info(`Updating transcription status for recording ${data.id}...`);
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    const recording = mockRecordings.find((r) => r.id === data.id);
+
+    if (!recording) {
+      throw notFound();
+    }
+
+    recording.transcriptionStatus = data.status;
+    recording.isTranscribed = data.status === "COMPLETED";
+
+    if (data.transcriptionText) {
+      recording.transcriptionText = data.transcriptionText;
+    }
+
+    if (data.transcriptionUrl) {
+      recording.transcriptionUrl = data.transcriptionUrl;
+    }
+
+    recording.transcriptionLastUpdated = new Date();
+
+    return recording;
+  });
+
+export const updateRecordingTranslation = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      id: string;
+      translationText: string;
+      translationLanguage: string;
+      translationUrl?: string;
+    }) => data,
+  )
+  .handler(async ({ data }) => {
+    console.info(`Updating translation for recording ${data.id}...`);
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    const recording = mockRecordings.find((r) => r.id === data.id);
+
+    if (!recording) {
+      throw notFound();
+    }
+
+    recording.isTranslated = true;
+    recording.translationText = data.translationText;
+    recording.translationLanguage = data.translationLanguage;
+
+    if (data.translationUrl) {
+      recording.translationUrl = data.translationUrl;
+    }
+
+    recording.translationLastUpdated = new Date();
 
     return recording;
   });

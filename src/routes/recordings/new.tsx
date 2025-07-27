@@ -137,6 +137,10 @@ function NewRecordingPage() {
                 vocabulary: [],
               }
             : undefined,
+          // The backend will automatically set these defaults:
+          // isTranscribed: false,
+          // transcriptionStatus: "NOT_STARTED",
+          // isTranslated: false
         },
       });
     } catch (err) {
@@ -302,7 +306,8 @@ function NewRecordingPage() {
                   >
                     {languages.map((lang) => (
                       <option key={lang.code} value={lang.code}>
-                        {lang.name}{lang.nativeName ? ` (${lang.nativeName})` : ""}
+                        {lang.name}
+                        {lang.nativeName ? ` (${lang.nativeName})` : ""}
                       </option>
                     ))}
                   </select>
