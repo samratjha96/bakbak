@@ -6,43 +6,15 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3010:3010"
     volumes:
       - .:/app
-      - /app/node_modules
     environment:
       - NODE_ENV=development
-      - PORT=3000
+      - PORT=3010
       - AWS_REGION=${AWS_REGION}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_S3_BUCKET=${AWS_S3_BUCKET}
-    depends_on:
-      db_setup:
-        condition: service_completed_successfully
-    networks:
-      - app-network
     command: npm run dev
 
-  db_setup:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - .:/app
-      - ./data:/app/data
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-    networks:
-      - app-network
-    command: node scripts/setup-db.js --seed
-    healthcheck:
-      test: ["CMD", "test", "-f", "/app/data/sqlite.db"]
-      interval: 1s
-      timeout: 5s
-      retries: 20
-
-networks:
-  app-network:
-    driver: bridge
