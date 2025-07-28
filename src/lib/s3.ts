@@ -237,14 +237,34 @@ export class S3 {
 
   // Signed URLs
   async getSignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
-    return getSignedUrl(
-      s3Client,
-      new GetObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-      }),
-      { expiresIn },
-    );
+    // Get content type based on file extension
+    const contentType = this.getContentTypeFromKey(key);
+
+    // Create S3 command with minimal required settings
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ResponseContentType: contentType,
+      ResponseContentDisposition: "inline",
+    });
+
+    return getSignedUrl(s3Client, command, { expiresIn });
+  }
+
+  private getContentTypeFromKey(key: string): string | undefined {
+    const extension = key.split(".").pop()?.toLowerCase();
+
+    const mimeTypes: Record<string, string> = {
+      mp3: "audio/mpeg",
+      wav: "audio/wav",
+      webm: "audio/webm",
+      m4a: "audio/mp4",
+      ogg: "audio/ogg",
+      aac: "audio/aac",
+      flac: "audio/flac",
+    };
+
+    return extension ? mimeTypes[extension] : undefined;
   }
 
   async getSignedUploadUrl(

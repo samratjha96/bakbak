@@ -103,8 +103,27 @@ export function useAudioRecorder(): AudioRecorderHook {
 
       setAnalyserNode(analyser);
 
-      // Create media recorder
-      const mediaRecorder = new MediaRecorder(stream);
+      // Create media recorder with mp3 format
+      const options = { mimeType: "audio/mpeg" };
+
+      // Try to create with MP3 format, fallback to browser default if not supported
+      let mediaRecorder;
+      try {
+        mediaRecorder = new MediaRecorder(stream, options);
+        console.log(
+          "[useAudioRecorder] Successfully created MediaRecorder with audio/mpeg format",
+        );
+      } catch (err) {
+        console.warn(
+          "[useAudioRecorder] audio/mpeg not supported, falling back to browser default:",
+          err,
+        );
+        mediaRecorder = new MediaRecorder(stream);
+        console.log(
+          `[useAudioRecorder] Using format: ${mediaRecorder.mimeType}`,
+        );
+      }
+
       mediaRecorderRef.current = mediaRecorder;
 
       // Set up event handlers
@@ -116,7 +135,7 @@ export function useAudioRecorder(): AudioRecorderHook {
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
+          type: "audio/mpeg",
         });
         const url = URL.createObjectURL(audioBlob);
 

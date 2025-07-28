@@ -591,9 +591,7 @@ export const getRecordingPresignedUrl = createServerFn({ method: "GET" })
     // Check if recording exists and belongs to user
     const recording = db
       .prepare(
-        `
-      SELECT file_path FROM recordings WHERE id = ? AND user_id = ?
-    `,
+        `SELECT id, file_path, language, duration FROM recordings WHERE id = ? AND user_id = ?`,
       )
       .get(id, userId);
 
@@ -604,10 +602,15 @@ export const getRecordingPresignedUrl = createServerFn({ method: "GET" })
     }
 
     try {
-      // Generate a presigned URL with 15 minute expiration
+      // Generate a presigned URL with 15 minute expiration (900 seconds)
       const presignedUrl = await s3.getSignedUrl(recording.file_path, 900);
+
+      // Also generate a direct S3 URL as fallback
+      const directUrl = `https://s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com/${process.env.AWS_S3_BUCKET || "your-bucket"}/${recording.file_path}`;
+
       return {
         url: presignedUrl,
+        directUrl: directUrl,
         expiresAt: new Date(Date.now() + 900 * 1000).toISOString(),
       };
     } catch (error) {

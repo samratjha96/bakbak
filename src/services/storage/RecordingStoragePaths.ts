@@ -41,13 +41,13 @@ export class RecordingStoragePaths {
   /**
    * Gets the path for storing an audio recording with proper organization by user and date
    * @param userId User ID for the recording
-   * @param fileExtension File extension (default: webm)
+   * @param fileExtension File extension (default: mp3)
    * @param customDate Optional custom date (defaults to today's date)
    * @returns The storage path for the recording
    */
   static getAudioPath(
     userId: string,
-    fileExtension: string = "webm",
+    fileExtension: string = "mp3",
     customDate?: string,
   ): string {
     const dateStr = customDate || this.getTodaysDate();

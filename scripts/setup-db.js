@@ -206,7 +206,7 @@ const createTestRecordings = (db, userId) => {
       user_id: userId,
       title: "Japanese Conversation Practice",
       description: "Basic greetings and introductions",
-      file_path: `recordings/${userId}/2025-07-25/sample-japanese.webm`,
+      file_path: `recordings/XqmkB9YbkUfYoHhUy4FBkMShidp6KHdx/2025-07-28/f5b5c81c-8cc2-48b5-abcc-3c8edc9b5b84.mp3`,
       language: "Japanese",
       duration: 84, // 1:24
       status: "ready",
@@ -218,7 +218,7 @@ const createTestRecordings = (db, userId) => {
       user_id: userId,
       title: "French Restaurant Phrases",
       description: "Common phrases for ordering food",
-      file_path: `recordings/${userId}/2025-07-24/sample-french.webm`,
+      file_path: `recordings/XqmkB9YbkUfYoHhUy4FBkMShidp6KHdx/2025-07-28/f5b5c81c-8cc2-48b5-abcc-3c8edc9b5b84.mp3`,
       language: "French",
       duration: 158, // 2:38
       status: "ready",
@@ -230,7 +230,7 @@ const createTestRecordings = (db, userId) => {
       user_id: userId,
       title: "Korean Shopping Vocabulary",
       description: "Words for shopping and bargaining",
-      file_path: `recordings/${userId}/2025-07-23/sample-korean.webm`,
+      file_path: `recordings/XqmkB9YbkUfYoHhUy4FBkMShidp6KHdx/2025-07-28/f5b5c81c-8cc2-48b5-abcc-3c8edc9b5b84.mp3`,
       language: "Korean",
       duration: 222, // 3:42
       status: "ready",

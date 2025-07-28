@@ -42,21 +42,28 @@ function RecordingDetailPage() {
       id,
       "presignedUrl",
     ]);
+
+    // Return cached data if valid and not expired
     if (
       cachedData &&
       cachedData.expiresAt &&
       new Date(cachedData.expiresAt) > new Date()
     ) {
-      return cachedData.url;
+      return cachedData;
     }
 
-    // Fetch new URL if not cached or expired
-    const result = await getRecordingPresignedUrl({ data: id });
+    try {
+      // Fetch new URL if not cached or expired
+      const result = await getRecordingPresignedUrl({ data: id });
 
-    // Cache the result
-    queryClient.setQueryData(["recording", id, "presignedUrl"], result);
+      // Cache the result
+      queryClient.setQueryData(["recording", id, "presignedUrl"], result);
 
-    return result.url;
+      return result;
+    } catch (error) {
+      console.error("Error fetching presigned URL:", error);
+      throw error; // Re-throw to let the AudioPlayer component handle it
+    }
   }, [id, queryClient]);
 
   // Only manage state for fields we're actually editing in this component

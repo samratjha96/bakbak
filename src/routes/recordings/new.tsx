@@ -208,14 +208,14 @@ function NewRecordingPage() {
     try {
       // Create FormData for the server function
       const formData = new FormData();
-      const audioFile = new File([audioBlob], `recording.webm`, {
-        type: `audio/webm`,
+      const audioFile = new File([audioBlob], `recording.mp3`, {
+        type: `audio/mpeg`,
         lastModified: Date.now(),
       });
 
       formData.append("audioFile", audioFile);
       formData.append("userId", session.user.id);
-      formData.append("fileExtension", "webm");
+      formData.append("fileExtension", "mp3");
 
       // Upload using the co-located server function
       const uploadResult = await uploadAudioRecording({ data: formData });
