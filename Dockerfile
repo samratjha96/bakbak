@@ -1,20 +1,24 @@
 FROM node:20-slim
+RUN apt-get update && apt-get install -y \
+  python3 \
+  make \
+  g++ \
+  curl \
+  unzip \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install AWS CLI
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json ./
+COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm install
-
-# Copy application code
 COPY . .
 
-# Make scripts directory executable
-RUN chmod -R +x ./scripts
-
 EXPOSE 3010
-
-# Default command (can be overridden in docker-compose)
+RUN npm rebuild better-sqlite3
 CMD ["npm", "run", "dev"]

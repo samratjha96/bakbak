@@ -1,6 +1,6 @@
 import { TranscribeClient } from "@aws-sdk/client-transcribe";
 import { defaultProvider } from "@aws-sdk/credential-provider-node";
-import { NodeHttpHandler } from "@aws-sdk/node-http-handler";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { AWS_CONFIG } from "./aws-config";
 
 // Create a TranscribeClient instance using the central AWS configuration
