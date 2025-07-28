@@ -19,6 +19,7 @@ import {
   DbNote,
 } from "~/database/types";
 import { auth } from "~/lib/auth";
+import { s3 } from "~/lib/s3";
 
 // Helper function to convert joined query results to UI Recording type
 function mapJoinedRowToRecording(
@@ -576,4 +577,41 @@ export const updateRecording = createServerFn({ method: "POST" })
     ).run(...values);
 
     return fetchRecording({ data: data.id });
+  });
+
+/**
+ * Generate a presigned URL for downloading a recording
+ */
+export const getRecordingPresignedUrl = createServerFn({ method: "GET" })
+  .validator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    const db = getDatabase();
+    const userId = getCurrentUserId();
+
+    // Check if recording exists and belongs to user
+    const recording = db
+      .prepare(
+        `
+      SELECT file_path FROM recordings WHERE id = ? AND user_id = ?
+    `,
+      )
+      .get(id, userId);
+
+    if (!recording) {
+      throw new Error(
+        "Recording not found or you do not have permission to access it.",
+      );
+    }
+
+    try {
+      // Generate a presigned URL with 15 minute expiration
+      const presignedUrl = await s3.getSignedUrl(recording.file_path, 900);
+      return {
+        url: presignedUrl,
+        expiresAt: new Date(Date.now() + 900 * 1000).toISOString(),
+      };
+    } catch (error) {
+      console.error("Error generating presigned URL:", error);
+      throw new Error("Failed to generate audio URL. Please try again.");
+    }
   });

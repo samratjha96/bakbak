@@ -2,7 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import * as React from "react";
 import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
-import { BackIcon, PlayIcon, EditIcon, SaveIcon } from "~/components/ui/Icons";
+import { BackIcon, EditIcon, SaveIcon } from "~/components/ui/Icons";
 import { Link } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -14,11 +14,13 @@ import {
   recordingQuery,
   updateRecordingNotes,
   updateRecording,
+  getRecordingPresignedUrl,
 } from "~/data/recordings";
 import { formatDuration } from "~/utils/formatting";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";
 import { TranscriptionDisplay } from "~/components/transcription/TranscriptionDisplay";
 import { TranslationAccordion } from "~/components/translation/TranslationAccordion";
+import { AudioPlayer } from "~/components/audio/AudioPlayer";
 
 // A dynamic recording view that shows transcription and notes in one page
 function RecordingDetailPage() {
@@ -31,6 +33,31 @@ function RecordingDetailPage() {
   const { data: recording } = recordingQueryResult;
   const isLoading = recordingQueryResult.isLoading;
   const isError = recordingQueryResult.isError;
+
+  // Define presigned URL fetch function with caching
+  const fetchPresignedUrl = React.useCallback(async () => {
+    // Try to get from cache first
+    const cachedData = queryClient.getQueryData([
+      "recording",
+      id,
+      "presignedUrl",
+    ]);
+    if (
+      cachedData &&
+      cachedData.expiresAt &&
+      new Date(cachedData.expiresAt) > new Date()
+    ) {
+      return cachedData.url;
+    }
+
+    // Fetch new URL if not cached or expired
+    const result = await getRecordingPresignedUrl({ data: id });
+
+    // Cache the result
+    queryClient.setQueryData(["recording", id, "presignedUrl"], result);
+
+    return result.url;
+  }, [id, queryClient]);
 
   // Only manage state for fields we're actually editing in this component
   const [notesContent, setNotesContent] = React.useState(
@@ -194,10 +221,7 @@ function RecordingDetailPage() {
             </div>
           </div>
 
-          <button className="flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            <PlayIcon className="w-5 h-5 text-primary" />
-            Play Recording
-          </button>
+          <AudioPlayer onFetchUrl={fetchPresignedUrl} />
         </div>
 
         {/* Transcription Section - Let TranscriptionDisplay handle its own editing */}

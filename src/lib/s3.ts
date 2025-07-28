@@ -30,7 +30,7 @@ export class S3 {
 
     if (!this.bucket) {
       throw new Error(
-        "S3 bucket name required. Set S3_BUCKET_NAME environment variable.",
+        "S3 bucket name required. Set AWS_S3_BUCKET environment variable.",
       );
     }
   }

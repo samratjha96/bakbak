@@ -21,7 +21,7 @@ export function getAwsConfig(serviceSpecificConfig = {}) {
 /**
  * Gets the S3 bucket name from environment variable
  *
- * REQUIRED: S3_BUCKET_NAME environment variable must be set
+ * REQUIRED: AWS_S3_BUCKET environment variable must be set
  * This bucket will be used to store all recordings organized by:
  * recordings/userid/todaysdate/recording_uuid
  *
@@ -29,11 +29,11 @@ export function getAwsConfig(serviceSpecificConfig = {}) {
  * @throws Error if bucket name is not configured
  */
 export function getS3BucketName(): string {
-  const bucketName = process.env.S3_BUCKET_NAME;
+  const bucketName = process.env.AWS_S3_BUCKET;
 
   if (!bucketName) {
     throw new Error(
-      "S3_BUCKET_NAME environment variable is required and must be set. " +
+      "AWS_S3_BUCKET environment variable is required and must be set. " +
         "This application does not provide fallback bucket names for security reasons.",
     );
   }
@@ -65,8 +65,8 @@ export function validateAwsConfig(): {
   const warnings: string[] = [];
 
   // Check required environment variables
-  if (!process.env.S3_BUCKET_NAME) {
-    errors.push("S3_BUCKET_NAME environment variable is required");
+  if (!process.env.AWS_S3_BUCKET) {
+    errors.push("AWS_S3_BUCKET environment variable is required");
   }
 
   if (!process.env.AWS_REGION) {
