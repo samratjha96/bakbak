@@ -118,8 +118,6 @@ function RecordingDetailPage() {
     });
   };
 
-  const vocabularyItems = recording.notes?.vocabulary || [];
-
   // Action bar for both mobile and desktop
   const actionBar = (
     <ActionBar
@@ -297,27 +295,12 @@ function RecordingDetailPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-800 rounded-lg mb-2 min-h-[60px]">
+            <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-800 rounded-lg mb-2 min-h-[60px] whitespace-pre-wrap">
               {notesContent ||
                 "No notes available yet. Click 'Edit' to add some notes."}
             </div>
           )}
         </div>
-
-        {/* Vocabulary Section */}
-        {vocabularyItems.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold mb-3">Vocabulary</h2>
-            <div className="bg-gray-100 dark:bg-gray-800 rounded p-4">
-              {vocabularyItems.map((item, index) => (
-                <div key={index} className="flex justify-between mb-2">
-                  <div className="font-medium">{item.word}</div>
-                  <div>{item.meaning}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </Layout>
   );

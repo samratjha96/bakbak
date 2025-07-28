@@ -46,15 +46,6 @@ export interface DbNote {
   updated_at: string; // ISO timestamp
 }
 
-export interface DbVocabularyItem {
-  id: string;
-  note_id: string;
-  word: string;
-  meaning: string;
-  created_at: string; // ISO timestamp
-  updated_at: string; // ISO timestamp
-}
-
 export interface DbUser {
   id: string;
   name: string;

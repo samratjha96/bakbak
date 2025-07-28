@@ -17,14 +17,12 @@ import {
   DbTranscription,
   DbTranslation,
   DbNote,
-  DbVocabularyItem,
 } from "~/database/types";
 import { auth } from "~/lib/auth";
 
 // Helper function to convert joined query results to UI Recording type
 function mapJoinedRowToRecording(
   row: any, // JOIN result has dynamic columns
-  vocabularyItems: DbVocabularyItem[] = [],
 ): Recording {
   const recording: Recording = {
     id: row.id,
@@ -58,14 +56,10 @@ function mapJoinedRowToRecording(
     recording.translationLastUpdated = new Date(row.translation_updated_at);
   }
 
-  // Add notes and vocabulary if available
+  // Add notes if available
   if (row.note_id) {
     recording.notes = {
       content: row.note_content,
-      vocabulary: vocabularyItems.map((item) => ({
-        word: item.word,
-        meaning: item.meaning,
-      })),
       lastUpdated: new Date(row.note_updated_at),
     };
   }
@@ -168,54 +162,11 @@ export const fetchRecordings = createServerFn({ method: "GET" }).handler(
         )
         .all(userId, userId);
 
-      // Check if vocabulary_items table exists
-      const vocabTableExists = db
-        .prepare(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='vocabulary_items'",
-        )
-        .get();
-
-      let vocabularyByRecording = {} as Record<string, DbVocabularyItem[]>;
-
-      if (vocabTableExists) {
-        // Group vocabulary items by note_id in a single query
-        try {
-          const vocabularyRows = db
-            .prepare(
-              `
-          SELECT v.*, n.recording_id
-          FROM vocabulary_items v
-          JOIN notes n ON v.note_id = n.id
-          JOIN recordings r ON n.recording_id = r.id
-          WHERE r.user_id = ? AND n.user_id = ?
-        `,
-            )
-            .all(userId, userId) as (DbVocabularyItem & {
-            recording_id: string;
-          })[];
-
-          vocabularyByRecording = vocabularyRows.reduce(
-            (acc, item) => {
-              if (!acc[item.recording_id]) acc[item.recording_id] = [];
-              acc[item.recording_id].push(item);
-              return acc;
-            },
-            {} as Record<string, DbVocabularyItem[]>,
-          );
-        } catch (error) {
-          // If this fails, just continue with empty vocabulary
-          console.warn("Error fetching vocabulary items:", error);
-        }
-      }
-
       // Map results efficiently
       const recordingsMap = new Map<string, Recording>();
 
       for (const row of rows as any[]) {
-        const recording = mapJoinedRowToRecording(
-          row,
-          vocabularyByRecording[row.id] || [],
-        );
+        const recording = mapJoinedRowToRecording(row);
         recordingsMap.set(row.id, recording);
       }
 
@@ -272,19 +223,7 @@ export const fetchRecording = createServerFn({ method: "GET" })
       throw notFound();
     }
 
-    // Get vocabulary items for this recording
-    const vocabularyItems = db
-      .prepare(
-        `
-      SELECT v.*
-      FROM vocabulary_items v
-      JOIN notes n ON v.note_id = n.id
-      WHERE n.recording_id = ? AND n.user_id = ?
-    `,
-      )
-      .all(id, userId) as DbVocabularyItem[];
-
-    return mapJoinedRowToRecording(row, vocabularyItems);
+    return mapJoinedRowToRecording(row);
   });
 
 export const createRecording = createServerFn({ method: "POST" })
@@ -448,31 +387,6 @@ export const updateRecordingNotes = createServerFn({ method: "POST" })
         created_at: now,
         updated_at: now,
       };
-    }
-
-    // Update vocabulary items if provided
-    if (data.notes.vocabulary && dbNote) {
-      // Clear existing vocabulary items
-      db.prepare(`DELETE FROM vocabulary_items WHERE note_id = ?`).run(
-        dbNote.id,
-      );
-
-      // Insert new vocabulary items
-      const insertVocab = db.prepare(`
-        INSERT INTO vocabulary_items (id, note_id, word, meaning, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `);
-
-      for (const item of data.notes.vocabulary) {
-        insertVocab.run(
-          crypto.randomUUID(),
-          dbNote.id,
-          item.word,
-          item.meaning,
-          now,
-          now,
-        );
-      }
     }
 
     return fetchRecording({ data: data.id });

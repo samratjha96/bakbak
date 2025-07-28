@@ -28,13 +28,7 @@ export interface Transcription {
 
 export interface Notes {
   content: string;
-  vocabulary?: VocabularyItem[];
   lastUpdated?: Date;
-}
-
-export interface VocabularyItem {
-  word: string;
-  meaning: string;
 }
 
 export type RecordingStatus =

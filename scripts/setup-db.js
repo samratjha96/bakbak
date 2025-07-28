@@ -158,24 +158,6 @@ const initializeSchema = (db) => {
     CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
   `);
   
-  // Create VocabularyItems table (linked to notes)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS vocabulary_items (
-      id TEXT PRIMARY KEY,
-      note_id TEXT NOT NULL,
-      word TEXT NOT NULL,
-      meaning TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE
-    );
-    
-    -- Index for faster queries by note_id
-    CREATE INDEX IF NOT EXISTS idx_vocabulary_note_id ON vocabulary_items(note_id);
-    
-    -- Index for searching by word
-    CREATE INDEX IF NOT EXISTS idx_vocabulary_word ON vocabulary_items(word);
-  `);
   
   // Create RecordingSharing table for collaboration
   db.exec(`
@@ -348,33 +330,7 @@ Remember to practice the proper intonation for "よろしくお願いします" 
       now
     );
     
-    // Add vocabulary items
-    const vocabularyItems = [
-      { word: "こんにちは", meaning: "Hello/Good afternoon" },
-      { word: "私", meaning: "I/me" },
-      { word: "名前", meaning: "Name" },
-      { word: "勉強", meaning: "Study" },
-      { word: "よろしくお願いします", meaning: "Nice to meet you" }
-    ];
-    
-    const vocabStmt = db.prepare(`
-      INSERT OR IGNORE INTO vocabulary_items (
-        id, note_id, word, meaning, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    
-    for (let i = 0; i < vocabularyItems.length; i++) {
-      vocabStmt.run(
-        `vocab-${i+1}`,
-        noteId,
-        vocabularyItems[i].word,
-        vocabularyItems[i].meaning,
-        now,
-        now
-      );
-    }
-    
-    console.log("Created test transcriptions, translations, notes, and vocabulary items");
+    console.log("Created test transcriptions, translations, and notes");
   } catch (error) {
     console.warn("Error creating test transcriptions and related data:", error);
   }

@@ -120,25 +120,6 @@ export function initializeSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
   `);
 
-  // Create VocabularyItems table (linked to notes)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS vocabulary_items (
-      id TEXT PRIMARY KEY,
-      note_id TEXT NOT NULL,
-      word TEXT NOT NULL,
-      meaning TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE
-    );
-    
-    -- Index for faster queries by note_id
-    CREATE INDEX IF NOT EXISTS idx_vocabulary_note_id ON vocabulary_items(note_id);
-    
-    -- Index for searching by word
-    CREATE INDEX IF NOT EXISTS idx_vocabulary_word ON vocabulary_items(word);
-  `);
-
   // Create RecordingSharing table for collaboration
   db.exec(`
     CREATE TABLE IF NOT EXISTS recording_sharing (
