@@ -7,8 +7,9 @@ import {
 } from "~/components/ui/Icons";
 import { TranslationStatus } from "./TranslationStatus";
 import type { TranslationStatus as TStatus } from "./TranslationStatus";
-import { updateRecordingTranslation } from "~/api/recordings";
-import { translationDataQueryOptions } from "~/utils/dataAccess";
+import { updateRecordingTranslation } from "~/data/recordings";
+import { useServerFn } from "@tanstack/react-start";
+import { fetchTranslationData } from "~/server/translation";
 import { createLogger } from "~/utils/logger";
 import { getErrorMessage } from "~/utils/errorHandling";
 
@@ -48,13 +49,17 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
   const [status, setStatus] = useState<TStatus>(initialStatus);
   const queryClient = useQueryClient();
 
-  // Fetch the current translation data using the targeted query function
+  // Bind server function safely
+  const boundFetchTranslation = useServerFn(fetchTranslationData);
+
+  // Fetch the current translation data using the bound server function
   const {
     data: translationData,
     isLoading,
     error,
   } = useQuery({
-    ...translationDataQueryOptions(recordingId),
+    queryKey: ["translation", recordingId],
+    queryFn: () => boundFetchTranslation({ data: recordingId }),
     select: (data) => ({
       ...data,
       // Apply default values if needed
@@ -65,11 +70,6 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
     }),
     // Only enable if we have a recording ID and the accordion is open
     enabled: !!recordingId && isOpen,
-    onError: (err) => {
-      logger.error(
-        `Error fetching translation: ${getErrorMessage(err, `TranslationAccordion(${recordingId})`)}`,
-      );
-    },
   });
 
   // Use derived values from query data instead of separate state

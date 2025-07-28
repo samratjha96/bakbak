@@ -12,9 +12,9 @@ import {
 } from "@tanstack/react-query";
 import {
   recordingQuery,
-  updateRecordingTranscription,
   updateRecordingNotes,
-} from "~/api/recordings";
+  updateRecording,
+} from "~/data/recordings";
 import { formatDuration } from "~/utils/formatting";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";
 import { TranscriptionDisplay } from "~/components/transcription/TranscriptionDisplay";
@@ -32,21 +32,18 @@ function RecordingDetailPage() {
   const isLoading = recordingQueryResult.isLoading;
   const isError = recordingQueryResult.isError;
 
-  const [transcriptionText, setTranscriptionText] = React.useState(
-    recording?.transcriptionText || recording?.transcription?.text || "",
-  );
+  // Only manage state for fields we're actually editing in this component
   const [notesContent, setNotesContent] = React.useState(
     recording?.notes?.content || "",
   );
-  const [editingTranscription, setEditingTranscription] = React.useState(false);
+  const [title, setTitle] = React.useState(recording?.title || "");
   const [editingNotes, setEditingNotes] = React.useState(false);
+  const [editingTitle, setEditingTitle] = React.useState(false);
 
   React.useEffect(() => {
     if (recording) {
-      setTranscriptionText(
-        recording.transcriptionText || recording.transcription?.text || "",
-      );
       setNotesContent(recording.notes?.content || "");
+      setTitle(recording.title || "");
     }
   }, [recording]);
 
@@ -62,43 +59,62 @@ function RecordingDetailPage() {
     });
   }, [recording.createdAt]);
 
-  // Mutations for updating transcription and notes
-  const updateTranscriptionMutation = useMutation({
-    mutationFn: updateRecordingTranscription,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recording", id] });
-      setEditingTranscription(false);
-    },
-  });
-
+  // Mutation for updating notes
   const updateNotesMutation = useMutation({
-    mutationFn: updateRecordingNotes,
+    mutationFn: async (notesData: {
+      id: string;
+      notes: { content: string };
+    }) => {
+      try {
+        return await updateRecordingNotes({ data: notesData });
+      } catch (error) {
+        // Transform server errors into user-friendly messages
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to save notes. Please try again.";
+        throw new Error(message);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recording", id] });
       setEditingNotes(false);
     },
   });
 
-  const handleSaveTranscription = () => {
-    updateTranscriptionMutation.mutate({
-      data: {
-        id,
-        transcription: {
-          text: transcriptionText,
-          isComplete: true,
-        },
+  // Mutation for updating recording title
+  const updateTitleMutation = useMutation({
+    mutationFn: async (recordingData: { id: string; title: string }) => {
+      try {
+        return await updateRecording({ data: recordingData });
+      } catch (error) {
+        // Transform server errors into user-friendly messages
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to save title. Please try again.";
+        throw new Error(message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recording", id] });
+      setEditingTitle(false);
+    },
+  });
+
+  const handleSaveNotes = () => {
+    updateNotesMutation.mutate({
+      id,
+      notes: {
+        content: notesContent,
       },
     });
   };
 
-  const handleSaveNotes = () => {
-    updateNotesMutation.mutate({
-      data: {
-        id,
-        notes: {
-          content: notesContent,
-        },
-      },
+  const handleSaveTitle = () => {
+    updateTitleMutation.mutate({
+      id,
+      title,
     });
   };
 
@@ -113,15 +129,20 @@ function RecordingDetailPage() {
         to: "/recordings",
       }}
       primaryAction={
-        editingTranscription || editingNotes
+        editingNotes || editingTitle
           ? {
-              label: "Save Changes",
+              label:
+                updateNotesMutation.isPending || updateTitleMutation.isPending
+                  ? "Saving..."
+                  : "Save Changes",
               icon: <SaveIcon className="w-4 h-4" />,
               onClick: () => {
-                if (editingTranscription) handleSaveTranscription();
                 if (editingNotes) handleSaveNotes();
+                if (editingTitle) handleSaveTitle();
               },
               primary: true,
+              disabled:
+                updateNotesMutation.isPending || updateTitleMutation.isPending,
             }
           : {
               label: "",
@@ -136,8 +157,36 @@ function RecordingDetailPage() {
     <Layout actionBarContent={actionBar}>
       <div className="container py-4">
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold">{recording.title}</h1>
+          <div className="flex-1">
+            {editingTitle ? (
+              <div className="mb-2">
+                <input
+                  type="text"
+                  className="text-2xl font-semibold bg-transparent border-b-2 border-primary focus:outline-none w-full"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onBlur={handleSaveTitle}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveTitle();
+                    if (e.key === "Escape") {
+                      setTitle(recording.title);
+                      setEditingTitle(false);
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-2 group">
+                <h1 className="text-2xl font-semibold">{recording.title}</h1>
+                <button
+                  onClick={() => setEditingTitle(true)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <EditIcon className="w-4 h-4 text-gray-400 hover:text-primary" />
+                </button>
+              </div>
+            )}
             <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap mt-1">
               <span>{recording.language}</span>
               <span className="mx-1.5">•</span>
@@ -153,20 +202,9 @@ function RecordingDetailPage() {
           </button>
         </div>
 
-        {/* Transcription Section */}
+        {/* Transcription Section - Let TranscriptionDisplay handle its own editing */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">Transcription</h2>
-            {recording.isTranscribed && (
-              <button
-                onClick={() => setEditingTranscription(!editingTranscription)}
-                className="flex items-center text-sm text-primary hover:text-secondary"
-              >
-                <EditIcon className="w-4 h-4 mr-1" />
-                {editingTranscription ? "Cancel" : "Edit"}
-              </button>
-            )}
-          </div>
+          <h2 className="text-lg font-semibold mb-3">Transcription</h2>
 
           {!recording.isTranscribed &&
             recording.transcriptionStatus !== "IN_PROGRESS" && (
@@ -193,27 +231,9 @@ function RecordingDetailPage() {
               }
               initialStatus={recording.transcriptionStatus}
               initialLastUpdated={recording.transcriptionLastUpdated}
-              readOnly={!editingTranscription}
+              readOnly={false}
             />
           )}
-
-          {editingTranscription ? (
-            <div className="mt-4">
-              <textarea
-                className="w-full min-h-[120px] p-4 border border-gray-200 dark:border-gray-800 rounded-lg text-base text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] mb-2 resize-none"
-                value={transcriptionText}
-                onChange={(e) => setTranscriptionText(e.target.value)}
-              />
-              <div className="flex justify-end">
-                <button
-                  onClick={handleSaveTranscription}
-                  className="py-1 px-4 bg-primary text-white rounded hover:bg-secondary transition-colors"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          ) : null}
 
           {recording.transcription?.romanization && (
             <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-sm text-gray-500 dark:text-gray-400 mt-2">
@@ -257,19 +277,31 @@ function RecordingDetailPage() {
                 className="w-full min-h-[120px] p-4 border border-gray-200 dark:border-gray-800 rounded-lg text-base text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] mb-2 resize-none"
                 value={notesContent}
                 onChange={(e) => setNotesContent(e.target.value)}
+                placeholder="Add your notes here..."
               />
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setNotesContent(recording.notes?.content || "");
+                    setEditingNotes(false);
+                  }}
+                  className="py-1 px-4 text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
                 <button
                   onClick={handleSaveNotes}
-                  className="py-1 px-4 bg-primary text-white rounded hover:bg-secondary transition-colors"
+                  disabled={updateNotesMutation.isPending}
+                  className="py-1 px-4 bg-primary text-white rounded hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Save
+                  {updateNotesMutation.isPending ? "Saving..." : "Save"}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-800 rounded-lg mb-2">
-              {notesContent || "No notes available yet."}
+            <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-800 rounded-lg mb-2 min-h-[60px]">
+              {notesContent ||
+                "No notes available yet. Click 'Edit' to add some notes."}
             </div>
           )}
         </div>

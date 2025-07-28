@@ -3,16 +3,12 @@ import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { NodeHttpHandler } from "@aws-sdk/node-http-handler";
 import { AWS_CONFIG } from "./aws-config";
 
-// Create an S3Client instance using the central AWS configuration
+// Create a simple S3Client instance
 export const s3Client = new S3Client({
   region: AWS_CONFIG.region,
-  credentials: defaultProvider(), // This will automatically use the best available credentials
+  credentials: defaultProvider(),
   requestHandler: new NodeHttpHandler({
     connectionTimeout: AWS_CONFIG.timeouts.connectionTimeout,
     socketTimeout: AWS_CONFIG.timeouts.socketTimeout,
   }),
-  // Force path-style addressing is essential to avoid redirects with certain bucket names
-  forcePathStyle: true,
-  // Set the endpoint based on the region dynamically
-  endpoint: `https://s3.${AWS_CONFIG.region}.amazonaws.com`,
 });

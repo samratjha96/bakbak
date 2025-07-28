@@ -8,10 +8,8 @@
     "build": "vite build && tsc --noEmit",
     "start": "vite start",
     "lint": "npx prettier **/**/*.ts* --write",
-    "db:setup": "ts-node --esm scripts/setup-db.ts",
-    "db:setup:seed": "ts-node --esm scripts/setup-db.ts --seed",
-    "predev": "npm run db:setup",
-    "prebuild": "npm run db:setup"
+    "db:setup": "node scripts/setup-db.js",
+    "db:setup:seed": "node scripts/setup-db.js --seed"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.850.0",

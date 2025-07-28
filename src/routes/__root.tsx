@@ -12,6 +12,7 @@ import * as React from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary";
 import { NotFound } from "~/components/NotFound";
+import ErrorBoundary from "~/components/ErrorBoundary";
 import appCss from "~/styles/app.css?url";
 import { seo } from "~/utils/seo";
 
@@ -86,7 +87,9 @@ function RootComponent() {
 
   return (
     <RootDocument>
-      <Outlet />
+      <ErrorBoundary>
+        <Outlet />
+      </ErrorBoundary>
     </RootDocument>
   );
 }

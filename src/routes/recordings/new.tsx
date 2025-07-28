@@ -12,7 +12,7 @@ import {
 } from "~/components/ui/Icons";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createRecording } from "~/api/recordings";
+import { createRecording } from "~/data/recordings";
 import { formatDuration } from "~/utils/formatting";
 import { useAudioRecorder } from "~/hooks/useAudioRecorder";
 import { AudioWaveform } from "~/components/AudioWaveform";

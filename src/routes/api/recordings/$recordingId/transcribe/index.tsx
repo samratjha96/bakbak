@@ -4,7 +4,7 @@ import { notFound } from "@tanstack/react-router";
 import {
   fetchRecording,
   updateRecordingTranscriptionStatus,
-} from "~/api/recordings";
+} from "~/data/recordings";
 import { z } from "zod";
 import { apiSuccess, apiError, apiNotFound } from "~/utils/apiResponse";
 import { createLogger } from "~/utils/logger";

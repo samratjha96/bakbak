@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
-import { fetchRecording, updateRecordingTranscription } from "~/api/recordings";
-import { z } from "zod";
 import {
-  transcriptionService,
-  type TranscriptionResult,
-} from "~/services/transcription";
+  fetchRecording,
+  updateRecordingTranscription,
+} from "~/data/recordings";
+import { z } from "zod";
+import { transcribe } from "~/lib/transcribe";
 
 // Create a server function to handle GET request for transcription
 const getTranscription = createServerFn({ method: "GET" })
@@ -32,12 +32,11 @@ const getTranscription = createServerFn({ method: "GET" })
     }
 
     // If we have a job ID, fetch the detailed transcription result
-    let transcriptionResult: TranscriptionResult | null = null;
+    let transcriptionResult: { text: string; items?: any[] } | null = null;
     if (recording.transcriptionUrl) {
       try {
         const jobId = recording.transcriptionUrl.split("/").pop() || "";
-        transcriptionResult =
-          await transcriptionService.getTranscriptionResult(jobId);
+        transcriptionResult = await transcribe.getTranscriptionResult(jobId);
       } catch (error) {
         console.error("Error fetching detailed transcription result:", error);
         // We'll continue with the basic transcription stored in the recording

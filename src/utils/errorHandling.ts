@@ -72,8 +72,63 @@ export function getErrorMessage(error: unknown, context: string): string {
   logger.error(`Error in ${context}:`, error);
 
   if (error instanceof Error) {
+    // Check for database specific errors
+    if (isMissingTableError(error)) {
+      return "Database structure not initialized. Please run setup first.";
+    }
+
+    if (isMissingDatabaseError(error)) {
+      return "Database file not found. Please make sure the database is set up properly.";
+    }
+
+    if (isDatabaseError(error)) {
+      return "Database error occurred. Please check your database configuration.";
+    }
+
     return error.message || "An unexpected error occurred";
   }
 
   return "Unknown error occurred";
+}
+
+/**
+ * Check if the error indicates that a database table is missing
+ * @param error Any error to check
+ * @returns boolean indicating if this is a missing table error
+ */
+export function isMissingTableError(error: unknown): boolean {
+  if (!error) return false;
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  return errorMessage.includes("no such table:");
+}
+
+/**
+ * Check if the error indicates that the database file is missing
+ * @param error Any error to check
+ * @returns boolean indicating if this is a missing database error
+ */
+export function isMissingDatabaseError(error: unknown): boolean {
+  if (!error) return false;
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  return (
+    errorMessage.includes("SQLITE_CANTOPEN") ||
+    errorMessage.includes("cannot open database file")
+  );
+}
+
+/**
+ * Check if the error is related to database operations
+ * @param error Any error to check
+ * @returns boolean indicating if this is a database error
+ */
+export function isDatabaseError(error: unknown): boolean {
+  if (!error) return false;
+  const errorMessage = error instanceof Error ? error.message : String(error);
+
+  return (
+    errorMessage.includes("SQLITE_") ||
+    errorMessage.includes("no such table:") ||
+    errorMessage.includes("cannot open database file") ||
+    errorMessage.includes("database is locked")
+  );
 }

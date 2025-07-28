@@ -4,7 +4,7 @@ export const authClient = createAuthClient({
   baseURL:
     typeof window !== "undefined"
       ? window.location.origin
-      : "http://localhost:3010",
+      : `http://localhost:${process.env.PORT || "3010"}`,
 });
 
 export const { signIn, signUp, signOut, useSession } = authClient;

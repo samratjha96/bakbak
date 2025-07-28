@@ -46,12 +46,16 @@ cp env.example .env
 # Edit .env with your AWS credentials
 ```
 
-4. Set up the database
+4. Set up the database manually
 ```bash
 # Set up schema only
-npm run db:setup
+node scripts/setup-db.js
 
 # Or with test data
+node scripts/setup-db.js --seed
+
+# Or use npm scripts
+npm run db:setup
 npm run db:setup:seed
 ```
 

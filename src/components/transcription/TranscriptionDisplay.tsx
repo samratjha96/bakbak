@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { EditIcon, SaveIcon } from "~/components/ui/Icons";
 import { TranscriptionStatus } from "./TranscriptionStatus";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
-import { updateRecordingTranscription } from "~/api/recordings";
-import { transcriptionDataQueryOptions } from "~/utils/dataAccess";
+import { updateRecordingTranscription } from "~/data/recordings";
+import { fetchTranscriptionData } from "~/server/transcription";
+
 import { createLogger } from "~/utils/logger";
 import { getErrorMessage } from "~/utils/errorHandling";
 
@@ -41,13 +43,17 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   );
   const queryClient = useQueryClient();
 
-  // Fetch the current transcription data using the targeted query function
+  // Bind server function safely
+  const boundFetchTranscription = useServerFn(fetchTranscriptionData);
+
+  // Fetch the current transcription data using the bound server function
   const {
     data: transcriptionData,
     isLoading,
     error,
   } = useQuery({
-    ...transcriptionDataQueryOptions(recordingId),
+    queryKey: ["transcription", recordingId],
+    queryFn: () => boundFetchTranscription({ data: recordingId }),
     select: (data) => ({
       ...data,
       // Apply default values if needed
@@ -58,11 +64,6 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
     }),
     // Only enable if we have a recording ID
     enabled: !!recordingId,
-    onError: (err) => {
-      logger.error(
-        `Error fetching transcription: ${getErrorMessage(err, `TranscriptionDisplay(${recordingId})`)}`,
-      );
-    },
   });
 
   // Use derived values from query data instead of separate state

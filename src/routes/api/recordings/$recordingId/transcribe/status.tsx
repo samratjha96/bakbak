@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
-import { fetchRecording } from "~/api/recordings";
+import { fetchRecording } from "~/data/recordings";
 import { z } from "zod";
-import { transcriptionService } from "~/services/transcription";
+import { transcribe } from "~/lib/transcribe";
 import {
   apiSuccess,
   apiError,
@@ -50,7 +50,7 @@ const getTranscriptionStatus = createServerFn({ method: "GET" })
 
     // Get the transcription service and check the status
     // Use the singleton transcription service instance
-    const status = await transcriptionService.getTranscriptionStatus(jobId);
+    const status = await transcribe.getTranscriptionStatus(jobId);
 
     return {
       status: 200,
