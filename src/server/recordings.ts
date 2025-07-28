@@ -631,7 +631,9 @@ export const updateRecording = createServerFn({ method: "POST" })
       .get(data.id, userId);
 
     if (!existingRecording) {
-      throw new Error('Recording not found or you do not have permission to edit it.');
+      throw new Error(
+        "Recording not found or you do not have permission to edit it.",
+      );
     }
 
     // Build update query dynamically based on provided fields

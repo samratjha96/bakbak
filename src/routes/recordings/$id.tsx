@@ -263,7 +263,14 @@ function RecordingDetailPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">Notes</h2>
             <button
-              onClick={() => setEditingNotes(!editingNotes)}
+              onClick={() => {
+                if (editingNotes) {
+                  setNotesContent(recording.notes?.content || "");
+                  setEditingNotes(false);
+                } else {
+                  setEditingNotes(true);
+                }
+              }}
               className="flex items-center text-sm text-primary hover:text-secondary"
             >
               <EditIcon className="w-4 h-4 mr-1" />
@@ -279,20 +286,11 @@ function RecordingDetailPage() {
                 onChange={(e) => setNotesContent(e.target.value)}
                 placeholder="Add your notes here..."
               />
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setNotesContent(recording.notes?.content || "");
-                    setEditingNotes(false);
-                  }}
-                  className="py-1 px-4 text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
+              <div className="flex justify-end">
                 <button
                   onClick={handleSaveNotes}
                   disabled={updateNotesMutation.isPending}
-                  className="py-1 px-4 bg-primary text-white rounded hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="py-2 px-6 bg-primary text-white rounded hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   {updateNotesMutation.isPending ? "Saving..." : "Save"}
                 </button>

@@ -194,15 +194,14 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
         {!readOnly && (
           <button
             onClick={() =>
-              isEditing ? handleSaveTranscription() : setIsEditing(true)
+              isEditing ? setIsEditing(false) : setIsEditing(true)
             }
             className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light transition-colors"
-            disabled={updateTranscriptionMutation.isPending}
           >
             {isEditing ? (
               <>
-                <SaveIcon className="w-4 h-4" />
-                <span>Save</span>
+                <EditIcon className="w-4 h-4" />
+                <span>Cancel</span>
               </>
             ) : (
               <>
@@ -215,18 +214,30 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
       </div>
 
       {isEditing && !readOnly ? (
-        <div className="relative">
-          <textarea
-            value={transcriptionText}
-            onChange={(e) => setTranscriptionText(e.target.value)}
-            className="w-full min-h-[200px] p-4 border border-gray-200 dark:border-gray-700 rounded-lg text-base text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)]"
-            placeholder="Enter or edit transcription text..."
-          />
-          {updateTranscriptionMutation.isPending && (
-            <div className="absolute inset-0 bg-white/50 dark:bg-black/50 flex items-center justify-center">
-              <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em]"></div>
-            </div>
-          )}
+        <div>
+          <div className="relative">
+            <textarea
+              value={transcriptionText}
+              onChange={(e) => setTranscriptionText(e.target.value)}
+              className="w-full min-h-[200px] p-4 border border-gray-200 dark:border-gray-700 rounded-lg text-base text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] mb-2"
+              placeholder="Enter or edit transcription text..."
+            />
+            {updateTranscriptionMutation.isPending && (
+              <div className="absolute inset-0 bg-white/50 dark:bg-black/50 flex items-center justify-center">
+                <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em]"></div>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={handleSaveTranscription}
+              disabled={updateTranscriptionMutation.isPending}
+              className="flex items-center gap-1.5 py-1 px-3 bg-primary text-white text-sm rounded hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <SaveIcon className="w-4 h-4" />
+              {updateTranscriptionMutation.isPending ? "Saving..." : "Save"}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="whitespace-pre-wrap bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
