@@ -3,7 +3,7 @@ import {
   TranslateTextCommand,
   TranslateTextCommandInput,
 } from "@aws-sdk/client-translate";
-import { translateClient } from "./translate-client";
+import { translateClient } from "./clients";
 import { normalizeTranslateLanguage } from "~/lib/languages";
 
 /**

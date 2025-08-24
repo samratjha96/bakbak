@@ -11,7 +11,7 @@ import {
   CompletedPart,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { s3Client } from "~/lib/s3-client";
+import { s3Client } from "~/lib/clients";
 import { createServerFn } from "@tanstack/react-start";
 
 // Get default bucket from environment variable

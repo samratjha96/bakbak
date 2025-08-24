@@ -3,7 +3,7 @@ import {
   StartTranscriptionJobCommand,
   GetTranscriptionJobCommand,
 } from "@aws-sdk/client-transcribe";
-import { transcribeClient } from "./transcribe-client";
+import { transcribeClient } from "./clients";
 import { getAWSLanguageCode } from "~/lib/languages";
 import { s3 } from "./s3";
 

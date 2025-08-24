@@ -13,7 +13,7 @@ import {
   S3ServiceException,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { s3Client } from "./s3-client";
+import { s3Client } from "./clients";
 import { AWS_CONFIG, getS3BucketName } from "./aws-config";
 
 /**
