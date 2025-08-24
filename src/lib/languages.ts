@@ -115,3 +115,66 @@ export const normalizeTranslateLanguage = (code: string) => {
     languages.find((lang) => lang.translateCode === base)?.translateCode || "en"
   );
 };
+
+// Additional helpers for script-aware features (transliteration)
+
+/**
+ * Check if a language code is supported by our Translate/Transliterate flows
+ */
+export const isSupportedTranslateLanguage = (code: string): boolean => {
+  const base = code.split("-")[0].toLowerCase();
+  return languages.some((lang) => lang.translateCode === base);
+};
+
+/**
+ * Return a reasonable default script for a given ISO language code
+ * Script codes follow ISO 15924 (e.g., Latn, Jpan, Cyrl, Arab, Hans/Hant)
+ */
+export const getDefaultScriptForLanguage = (
+  languageCode: string,
+): string | undefined => {
+  const base = normalizeTranslateLanguage(languageCode);
+  const defaults: Record<string, string> = {
+    en: "Latn",
+    fr: "Latn",
+    es: "Latn",
+    de: "Latn",
+    it: "Latn",
+    pt: "Latn",
+    vi: "Latn",
+    ja: "Jpan",
+    ko: "Kore",
+    ru: "Cyrl",
+    ar: "Arab",
+    hi: "Deva",
+    th: "Thai",
+    zh: "Hans", // default to Simplified; callers may override to Hant
+  };
+  return defaults[base];
+};
+
+/**
+ * Return a list of supported scripts for a language (best-effort static mapping)
+ */
+export const getSupportedScriptsForLanguage = (
+  languageCode: string,
+): string[] => {
+  const base = normalizeTranslateLanguage(languageCode);
+  const supported: Record<string, string[]> = {
+    en: ["Latn"],
+    fr: ["Latn"],
+    es: ["Latn"],
+    de: ["Latn"],
+    it: ["Latn"],
+    pt: ["Latn"],
+    vi: ["Latn"],
+    ja: ["Jpan", "Latn"],
+    ko: ["Kore", "Latn"],
+    ru: ["Cyrl", "Latn"],
+    ar: ["Arab", "Latn"],
+    hi: ["Deva", "Latn"],
+    th: ["Thai", "Latn"],
+    zh: ["Hans", "Hant", "Latn"],
+  };
+  return supported[base] || [];
+};

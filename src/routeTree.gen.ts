@@ -13,13 +13,12 @@ import { createServerRootRoute } from '@tanstack/react-start/server'
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TranscribeRouteImport } from './routes/transcribe'
 import { Route as RecordRouteImport } from './routes/record'
-import { Route as NotesRouteImport } from './routes/notes'
-import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StorageIndexRouteImport } from './routes/storage/index'
 import { Route as RecordingsIndexRouteImport } from './routes/recordings/index'
 import { Route as RecordingsNewRouteImport } from './routes/recordings/new'
 import { Route as RecordingsIdRouteImport } from './routes/recordings/$id'
+import { Route as ApiRecordingsRecordingIdTransliterateIndexRouteImport } from './routes/api/recordings/$recordingId/transliterate/index'
 import { Route as ApiRecordingsRecordingIdTranslationIndexRouteImport } from './routes/api/recordings/$recordingId/translation/index'
 import { Route as ApiRecordingsRecordingIdTranslateIndexRouteImport } from './routes/api/recordings/$recordingId/translate/index'
 import { Route as ApiRecordingsRecordingIdTranscriptionIndexRouteImport } from './routes/api/recordings/$recordingId/transcription/index'
@@ -37,16 +36,6 @@ const TranscribeRoute = TranscribeRouteImport.update({
 const RecordRoute = RecordRouteImport.update({
   id: '/record',
   path: '/record',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotesRoute = NotesRouteImport.update({
-  id: '/notes',
-  path: '/notes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -74,6 +63,12 @@ const RecordingsIdRoute = RecordingsIdRouteImport.update({
   path: '/recordings/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRecordingsRecordingIdTransliterateIndexRoute =
+  ApiRecordingsRecordingIdTransliterateIndexRouteImport.update({
+    id: '/api/recordings/$recordingId/transliterate/',
+    path: '/api/recordings/$recordingId/transliterate/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiRecordingsRecordingIdTranslationIndexRoute =
   ApiRecordingsRecordingIdTranslationIndexRouteImport.update({
     id: '/api/recordings/$recordingId/translation/',
@@ -112,8 +107,6 @@ const ApiAuthSplatServerRoute = ApiAuthSplatServerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/notes': typeof NotesRoute
   '/record': typeof RecordRoute
   '/transcribe': typeof TranscribeRoute
   '/recordings/$id': typeof RecordingsIdRoute
@@ -125,11 +118,10 @@ export interface FileRoutesByFullPath {
   '/api/recordings/$recordingId/transcription': typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
   '/api/recordings/$recordingId/translate': typeof ApiRecordingsRecordingIdTranslateIndexRoute
   '/api/recordings/$recordingId/translation': typeof ApiRecordingsRecordingIdTranslationIndexRoute
+  '/api/recordings/$recordingId/transliterate': typeof ApiRecordingsRecordingIdTransliterateIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/notes': typeof NotesRoute
   '/record': typeof RecordRoute
   '/transcribe': typeof TranscribeRoute
   '/recordings/$id': typeof RecordingsIdRoute
@@ -141,12 +133,11 @@ export interface FileRoutesByTo {
   '/api/recordings/$recordingId/transcription': typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
   '/api/recordings/$recordingId/translate': typeof ApiRecordingsRecordingIdTranslateIndexRoute
   '/api/recordings/$recordingId/translation': typeof ApiRecordingsRecordingIdTranslationIndexRoute
+  '/api/recordings/$recordingId/transliterate': typeof ApiRecordingsRecordingIdTransliterateIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/notes': typeof NotesRoute
   '/record': typeof RecordRoute
   '/transcribe': typeof TranscribeRoute
   '/recordings/$id': typeof RecordingsIdRoute
@@ -158,13 +149,12 @@ export interface FileRoutesById {
   '/api/recordings/$recordingId/transcription/': typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
   '/api/recordings/$recordingId/translate/': typeof ApiRecordingsRecordingIdTranslateIndexRoute
   '/api/recordings/$recordingId/translation/': typeof ApiRecordingsRecordingIdTranslationIndexRoute
+  '/api/recordings/$recordingId/transliterate/': typeof ApiRecordingsRecordingIdTransliterateIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/dashboard'
-    | '/notes'
     | '/record'
     | '/transcribe'
     | '/recordings/$id'
@@ -176,11 +166,10 @@ export interface FileRouteTypes {
     | '/api/recordings/$recordingId/transcription'
     | '/api/recordings/$recordingId/translate'
     | '/api/recordings/$recordingId/translation'
+    | '/api/recordings/$recordingId/transliterate'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/dashboard'
-    | '/notes'
     | '/record'
     | '/transcribe'
     | '/recordings/$id'
@@ -192,11 +181,10 @@ export interface FileRouteTypes {
     | '/api/recordings/$recordingId/transcription'
     | '/api/recordings/$recordingId/translate'
     | '/api/recordings/$recordingId/translation'
+    | '/api/recordings/$recordingId/transliterate'
   id:
     | '__root__'
     | '/'
-    | '/dashboard'
-    | '/notes'
     | '/record'
     | '/transcribe'
     | '/recordings/$id'
@@ -208,12 +196,11 @@ export interface FileRouteTypes {
     | '/api/recordings/$recordingId/transcription/'
     | '/api/recordings/$recordingId/translate/'
     | '/api/recordings/$recordingId/translation/'
+    | '/api/recordings/$recordingId/transliterate/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRoute
-  NotesRoute: typeof NotesRoute
   RecordRoute: typeof RecordRoute
   TranscribeRoute: typeof TranscribeRoute
   RecordingsIdRoute: typeof RecordingsIdRoute
@@ -225,6 +212,7 @@ export interface RootRouteChildren {
   ApiRecordingsRecordingIdTranscriptionIndexRoute: typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
   ApiRecordingsRecordingIdTranslateIndexRoute: typeof ApiRecordingsRecordingIdTranslateIndexRoute
   ApiRecordingsRecordingIdTranslationIndexRoute: typeof ApiRecordingsRecordingIdTranslationIndexRoute
+  ApiRecordingsRecordingIdTransliterateIndexRoute: typeof ApiRecordingsRecordingIdTransliterateIndexRoute
 }
 export interface FileServerRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatServerRoute
@@ -264,20 +252,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RecordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/notes': {
-      id: '/notes'
-      path: '/notes'
-      fullPath: '/notes'
-      preLoaderRoute: typeof NotesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -311,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/recordings/$id'
       fullPath: '/recordings/$id'
       preLoaderRoute: typeof RecordingsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/recordings/$recordingId/transliterate/': {
+      id: '/api/recordings/$recordingId/transliterate/'
+      path: '/api/recordings/$recordingId/transliterate'
+      fullPath: '/api/recordings/$recordingId/transliterate'
+      preLoaderRoute: typeof ApiRecordingsRecordingIdTransliterateIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/recordings/$recordingId/translation/': {
@@ -364,8 +345,6 @@ declare module '@tanstack/react-start/server' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRoute,
-  NotesRoute: NotesRoute,
   RecordRoute: RecordRoute,
   TranscribeRoute: TranscribeRoute,
   RecordingsIdRoute: RecordingsIdRoute,
@@ -382,6 +361,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiRecordingsRecordingIdTranslateIndexRoute,
   ApiRecordingsRecordingIdTranslationIndexRoute:
     ApiRecordingsRecordingIdTranslationIndexRoute,
+  ApiRecordingsRecordingIdTransliterateIndexRoute:
+    ApiRecordingsRecordingIdTransliterateIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
