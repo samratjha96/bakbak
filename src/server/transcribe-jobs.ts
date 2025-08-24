@@ -70,6 +70,7 @@ export const startTranscriptionJob = createServerFn({ method: "POST" })
         // Get S3 URI and start transcription
         const { s3Uri } = await getRecordingPath({ data: recordingId });
         const languageCode = recording.language || "en";
+        console.log(`[Transcribe] Starting job for ${recordingId}`);
         const jobId = await transcribe.startTranscription(
           recordingId,
           s3Uri,
@@ -84,6 +85,7 @@ export const startTranscriptionJob = createServerFn({ method: "POST" })
             jobId: jobId,
           },
         });
+        console.log(`[Transcribe] Started job ${jobId} for ${recordingId}`);
 
         return {
           status: 202,
@@ -94,6 +96,9 @@ export const startTranscriptionJob = createServerFn({ method: "POST" })
         };
       } catch (error) {
         // Update to FAILED status
+        console.error(
+          `[Transcribe] Failed to start job for ${recordingId}: ${error}`,
+        );
         await updateRecordingTranscriptionStatus({
           data: { id: recordingId, status: "FAILED" },
         });
@@ -139,6 +144,7 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
 
         // Handle completed job
         if (status.status === "COMPLETED") {
+          console.log(`[Transcribe] Job ${jobId} completed, retrieving result`);
           const result = await transcribe.getTranscriptionResult(jobId);
           await updateRecordingTranscriptionStatus({
             data: {
@@ -160,6 +166,9 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
 
         // Handle failed job
         if (status.status === "FAILED") {
+          console.error(
+            `[Transcribe] Job ${jobId} failed: ${status.errorMessage}`,
+          );
           await updateRecordingTranscriptionStatus({
             data: { id: recordingId, status: "FAILED" },
           });
@@ -175,6 +184,9 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
         };
       } catch (error) {
         // Don't update the recording status on error checking status
+        console.error(
+          `[Transcribe] Error checking status for ${jobId}: ${error}`,
+        );
         return {
           status: 500,
           transcriptionStatus: recording.transcriptionStatus,

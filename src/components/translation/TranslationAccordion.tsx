@@ -9,7 +9,7 @@ import { TranslationStatus } from "./TranslationStatus";
 import type { TranslationStatus as TStatus } from "./TranslationStatus";
 import { updateRecordingTranslation } from "~/data/recordings";
 import { useServerFn } from "@tanstack/react-start";
-import { fetchTranslationData } from "~/server/translation";
+import { fetchTranslationData, createTranslationForRecording } from "~/server/translation";
 import { createLogger } from "~/utils/logger";
 import { getErrorMessage } from "~/utils/errorHandling";
 
@@ -49,8 +49,9 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
   const [status, setStatus] = useState<TStatus>(initialStatus);
   const queryClient = useQueryClient();
 
-  // Bind server function safely
+  // Bind server functions safely
   const boundFetchTranslation = useServerFn(fetchTranslationData);
+  const boundCreateTranslation = useServerFn(createTranslationForRecording);
 
   // Fetch the current translation data using the bound server function
   const {
@@ -102,41 +103,33 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
       );
 
       // Verify transcription exists by fetching basic recording data
-      const recordingData = await queryClient.fetchQuery({
+      const recordingData = (await queryClient.fetchQuery({
         queryKey: ["recording", recordingId],
         queryFn: () => queryClient.getQueryData(["recording", recordingId]),
-      });
+      })) as any;
 
       if (!recordingData.isTranscribed || !recordingData.transcriptionText) {
         throw new Error("No transcription available to translate");
       }
 
-      logger.info(
-        `Found transcription, creating translation for ${recordingId}`,
-      );
+      logger.info(`Found transcription, calling server function for translation`);
 
-      // Create a simulated translation (in a real app, this would use a translation service)
-      const translatedText = `${recordingData.transcriptionText}\n\n[Translated to ${targetLanguage}]`;
-
-      // Use the server function to update the recording with translation
-      const updatedRecording = await updateRecordingTranslation({
-        data: {
-          id: recordingId,
-          translationText: translatedText,
-          translationLanguage: targetLanguage,
-        },
+      const result = await boundCreateTranslation({
+        data: { recordingId, targetLanguage },
       });
 
       logger.info(`Translation successfully created for ${recordingId}`);
 
       // Return the updated translation data
       return {
-        translationText: updatedRecording.translationText,
-        translationLanguage: updatedRecording.translationLanguage,
-        translationLastUpdated: updatedRecording.translationLastUpdated,
+        translationText: result.translationText,
+        translationLanguage: result.translationLanguage,
+        translationLastUpdated: new Date().toISOString(),
       };
     },
     onSuccess: () => {
+      // Mark as completed so the in-progress banner hides
+      setStatus("COMPLETED");
       // Just invalidate queries - React Query will handle refetching
       queryClient.invalidateQueries({ queryKey: ["translation", recordingId] });
       queryClient.invalidateQueries({ queryKey: ["recording", recordingId] });
@@ -148,11 +141,14 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
         `Error creating translation: ${getErrorMessage(error, `TranslationAccordion.createTranslation(${recordingId})`)}`,
       );
     },
+    onMutate: () => {
+      // Show in-progress immediately when mutation starts
+      setStatus("IN_PROGRESS");
+    },
   });
 
   const handleTranslate = () => {
-    setStatus("IN_PROGRESS");
-    createTranslationMutation.mutate();
+    createTranslationMutation.mutate("en");
   };
 
   const toggleAccordion = () => {

@@ -113,6 +113,7 @@ const RecordingItem: React.FC<{
             variant="outline"
             size="sm"
             className="px-2 py-1 text-xs"
+            currentStatus={transcriptionStatus}
           />
         )}
         <Link

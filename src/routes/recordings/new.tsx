@@ -202,7 +202,9 @@ function NewRecordingPage() {
       formData.append("fileExtension", ext);
       formData.append("contentType", blobType);
 
+      console.log(`[Upload] Starting upload: ${(audioBlob.size / 1024 / 1024).toFixed(1)}MB ${ext} file`);
       const uploadResult = await uploadAudioRecording({ data: formData });
+      console.log(`[Upload] Success: ${uploadResult.url}`);
 
       createRecordingMutation.mutate({
         data: {
@@ -215,7 +217,7 @@ function NewRecordingPage() {
       });
       
     } catch (error) {
-      console.error("Failed to save recording:", error);
+      console.error("[Upload] Failed to save recording:", error);
       
       const errorMessage = error instanceof Error
         ? error.message

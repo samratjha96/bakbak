@@ -33,8 +33,8 @@ export class Transcribe {
     audioUrl: string,
     languageCode: string = "en-US",
   ): Promise<string> {
-    const transcribeLanguageCode = languageCode.includes("-") 
-      ? languageCode 
+    const transcribeLanguageCode = languageCode.includes("-")
+      ? languageCode
       : getAWSLanguageCode(languageCode, "transcribe") || "en-US";
 
     const timestamp = new Date().getTime();
@@ -90,7 +90,6 @@ export class Transcribe {
         errorMessage: job.FailureReason,
       };
     } catch (error: any) {
-
       // Handle common error types
       if (error.name === "ResourceNotFoundException") {
         return {
@@ -162,6 +161,9 @@ export class Transcribe {
         })),
       };
     } catch (error: any) {
+      console.error(
+        `[Transcribe] Failed to retrieve result for job ${jobId}: ${error.message}`,
+      );
       throw new Error(`Transcription result error: ${error.message}`);
     }
   }

@@ -7,6 +7,9 @@ import { notFound } from "@tanstack/react-router";
 import { getDatabase, getCurrentUserId } from "~/database/connection";
 import { createLogger } from "~/utils/logger";
 import { AppError } from "~/utils/errorHandling";
+import { translate } from "~/lib/translate";
+import { normalizeTranslateLanguage } from "~/lib/languages";
+import { fetchRecording, updateRecordingTranslation } from "~/data/recordings";
 
 const logger = createLogger("TranslationServer");
 
@@ -73,4 +76,58 @@ export const fetchTranslationData = createServerFn({ method: "GET" })
         500,
       );
     }
+  });
+
+/**
+ * Create translation for a recording using AWS Translate and persist it
+ */
+export const createTranslationForRecording = createServerFn({ method: "POST" })
+  .validator(
+    (params: { recordingId: string; targetLanguage?: string }) => params,
+  )
+  .handler(async ({ data: { recordingId, targetLanguage = "en" } }) => {
+    logger.info(
+      `Creating translation for recording ${recordingId} -> ${targetLanguage}`,
+    );
+
+    // Fetch recording to validate and get language/transcription
+    let recording: any;
+    try {
+      recording = await fetchRecording({ data: recordingId });
+    } catch (error) {
+      throw notFound();
+    }
+
+    if (!recording.isTranscribed || !recording.transcriptionText) {
+      return {
+        status: 400,
+        message: "No transcription available to translate",
+      };
+    }
+
+    // Perform translation
+    const srcLang = recording.language || "auto";
+    const tgtLang = normalizeTranslateLanguage(targetLanguage || "en");
+    const translatedText = await translate.translateText(
+      recording.transcriptionText,
+      srcLang,
+      tgtLang,
+    );
+
+    // Persist translation
+    const updated = await updateRecordingTranslation({
+      data: {
+        id: recordingId,
+        translationText: translatedText,
+        translationLanguage: tgtLang,
+      },
+    });
+
+    return {
+      status: 200,
+      message: "Translation created",
+      translationText: updated.translationText,
+      translationLanguage: updated.translationLanguage,
+      recordingId,
+    };
   });

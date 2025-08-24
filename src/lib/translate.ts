@@ -43,7 +43,11 @@ export class Translate {
     try {
       const input: TranslateTextCommandInput = {
         Text: text,
-        SourceLanguageCode: this.normalizeLanguage(sourceLanguage),
+        // Allow 'auto' to pass through for source detection
+        SourceLanguageCode:
+          sourceLanguage === "auto"
+            ? ("auto" as any)
+            : this.normalizeLanguage(sourceLanguage),
         TargetLanguageCode: this.normalizeLanguage(targetLanguage),
       };
 

@@ -2,59 +2,78 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
 import { fetchRecording, updateRecordingTranslation } from "~/data/recordings";
+import { translate } from "~/lib/translate";
+import { normalizeTranslateLanguage } from "~/lib/languages";
 import { z } from "zod";
+import {
+  apiSuccess,
+  apiError,
+  apiNotFound,
+  apiMethodNotAllowed,
+} from "~/utils/apiResponse";
+import { createLogger } from "~/utils/logger";
+import { handleApiError } from "~/utils/errorHandling";
+import {
+  apiResponseMiddleware,
+  methodGuardMiddleware,
+  parseJsonBodyMiddleware,
+} from "~/middleware/apiMiddleware";
+
+// Create a logger for this API route
+const logger = createLogger("API.TranslateRoute");
 
 // Create a server function to handle POST request for initiating translation
 const initiateTranslation = createServerFn({ method: "POST" })
-  .validator(
-    (params: { recordingId: string; targetLanguage?: string }) => params,
-  )
+  .middleware([
+    apiResponseMiddleware,
+    methodGuardMiddleware(["POST"]),
+    parseJsonBodyMiddleware,
+  ])
+  .validator((params: { recordingId: string; targetLanguage?: string }) => params)
   .handler(async ({ data }) => {
     const { recordingId, targetLanguage = "en" } = data;
 
-    console.log(
-      `[API] /translate POST - Processing translation request for recording ${recordingId} to language ${targetLanguage}`,
+    logger.info(
+      `Processing translation request for recording ${recordingId} to language ${targetLanguage}`,
     );
 
     // Fetch the recording
     let recording;
     try {
-      console.log(
-        `[API] /translate POST - Fetching recording with ID ${recordingId}`,
-      );
+      logger.debug(`Fetching recording with ID ${recordingId}`);
       recording = await fetchRecording({ data: recordingId });
-      console.log(
-        `[API] /translate POST - Successfully fetched recording: ${recording.id}, title: ${recording.title}`,
+      logger.debug(
+        `Fetched recording: ${recording.id}, title: ${recording.title}`,
       );
-    } catch (error) {
-      console.error(
-        `[API] /translate POST - Error fetching recording ${recordingId}:`,
-        error,
-      );
+    } catch (error: any) {
+      logger.error(`Error fetching recording ${recordingId}:`, error);
       throw notFound();
     }
 
     // Check if there's a transcription to translate
     if (!recording.isTranscribed || !recording.transcriptionText) {
-      console.log(
-        `[API] /translate POST - No transcription available for recording ${recordingId}`,
-      );
-      return {
-        status: 400,
-        message: "No transcription available to translate",
-      };
+      logger.warn(`No transcription available for recording ${recordingId}`);
+      return { status: 400, message: "No transcription available to translate" };
     }
 
-    console.log(
-      `[API] /translate POST - Transcription found, proceeding with translation`,
-    );
+    logger.info(`Transcription found, proceeding with translation`);
 
-    // In a real application, you would initiate an async translation process here
-    // For this demo, we'll simulate a translation by appending "[Translated to {targetLanguage}]"
-    const translatedText = `${recording.transcriptionText}\n\n[Translated to ${targetLanguage}]`;
+    // Perform real translation via AWS Translate
+    let translatedText: string;
+    try {
+      const sourceLang = recording.language || "auto";
+      translatedText = await translate.translateText(
+        recording.transcriptionText,
+        sourceLang,
+        normalizeTranslateLanguage(targetLanguage || "en"),
+      );
+    } catch (error: any) {
+      logger.error(`Error calling AWS Translate:`, error);
+      return { status: 502, message: `Translation service error: ${error?.message || "Unknown error"}` };
+    }
 
     // Update the recording with the translation
-    console.log(`[API] /translate POST - Updating recording with translation`);
+    logger.debug(`Updating recording with translation`);
     let updatedRecording;
     try {
       updatedRecording = await updateRecordingTranslation({
@@ -64,122 +83,68 @@ const initiateTranslation = createServerFn({ method: "POST" })
           translationLanguage: targetLanguage,
         },
       });
-      console.log(
-        `[API] /translate POST - Successfully updated recording with translation`,
-      );
-    } catch (error) {
-      console.error(
-        `[API] /translate POST - Error updating translation:`,
-        error,
-      );
-      throw new Error(
-        `Failed to update recording with translation: ${error.message}`,
-      );
+      logger.info(`Successfully updated recording with translation`);
+    } catch (error: any) {
+      logger.error(`Error updating translation:`, error);
+      throw new Error(`Failed to update recording with translation: ${error.message}`);
     }
 
-    console.log(`[API] /translate POST - Returning successful response`);
-    const response = {
+    logger.info(`Returning successful response`);
+    return {
       status: 200,
       message: "Translation initiated successfully",
       translationText: updatedRecording.translationText,
       translationLanguage: updatedRecording.translationLanguage,
       recordingId,
     };
-    console.log(
-      `[API] /translate POST - Response payload:`,
-      JSON.stringify(response),
-    );
-    return response;
   });
 
-export const Route = createFileRoute("/api/recordings/$recordingId/translate/")(
-  {
-    validateParams: z.object({
-      recordingId: z.string(),
-    }),
-    loaderDeps: ({ params: { recordingId } }) => ({
-      recordingId,
-    }),
-    serverComponent: async ({ params, deps, request }) => {
-      console.log(
-        `[API] /translate - Request received: ${request.method} ${request.url}`,
+export const Route = createFileRoute(
+  "/api/recordings/$recordingId/translate/",
+)({
+  validateParams: z.object({
+    recordingId: z.string(),
+  }),
+  loaderDeps: ({ params }: { params: { recordingId: string } }) => ({
+    recordingId: params.recordingId,
+  }),
+  serverComponent: async ({ params, deps, request }: {
+    params: { recordingId: string };
+    deps: { recordingId: string };
+    request: Request;
+  }) => {
+    logger.info(`Request received: ${request.method} ${request.url}`);
+
+    if (params.recordingId !== deps.recordingId) {
+      logger.error(
+        `Parameter mismatch: params=${params.recordingId}, deps=${deps.recordingId}`,
       );
+      return apiError("recordingId mismatch", 400);
+    }
 
-      // Set proper JSON content type header
-      const headers = new Headers({
-        "Content-Type": "application/json",
-      });
-
-      if (params.recordingId !== deps.recordingId) {
-        console.error(
-          `[API] /translate - recordingId mismatch: params=${params.recordingId}, deps=${deps.recordingId}`,
-        );
-        return Response.json(
-          { error: "recordingId mismatch" },
-          { status: 400, headers },
-        );
+    try {
+      if (request.method === "POST") {
+        // Parse body (we also parse in middleware within the server fn; harmless here)
+        const body = await request.json().catch(() => ({}));
+        const result = await initiateTranslation({
+          data: {
+            recordingId: params.recordingId,
+            ...body,
+          },
+        });
+        return apiSuccess(result);
       }
-
-      try {
-        if (request.method === "POST") {
-          console.log(
-            `[API] /translate - Processing POST request for recording ${params.recordingId}`,
-          );
-          // Parse the request body for POST
-          let body;
-          try {
-            body = await request.json();
-            console.log(
-              `[API] /translate - Request body:`,
-              JSON.stringify(body),
-            );
-          } catch (parseError) {
-            console.error(
-              `[API] /translate - Error parsing request body:`,
-              parseError,
-            );
-            return Response.json(
-              { error: "Invalid JSON in request body" },
-              { status: 400, headers },
-            );
-          }
-
-          console.log(
-            `[API] /translate - Calling initiateTranslation for recording ${params.recordingId}`,
-          );
-          const result = await initiateTranslation({
-            data: {
-              recordingId: params.recordingId,
-              ...body,
-            },
-          });
-
-          return Response.json(result, { headers });
-        } else {
-          console.log(
-            `[API] /translate - Method not allowed: ${request.method}`,
-          );
-          return Response.json(
-            { error: "Method not allowed" },
-            { status: 405, headers },
-          );
-        }
-      } catch (error) {
-        console.error(`[API] /translate - Error processing request:`, error);
-        if (error === notFound()) {
-          console.log(
-            `[API] /translate - Recording not found: ${params.recordingId}`,
-          );
-          return Response.json(
-            { error: "Recording not found" },
-            { status: 404, headers },
-          );
-        }
-        return Response.json(
-          { error: error.message || "Internal server error" },
-          { status: 500, headers },
-        );
+      return apiMethodNotAllowed(["POST"]);
+    } catch (error) {
+      if (error === notFound()) {
+        logger.warn(`Recording not found: ${params.recordingId}`);
+        return apiNotFound(`Recording not found: ${params.recordingId}`);
       }
-    },
+      const { error: errorMessage, status } = handleApiError(
+        error,
+        `API.TranslateRoute(${params.recordingId})`,
+      );
+      return apiError(errorMessage, status);
+    }
   },
-);
+} as any);
