@@ -297,12 +297,7 @@ function RecordingDetailPage() {
             />
           )}
 
-          {recording.transcription?.romanization && (
-            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-sm text-gray-500 dark:text-gray-400 mt-2">
-              <div className="font-medium mb-1">Romanization</div>
-              {recording.transcription.romanization}
-            </div>
-          )}
+          {/* Romanization is now displayed inside TranscriptionDisplay to avoid duplication */}
         </div>
 
         {/* Translation Section - Only show if transcription exists */}

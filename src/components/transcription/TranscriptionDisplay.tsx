@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { EditIcon, SaveIcon } from "~/components/ui/Icons";
@@ -37,12 +37,6 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   // Bind server function safely
   const boundFetchTranscription = useServerFn(fetchTranscriptionData);
 
-  // Poll transcription job status for additional status updates
-  const { data: jobStatusData } = useQuery({
-    ...transcriptionStatusQuery(recordingId),
-    enabled: initialStatus === "IN_PROGRESS",
-  });
-
   // Fetch the current transcription data using the bound server function with polling
   const {
     data: transcriptionData,
@@ -60,16 +54,23 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
     }),
     enabled: !!recordingId,
     // Add polling while transcription is in progress
-    refetchInterval: (data) =>
+    refetchInterval: (data: any) =>
       data?.transcriptionStatus === "IN_PROGRESS" ? 5000 : false,
     refetchIntervalInBackground: true,
   });
 
   // Use derived values from query data instead of separate state
-  const displayTranscriptionText = useMemo(
-    () =>
-      transcriptionData?.transcriptionText || initialTranscriptionText || "",
-    [transcriptionData?.transcriptionText, initialTranscriptionText],
+  // Show the original transcription text as primary content
+  const displayTranscriptionText = useMemo(() => {
+    const baseText =
+      transcriptionData?.transcriptionText || initialTranscriptionText || "";
+    return baseText;
+  }, [transcriptionData?.transcriptionText, initialTranscriptionText]);
+
+  // Romanization displayed in a separate section
+  const romanizationText = useMemo(
+    () => (transcriptionData as any)?.romanization as string | undefined,
+    [(transcriptionData as any)?.romanization],
   );
 
   const displayStatus = useMemo(
@@ -81,6 +82,20 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
     () => transcriptionData?.transcriptionLastUpdated || initialLastUpdated,
     [transcriptionData?.transcriptionLastUpdated, initialLastUpdated],
   );
+
+  // Poll transcription job status while it's in progress
+  const { data: jobStatusData } = useQuery({
+    ...transcriptionStatusQuery(recordingId),
+    enabled: displayStatus === "IN_PROGRESS",
+  });
+
+  // When the job completes, refresh the recording and transcription queries
+  useEffect(() => {
+    if ((jobStatusData as any)?.transcriptionStatus === "COMPLETED") {
+      queryClient.invalidateQueries({ queryKey: ["recording", recordingId] });
+      queryClient.invalidateQueries({ queryKey: ["transcription", recordingId] });
+    }
+  }, [jobStatusData?.transcriptionStatus, queryClient, recordingId]);
 
   // Mutation to update transcription using server function
   const updateTranscriptionMutation = useMutation({
@@ -225,8 +240,21 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
           </div>
         </div>
       ) : (
-        <div className="whitespace-pre-wrap bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          {displayTranscriptionText || "No transcription content available."}
+        <div>
+          <div className="whitespace-pre-wrap bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            {displayTranscriptionText || "No transcription content available."}
+          </div>
+
+          {romanizationText && romanizationText.trim().length > 0 && (
+            <div className="mt-6">
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Romanization
+              </div>
+              <div className="whitespace-pre-wrap bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-gray-700 dark:text-gray-300">
+                {romanizationText}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

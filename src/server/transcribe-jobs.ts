@@ -8,9 +8,15 @@ import {
   fetchRecording,
   updateRecordingTranscriptionStatus,
   getRecordingPath,
+  updateRecordingTranscription,
 } from "~/data/recordings";
 import { AppError } from "~/utils/errorHandling";
 import { TranscriptionStatus } from "~/types/recording";
+import { transliterateText } from "~/lib/transliterate";
+import {
+  getDefaultScriptForLanguage,
+  isSupportedTranslateLanguage,
+} from "~/lib/languages";
 
 // Response type for start transcription
 export interface StartTranscriptionResponse {
@@ -28,6 +34,10 @@ export interface TranscriptionStatusResponse {
   jobStatus: string;
   errorMessage?: string;
   text?: string;
+  romanizedText?: string;
+  languageCode?: string;
+  sourceScriptCode?: string;
+  targetScriptCode?: string;
   recordingId: string;
   requestedAt: string;
 }
@@ -126,6 +136,19 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
         throw notFound();
       }
 
+      // If transcription already marked completed in DB, short-circuit to avoid reprocessing
+      if (recording.transcriptionStatus === "COMPLETED") {
+        return {
+          status: 200,
+          transcriptionStatus: "COMPLETED",
+          jobStatus: "COMPLETED",
+          text: recording.transcriptionText,
+          romanizedText: recording.transcription?.romanization,
+          recordingId,
+          requestedAt: new Date().toISOString(),
+        };
+      }
+
       // Check for job ID
       if (!recording.transcriptionUrl) {
         return {
@@ -146,11 +169,74 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
         if (status.status === "COMPLETED") {
           console.log(`[Transcribe] Job ${jobId} completed, retrieving result`);
           const result = await transcribe.getTranscriptionResult(jobId);
+
+          // Attempt transliteration to romanization if needed
+          let romanizedText =
+            recording.transcription?.romanization || result.text;
+          let languageCode: string | undefined =
+            recording.language || undefined;
+          let sourceScriptCode: string | undefined;
+          const targetScriptCode = "Latn";
+
+          try {
+            if (!recording.transcription?.romanization) {
+              if (languageCode && isSupportedTranslateLanguage(languageCode)) {
+                sourceScriptCode = getDefaultScriptForLanguage(languageCode);
+                if (sourceScriptCode && sourceScriptCode !== targetScriptCode) {
+                  console.log(
+                    `[Transcribe] Performing transliteration for ${recordingId} lang=${languageCode} ${sourceScriptCode}->${targetScriptCode}`,
+                  );
+                  romanizedText = transliterateText(
+                    result.text,
+                    languageCode,
+                    sourceScriptCode,
+                    targetScriptCode,
+                  );
+                } else {
+                  console.log(
+                    `[Transcribe] Skipping transliteration for ${recordingId} (script is already ${targetScriptCode} or unknown)`,
+                  );
+                }
+              } else {
+                console.warn(
+                  `[Transcribe] Unknown/unsupported language for transliteration on ${recordingId}: ${languageCode}`,
+                );
+              }
+            } else {
+              console.log(
+                `[Transcribe] Romanization already exists for ${recordingId}; skipping transliteration`,
+              );
+            }
+          } catch (trError: any) {
+            console.error(
+              `[Transcribe] Transliteration failed for ${recordingId}: ${trError?.message || trError}`,
+            );
+            // Fall back to original text already set
+          }
+
+          // Persist transcription text and romanization in the transcriptions table
+          try {
+            await updateRecordingTranscription({
+              data: {
+                id: recordingId,
+                transcription: {
+                  text: result.text,
+                  romanization: romanizedText.toLowerCase(),
+                  isComplete: true,
+                },
+              },
+            });
+          } catch (persistError) {
+            console.error(
+              `[Transcribe] Failed to persist transcription/romanization for ${recordingId}: ${persistError}`,
+            );
+          }
+
+          // Update status only (no text here) to ensure state is COMPLETE
           await updateRecordingTranscriptionStatus({
             data: {
               id: recordingId,
               status: "COMPLETED",
-              transcriptionText: result.text,
             },
           });
 
@@ -159,6 +245,10 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
             transcriptionStatus: "COMPLETED",
             jobStatus: status.status,
             text: result.text,
+            romanizedText,
+            languageCode,
+            sourceScriptCode,
+            targetScriptCode,
             recordingId,
             requestedAt: new Date().toISOString(),
           };

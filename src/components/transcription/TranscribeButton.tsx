@@ -46,6 +46,9 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
       // Invalidate the recording query to refresh data
       queryClient.invalidateQueries({ queryKey: ["recording", recordingId] });
       
+      // Invalidate the recordings list query to update the recordings page reactively
+      queryClient.invalidateQueries({ queryKey: ["recordings"] });
+      
       // Start polling for status updates
       queryClient.invalidateQueries({ queryKey: ["transcription", "status", recordingId] });
       
@@ -61,6 +64,11 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
   // Determine the actual status (from polling or props)
   const actualStatus = statusData?.transcriptionStatus || currentStatus;
   const isInProgress = actualStatus === "IN_PROGRESS" || isStarting;
+  
+  // Hide button when transcription is in progress (but show while starting)
+  if (isInProgress && !isStarting) {
+    return null;
+  }
 
   // Button variant styles
   const variantStyles = {
@@ -91,15 +99,6 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
         <>
           <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent align-[-0.125em]"></span>
           <span>Starting...</span>
-        </>
-      );
-    }
-    
-    if (isInProgress) {
-      return (
-        <>
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent align-[-0.125em]"></span>
-          <span>Processing</span>
         </>
       );
     }
