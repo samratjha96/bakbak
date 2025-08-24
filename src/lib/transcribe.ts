@@ -2,12 +2,9 @@ import {
   TranscribeClient,
   StartTranscriptionJobCommand,
   GetTranscriptionJobCommand,
-  StartTranscriptionJobCommandInput,
-  TranscriptionJobStatus,
 } from "@aws-sdk/client-transcribe";
 import { transcribeClient } from "./transcribe-client";
-import { getAWSLanguageCode, languages } from "~/lib/languages";
-import { validateAwsConfig } from "./aws-config";
+import { getAWSLanguageCode } from "~/lib/languages";
 import { s3 } from "./s3";
 
 /**
@@ -171,5 +168,3 @@ export class Transcribe {
 
 // Export a singleton instance of the transcribe service
 export const transcribe = new Transcribe();
-
-// AWS_S3_BUCKET required - will throw clear errors if missing

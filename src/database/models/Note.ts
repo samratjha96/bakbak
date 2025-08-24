@@ -1,5 +1,14 @@
 import { getDatabase } from "../connection";
-import { DbNote } from "../types";
+// Notes are embedded in recordings table; define a local DB type for mapping
+interface DbNote {
+  id: string;
+  recording_id: string;
+  user_id: string;
+  content: string;
+  timestamp?: number | null;
+  created_at: string;
+  updated_at: string;
+}
 import crypto from "crypto";
 
 /**

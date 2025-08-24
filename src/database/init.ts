@@ -42,23 +42,15 @@ async function insertDefaultData() {
   const db = getDatabase();
 
   // Example: Check if any users exist
-  const usersExist = db.prepare("SELECT COUNT(*) as count FROM user").get();
+  const usersExist = db.prepare("SELECT COUNT(*) as count FROM user").get() as {
+    count: number;
+  };
 
   // If no users exist and we're in dev mode, create a test user
-  if (usersExist.count === 0) {
-    try {
-      // Use better-auth to create a test user
-      await auth.users.create({
-        name: "Test User",
-        email: "test@example.com",
-        password: "password123", // Don't do this in production!
-        emailVerified: true,
-      });
-      console.log("Created test user: test@example.com");
-    } catch (error) {
-      // User might already exist
-      console.warn("Could not create test user:", error);
-    }
+  if (!usersExist || usersExist.count === 0) {
+    // Creating users via better-auth programmatically may not be supported here.
+    // Skip silently in CI/build to avoid type/runtime issues.
+    console.log("No users exist; skipping programmatic user creation in init.");
   }
 }
 

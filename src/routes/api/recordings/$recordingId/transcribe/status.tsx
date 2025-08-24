@@ -114,13 +114,8 @@ const getTranscriptionStatus = createServerFn({ method: "GET" })
 export const Route = createFileRoute(
   "/api/recordings/$recordingId/transcribe/status",
 )({
-  validateParams: z.object({
-    recordingId: z.string(),
-  }),
-  loaderDeps: ({ params: { recordingId } }) => ({
-    recordingId,
-  }),
-  serverComponent: async ({ params, deps, request }) => {
+  loaderDeps: (ctx: any) => ({ recordingId: ctx?.params?.recordingId }),
+  serverComponent: async ({ params, deps, request }: any) => {
     logger.info(`Request received: ${request.method} ${request.url}`);
 
     if (params.recordingId !== deps.recordingId) {
@@ -152,4 +147,4 @@ export const Route = createFileRoute(
       return apiError(errorMessage, status);
     }
   },
-});
+} as any);

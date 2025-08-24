@@ -285,7 +285,7 @@ export class S3 {
 
   // Direct URLs
   getUrl(key: string): string {
-    return `https://s3.${this.region}.amazonaws.com/${this.bucket}/${key}`;
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
   }
 }
 

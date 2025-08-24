@@ -140,7 +140,7 @@ export class TranslationModel {
       INSERT INTO translations (
         id, transcription_id, text, source_language, target_language,
         status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       translation.id,
@@ -148,7 +148,6 @@ export class TranslationModel {
       translation.text,
       translation.source_language,
       translation.target_language,
-      translation.segments,
       translation.status,
       translation.created_at,
       translation.updated_at,

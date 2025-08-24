@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 
 // Database connection singleton
 let db: Database.Database | null = null;
@@ -51,19 +52,29 @@ export function getCurrentUserId(): string | null {
   // the actual implementation depends on where it's called from
 
   try {
-    // For development/testing only - fallback to test user if no auth session
+    // For development/testing only - ensure a test user exists
     if (process.env.NODE_ENV !== "production") {
       const db = getDatabase();
-      const testUser = db.prepare("SELECT id FROM user LIMIT 1").get() as
+      let testUser = db.prepare("SELECT id FROM user LIMIT 1").get() as
         | { id: string }
         | undefined;
 
-      if (testUser) {
-        return testUser.id;
+      if (!testUser) {
+        const userId = crypto.randomUUID();
+        const now = new Date().toISOString();
+        db.prepare(
+          `
+          INSERT INTO user (id, name, email, email_verified, image, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+        ).run(userId, "Test User", "test@example.com", 1, null, now, now);
+        testUser = { id: userId };
       }
+
+      return testUser.id;
     }
 
-    // No user found and not in production
+    // No user resolution in production context
     return null;
   } catch (error) {
     console.error("Error getting current user ID:", error);

@@ -86,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
           <div className="container mx-auto px-4">
             <nav className="flex flex-col space-y-2">
               <Link
-                to="/dashboard"
+                to="/recordings"
                 className="py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -107,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                 Transcribe
               </Link>
               <Link
-                to="/notes"
+                to="/recordings"
                 className="py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => setMobileMenuOpen(false)}
               >

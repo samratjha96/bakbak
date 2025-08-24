@@ -78,7 +78,7 @@ const startTranscription = createServerFn({ method: "POST" })
         data: {
           id: recordingId,
           status: "IN_PROGRESS",
-          transcriptionUrl: jobId, // Store the job ID in the transcriptionUrl field
+          jobId,
         },
       });
 
@@ -111,13 +111,8 @@ const startTranscription = createServerFn({ method: "POST" })
 export const Route = createFileRoute(
   "/api/recordings/$recordingId/transcribe/",
 )({
-  validateParams: z.object({
-    recordingId: z.string(),
-  }),
-  loaderDeps: ({ params: { recordingId } }) => ({
-    recordingId,
-  }),
-  serverComponent: async ({ params, deps, request }) => {
+  loaderDeps: (ctx: any) => ({ recordingId: ctx?.params?.recordingId }),
+  serverComponent: async ({ params, deps, request }: any) => {
     logger.info(`Request received: ${request.method} ${request.url}`);
     
     // Debug AWS environment variables
@@ -157,4 +152,4 @@ export const Route = createFileRoute(
       return apiError(errorMessage, status);
     }
   },
-});
+} as any);

@@ -19,37 +19,17 @@ const logger = createLogger("ApiMiddleware");
 export const apiResponseMiddleware = createMiddleware({
   type: "function",
 }).server(async ({ next, data, context }) => {
-  try {
-    // Log the incoming request
-    logger.info(`API request received:`, {
-      path: context.request?.url,
-      method: context.request?.method,
-      params: data,
-    });
+  // Log the incoming request
+  logger.info(`API request received:`, {
+    path: (context as any)?.request?.url,
+    method: (context as any)?.request?.method,
+    params: data,
+  });
 
-    // Execute the route handler
-    const result = await next();
-
-    // Log the successful response
-    logger.debug("API response:", result);
-
-    // Convert the result to a standardized Response
-    if (result instanceof Response) {
-      // If result is already a Response, pass it through
-      return result;
-    }
-
-    // For other results, create a standard response
-    return apiSuccess(result);
-  } catch (error) {
-    // Handle errors consistently
-    const { error: errorMessage, status } = handleApiError(
-      error,
-      context.request?.url || "API",
-    );
-    logger.error(`API error (${status}):`, errorMessage);
-    return apiError(errorMessage, status);
-  }
+  // Execute the route handler and pass through its result
+  const result = await next();
+  logger.debug("API response:", result);
+  return result as any;
 });
 
 /**
@@ -58,7 +38,7 @@ export const apiResponseMiddleware = createMiddleware({
 export const methodGuardMiddleware = (allowedMethods: string[] = ["GET"]) => {
   return createMiddleware({ type: "function" }).server(
     async ({ next, context }) => {
-      const method = context.request?.method || "GET";
+      const method = (context as any)?.request?.method || "GET";
 
       if (!allowedMethods.includes(method)) {
         logger.warn(
@@ -74,7 +54,7 @@ export const methodGuardMiddleware = (allowedMethods: string[] = ["GET"]) => {
         );
       }
 
-      return next();
+      return (await next()) as any;
     },
   );
 };
@@ -85,7 +65,7 @@ export const methodGuardMiddleware = (allowedMethods: string[] = ["GET"]) => {
 export const parseJsonBodyMiddleware = createMiddleware({
   type: "function",
 }).server(async ({ next, context }) => {
-  const request = context.request;
+  const request = (context as any)?.request as Request | undefined;
   if (!request) {
     return next();
   }
@@ -106,5 +86,5 @@ export const parseJsonBodyMiddleware = createMiddleware({
     }
   }
 
-  return next();
+  return (await next()) as any;
 });

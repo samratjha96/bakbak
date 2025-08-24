@@ -5,5 +5,4 @@ export * from "./Recording";
 export * from "./Transcription";
 export * from "./Translation";
 export * from "./Note";
-export * from "./VocabularyItem";
 export * from "./RecordingSharing";

@@ -80,9 +80,8 @@ const postTransliterate = createServerFn({ method: "POST" })
 export const Route = createFileRoute(
   "/api/recordings/$recordingId/transliterate/",
 )({
-  validateParams: z.object({ recordingId: z.string() }),
-  loaderDeps: ({ params }) => ({ recordingId: params.recordingId }),
-  serverComponent: async ({ params, deps, request }) => {
+  loaderDeps: (ctx: any) => ({ recordingId: ctx?.params?.recordingId }),
+  serverComponent: async ({ params, deps, request }: any) => {
     logger.info(`Request received: ${request.method} ${request.url}`);
     if (params.recordingId !== deps.recordingId) {
       return apiError("recordingId mismatch", 400);

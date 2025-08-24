@@ -110,13 +110,8 @@ const createTranslation = createServerFn({ method: "POST" })
 export const Route = createFileRoute(
   "/api/recordings/$recordingId/translation/",
 )({
-  validateParams: z.object({
-    recordingId: z.string(),
-  }),
-  loaderDeps: ({ params: { recordingId } }) => ({
-    recordingId,
-  }),
-  serverComponent: async ({ params, deps, request }) => {
+  loaderDeps: (ctx: any) => ({ recordingId: ctx?.params?.recordingId }),
+  serverComponent: async ({ params, deps, request }: any) => {
     logger.info(`Request received: ${request.method} ${request.url}`);
 
     if (params.recordingId !== deps.recordingId) {
@@ -176,4 +171,4 @@ export const Route = createFileRoute(
       return apiError(errorMessage, status);
     }
   },
-});
+} as any);

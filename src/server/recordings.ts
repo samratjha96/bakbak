@@ -11,9 +11,9 @@ import {
   Notes,
   TranscriptionStatus,
 } from "~/types/recording";
-import { getDatabase } from "~/database/connection";
+import { getDatabase, getCurrentUserId } from "~/database/connection";
 import { DbRecording, DbTranscription, DbTranslation } from "~/database/types";
-import { auth } from "~/lib/auth";
+import { getS3Url } from "~/lib/aws-config";
 import { s3 } from "~/lib/s3";
 
 // Helper function to convert joined query results to UI Recording type
@@ -26,7 +26,7 @@ function mapJoinedRowToRecording(
     language: row.language,
     duration: row.duration,
     createdAt: new Date(row.created_at),
-    audioUrl: `https://s3.amazonaws.com/${process.env.AWS_S3_BUCKET || "your-bucket"}/${row.file_path}`,
+    audioUrl: getS3Url(row.file_path),
     isTranscribed: row.transcription_status === "COMPLETED" || false,
     transcriptionStatus:
       (row.transcription_status as TranscriptionStatus) || "NOT_STARTED",
@@ -67,43 +67,7 @@ function mapJoinedRowToRecording(
   return recording;
 }
 
-// Helper function to get current user ID with proper error handling
-function getCurrentUserId(): string {
-  try {
-    const db = getDatabase();
-    // Get first user or create one for development
-    let testUser = db.prepare("SELECT id FROM user LIMIT 1").get() as
-      | { id: string }
-      | undefined;
-
-    if (!testUser) {
-      // Create a test user if none exists
-      const userId = crypto.randomUUID();
-      db.prepare(
-        `
-        INSERT INTO user (id, name, email, email_verified, image, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `,
-      ).run(
-        userId,
-        "Test User",
-        "test@example.com",
-        1,
-        null,
-        new Date().toISOString(),
-        new Date().toISOString(),
-      );
-
-      testUser = { id: userId };
-    }
-
-    return testUser.id;
-  } catch (error) {
-    throw new Error(
-      "Unable to access user data. Please refresh the page and try again.",
-    );
-  }
-}
+// Use shared getCurrentUserId from database/connection
 
 // SERVER FUNCTIONS - Database access safe here
 export const fetchRecordings = createServerFn({ method: "GET" }).handler(
@@ -690,7 +654,7 @@ export const getRecordingPresignedUrl = createServerFn({ method: "GET" })
       const presignedUrl = await s3.getSignedUrl(recording.file_path, 900);
 
       // Also generate a direct S3 URL as fallback
-      const directUrl = `https://s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com/${process.env.AWS_S3_BUCKET || "your-bucket"}/${recording.file_path}`;
+      const directUrl = getS3Url(recording.file_path);
 
       return {
         url: presignedUrl,

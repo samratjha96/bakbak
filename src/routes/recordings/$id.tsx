@@ -296,8 +296,6 @@ function RecordingDetailPage() {
               readOnly={false}
             />
           )}
-
-          {/* Romanization is now displayed inside TranscriptionDisplay to avoid duplication */}
         </div>
 
         {/* Translation Section - Only show if transcription exists */}
