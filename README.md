@@ -26,8 +26,9 @@ BakBak is an audio recording and transcription application built with React and 
 - **Node.js 16+** (for crypto.randomUUID support)
 - **Modern browser** with crypto.randomUUID support
 - **AWS S3 bucket** with proper credentials configured
+- **Docker & Docker Compose** (for production deployment)
 
-### Installation
+### Development
 
 1. Clone the repository
 ```bash
@@ -37,41 +38,41 @@ cd bakbak
 
 2. Install dependencies
 ```bash
-pnpm install
+npm install
 ```
 
-3. Create a `.env` file based on `env.example`
+3. Create a `.env` file
 ```bash
-cp env.example .env
-# Edit .env with your AWS credentials
+cp .env.example .env
+# Edit .env with your AWS S3 bucket and other settings
 ```
 
-4. Set up the database manually
+4. Set up the database
 ```bash
-# Set up schema only
-node scripts/setup-db.js
-
-# Or with test data
-node scripts/setup-db.js --seed
-
-# Or use npm scripts
 npm run db:setup
-npm run db:setup:seed
 ```
 
-5. Start the development server
+5. Start development server
 ```bash
-npm run dev
+make dev
 ```
 
-### Docker Setup
+### Production Deployment
 
-Alternatively, you can use Docker:
+For production deployment with Docker:
 
+1. Clone and configure
 ```bash
-# Start with Docker Compose
-docker-compose up
+git clone https://github.com/yourusername/bakbak.git
+cd bakbak
 ```
+
+2. Deploy
+```bash
+make prod
+```
+
+On first run, this creates a `.env` file from the template. Edit it with your configuration and run `make prod` again.
 
 ## Database
 
@@ -128,33 +129,23 @@ The application uses TanStack Router for file-based routing. API routes are avai
 - `/api/recordings/:id/transcribe` - Transcription endpoints
 - `/api/recordings/:id/translate` - Translation endpoints
 
-## Development
+## Available Commands
 
+### Development
 ```bash
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm run start
-
-# Lint code
-npm run lint
+make dev          # Run development server
+npm run build     # Build for production
+npm run lint      # Lint and format code
+npm run db:setup  # Set up database schema
 ```
 
-## Docker Development
-
+### Production
 ```bash
-# Start development environment
-docker-compose up
-
-# Rebuild containers
-docker-compose build
-
-# Stop containers
-docker-compose down
+make prod    # Build and run production deployment
+make stop    # Stop production containers
+make logs    # View application logs
+make clean   # Clean up containers and images
+make help    # Show all available commands
 ```
 
 ## Usage Examples
