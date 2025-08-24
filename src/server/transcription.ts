@@ -23,7 +23,7 @@ export interface TranscriptionData {
 export const fetchTranscriptionData = createServerFn({ method: "GET" })
   .validator((id: string) => id)
   .handler(async ({ data: id }): Promise<TranscriptionData> => {
-    logger.info(`Fetching transcription data for recording ${id}`);
+    // Fetch transcription data by ID
 
     try {
       const db = getDatabase();
@@ -69,7 +69,6 @@ export const fetchTranscriptionData = createServerFn({ method: "GET" })
       if (error === notFound()) {
         throw error;
       }
-      logger.error(`Error fetching transcription data:`, error);
       throw new AppError(
         `Failed to fetch transcription data: ${error instanceof Error ? error.message : "Unknown error"}`,
         500,

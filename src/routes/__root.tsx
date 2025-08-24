@@ -15,6 +15,7 @@ import { NotFound } from "~/components/NotFound";
 import ErrorBoundary from "~/components/ErrorBoundary";
 import appCss from "~/styles/app.css?url";
 import { seo } from "~/utils/seo";
+// No need for manual polling - React Query handles refetching
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -84,6 +85,8 @@ function RootComponent() {
       window.removeEventListener("vite:preloadError", handleVitePreloadError);
     };
   }, []);
+
+  // No initialization needed - React Query handles polling
 
   return (
     <RootDocument>

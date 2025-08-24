@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Focus Mode · UI Ideas</title>
+    <style>
+      :root {
+        --bg: #0b0f1a;
+        --panel: #0e1220;
+        --line: rgba(255,255,255,.06);
+        --text: #e6ecf8;
+        --muted: #9aa3b8;
+        --brand: #f43f5e;
+        --accent: #38bdf8;
+        --shadow: 0 16px 46px rgba(0,0,0,.55);
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; background: radial-gradient(1200px 800px at 80% -10%, rgba(244,63,94,.12), transparent), var(--bg); color: var(--text); display:flex; align-items:center; justify-content:center; padding: 24px; }
+      .focus { width: 1100px; max-width: 100%; background: var(--panel); border:1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 22px; display:grid; gap: 14px; }
+      .top { display:flex; align-items:center; gap: 10px; color: var(--muted); }
+      .dot { width: 10px; height: 10px; border-radius: 999px; background: #22c55e; }
+      .wave { height: 260px; border-radius: 14px; background: linear-gradient(180deg, #0b0f1b, #151c32); border:1px solid var(--line); position:relative; overflow:hidden; }
+      .wave::after { content:""; position:absolute; inset:0; background: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 2px, transparent 2px 6px); opacity:.9; }
+      .ctrl { display:flex; align-items:center; justify-content:center; gap: 12px; }
+      .btn { background: #0b0f1b; color: #e6ecf8; border:1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+      .big { width: 58px; height: 58px; border-radius: 999px; background: linear-gradient(135deg, var(--brand), #fb7185); border: 0; color: #3c0a12; font-weight: 900; box-shadow: 0 16px 30px rgba(244,63,94,.4); }
+      .meta { display:flex; align-items:center; gap: 10px; color: var(--muted); justify-content:center; }
+    </style>
+  </head>
+  <body>
+    <main class="focus">
+      <div class="top">
+        <div class="dot"></div>
+        <span>Focus Mode · Distraction free practice</span>
+        <div style="flex:1"></div>
+        <span>EN → ES</span>
+      </div>
+      <div class="wave"></div>
+      <div class="ctrl">
+        <button class="btn">⟲ Loop</button>
+        <button class="big">⏯</button>
+        <button class="btn">1.0×</button>
+      </div>
+      <div class="meta">Tip: Press Space to pause/resume · Shift+L to toggle loop</div>
+    </main>
+  </body>
+  <script>
+    (function(){
+      const qs = s => document.querySelector(s);
+      const qsa = s => Array.from(document.querySelectorAll(s));
+
+      const loopBtn = qsa('.btn')[0];
+      const speedBtn = qsa('.btn')[1];
+      const big = qs('.big');
+      let playing = false;
+
+      big.addEventListener('click', ()=>{ playing = !playing; big.textContent = playing ? '⏸' : '⏯'; toast(playing ? 'Playing…' : 'Paused'); });
+      loopBtn.addEventListener('click', ()=>{
+        const on = loopBtn.textContent.includes('⟲');
+        loopBtn.textContent = on ? 'Loop On' : '⟲ Loop';
+        toast(on ? 'Loop enabled' : 'Loop disabled');
+      });
+      speedBtn.addEventListener('click', ()=>{
+        const cur = speedBtn.textContent.match(/([0-9]+\.[0-9])×/);
+        const next = cur ? (parseFloat(cur[1]) >= 1.4 ? 1.0 : (parseFloat(cur[1]) + 0.2).toFixed(1)) : '1.0';
+        speedBtn.textContent = `${next}×`;
+        toast(`Speed ${next}×`);
+      });
+
+      // Keyboard shortcuts
+      window.addEventListener('keydown', (e)=>{
+        if(e.code === 'Space'){ e.preventDefault(); big.click(); }
+        if(e.shiftKey && e.key.toLowerCase() === 'l'){ loopBtn.click(); }
+      });
+
+      // Toast
+      let toastEl, timer;
+      function toast(msg){
+        if(!toastEl){
+          toastEl = document.createElement('div');
+          toastEl.style.position = 'fixed'; toastEl.style.right = '16px'; toastEl.style.bottom = '16px';
+          toastEl.style.background = 'rgba(11,15,26,.9)'; toastEl.style.color = 'white'; toastEl.style.padding = '10px 12px'; toastEl.style.borderRadius = '10px';
+          document.body.appendChild(toastEl);
+        }
+        toastEl.textContent = msg; toastEl.style.opacity = '1'; clearTimeout(timer); timer = setTimeout(()=> toastEl.style.opacity = '0', 1200);
+      }
+    })();
+  </script>
+  </html>
+
+

@@ -18,6 +18,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import { execSync } from 'child_process';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -40,6 +41,19 @@ if (!fs.existsSync(dataDir)) {
 
 const dbPath = path.join(rootDir, "data", "sqlite.db");
 console.log(`Initializing database at ${dbPath}`);
+
+// Generate better-auth tables first
+console.log("Generating better-auth database schema...");
+try {
+  execSync('npx @better-auth/cli generate', { 
+    cwd: rootDir,
+    stdio: 'inherit' 
+  });
+  console.log("Better-auth schema generated successfully");
+} catch (error) {
+  console.error("Error generating better-auth schema:", error.message);
+  console.log("Continuing with manual database setup...");
+}
 
 /**
  * Generate a UUID for consistent IDs
@@ -84,6 +98,7 @@ const initializeSchema = (db) => {
       file_path TEXT NOT NULL,
       language TEXT,
       duration INTEGER NOT NULL, -- in seconds
+      notes TEXT, -- User notes for this recording
       metadata JSON, -- For any additional recording metadata
       status TEXT CHECK(status IN ('processing', 'ready', 'error')) DEFAULT 'processing',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -103,9 +118,10 @@ const initializeSchema = (db) => {
     CREATE TABLE IF NOT EXISTS transcriptions (
       id TEXT PRIMARY KEY,
       recording_id TEXT NOT NULL,
-      text TEXT NOT NULL,
+      text TEXT,
       romanization TEXT,
       language TEXT NOT NULL,
+      job_id TEXT,
       status TEXT CHECK(status IN ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'FAILED')) DEFAULT 'NOT_STARTED',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -137,26 +153,7 @@ const initializeSchema = (db) => {
     CREATE INDEX IF NOT EXISTS idx_translations_languages ON translations(source_language, target_language);
   `);
   
-  // Create Notes table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS notes (
-      id TEXT PRIMARY KEY,
-      recording_id TEXT NOT NULL,
-      user_id TEXT NOT NULL,
-      content TEXT NOT NULL,
-      timestamp INTEGER, -- optional position in recording (in seconds)
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (recording_id) REFERENCES recordings(id) ON DELETE CASCADE,
-      FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
-    );
-    
-    -- Index for faster queries by recording_id
-    CREATE INDEX IF NOT EXISTS idx_notes_recording_id ON notes(recording_id);
-    
-    -- Index for faster queries by user_id
-    CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
-  `);
+  // Notes are now part of the recordings table - no separate notes table needed
   
   
   // Create RecordingSharing table for collaboration
@@ -187,8 +184,6 @@ const initializeSchema = (db) => {
   `);
 };
 
-// No longer creating test users directly - we rely on better-auth to create users
-
 /**
  * Create test recordings for a user
  */
@@ -209,6 +204,12 @@ const createTestRecordings = (db, userId) => {
       file_path: `recordings/XqmkB9YbkUfYoHhUy4FBkMShidp6KHdx/2025-07-28/f5b5c81c-8cc2-48b5-abcc-3c8edc9b5b84.mp3`,
       language: "Japanese",
       duration: 84, // 1:24
+      notes: `- "こんにちは" (Konnichiwa) = Hello/Good afternoon
+- "私の名前は" (Watashi no namae wa) = My name is
+- "勉強しています" (Benkyou shiteimasu) = I am studying
+- "よろしくお願いします" (Yoroshiku onegaishimasu) = Please treat me well / Nice to meet you
+
+Remember to practice the proper intonation for "よろしくお願いします" - rising on "shi" and falling on "masu".`,
       status: "ready",
       created_at: now,
       updated_at: now
@@ -243,8 +244,8 @@ const createTestRecordings = (db, userId) => {
   const insertStmt = db.prepare(`
     INSERT OR IGNORE INTO recordings (
       id, user_id, title, description, file_path, language,
-      duration, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      duration, notes, status, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   
   for (const rec of recordings) {
@@ -257,6 +258,7 @@ const createTestRecordings = (db, userId) => {
         rec.file_path,
         rec.language,
         rec.duration,
+        rec.notes,
         rec.status,
         rec.created_at,
         rec.updated_at
@@ -310,25 +312,7 @@ const createTestRecordings = (db, userId) => {
       now
     );
     
-    // Add a note for the Japanese recording
-    const noteId = "note-1";
-    db.prepare(`
-      INSERT OR IGNORE INTO notes (
-        id, recording_id, user_id, content, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-      noteId,
-      "rec-1",
-      userId,
-      `- "こんにちは" (Konnichiwa) = Hello/Good afternoon
-- "私の名前は" (Watashi no namae wa) = My name is
-- "勉強しています" (Benkyou shiteimasu) = I am studying
-- "よろしくお願いします" (Yoroshiku onegaishimasu) = Please treat me well / Nice to meet you
-
-Remember to practice the proper intonation for "よろしくお願いします" - rising on "shi" and falling on "masu".`,
-      now,
-      now
-    );
+    // Notes are now stored directly in the recordings table
     
     console.log("Created test transcriptions, translations, and notes");
   } catch (error) {

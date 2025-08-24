@@ -4,14 +4,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { EditIcon, SaveIcon } from "~/components/ui/Icons";
 import { TranscriptionStatus } from "./TranscriptionStatus";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
-import { updateRecordingTranscription } from "~/data/recordings";
+import { updateRecordingTranscription, transcriptionStatusQuery } from "~/data/recordings";
 import { fetchTranscriptionData } from "~/server/transcription";
-
-import { createLogger } from "~/utils/logger";
 import { getErrorMessage } from "~/utils/errorHandling";
-
-// Create component-specific logger
-const logger = createLogger("TranscriptionDisplay");
 
 interface TranscriptionDisplayProps {
   recordingId: string;
@@ -37,16 +32,18 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   const [transcriptionText, setTranscriptionText] = useState(
     initialTranscriptionText,
   );
-  const [status, setStatus] = useState<TStatus>(initialStatus);
-  const [lastUpdated, setLastUpdated] = useState<Date | undefined>(
-    initialLastUpdated,
-  );
   const queryClient = useQueryClient();
 
   // Bind server function safely
   const boundFetchTranscription = useServerFn(fetchTranscriptionData);
 
-  // Fetch the current transcription data using the bound server function
+  // Poll transcription job status for additional status updates
+  const { data: jobStatusData } = useQuery({
+    ...transcriptionStatusQuery(recordingId),
+    enabled: initialStatus === "IN_PROGRESS",
+  });
+
+  // Fetch the current transcription data using the bound server function with polling
   const {
     data: transcriptionData,
     isLoading,
@@ -56,14 +53,16 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
     queryFn: () => boundFetchTranscription({ data: recordingId }),
     select: (data) => ({
       ...data,
-      // Apply default values if needed
       transcriptionText: data.transcriptionText || initialTranscriptionText,
       transcriptionStatus: data.transcriptionStatus || initialStatus,
       transcriptionLastUpdated:
         data.transcriptionLastUpdated || initialLastUpdated,
     }),
-    // Only enable if we have a recording ID
     enabled: !!recordingId,
+    // Add polling while transcription is in progress
+    refetchInterval: (data) =>
+      data?.transcriptionStatus === "IN_PROGRESS" ? 5000 : false,
+    refetchIntervalInBackground: true,
   });
 
   // Use derived values from query data instead of separate state
@@ -85,32 +84,18 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
 
   // Mutation to update transcription using server function
   const updateTranscriptionMutation = useMutation({
-    mutationFn: async (newText: string) => {
-      logger.info(`Updating transcription for recording ${recordingId}`);
-
-      // Use the server function to update the recording's transcription
-      const updatedRecording = await updateRecordingTranscription({
-        data: {
-          id: recordingId,
-          transcription: {
-            text: newText,
-            isComplete: true,
-          },
+    mutationFn: (newText: string) => updateRecordingTranscription({
+      data: {
+        id: recordingId,
+        transcription: {
+          text: newText,
+          isComplete: true,
         },
-      });
-
-      logger.info(`Successfully updated transcription for ${recordingId}`);
-
-      return {
-        transcriptionText: updatedRecording.transcriptionText,
-        transcriptionStatus: updatedRecording.transcriptionStatus,
-        transcriptionLastUpdated: updatedRecording.transcriptionLastUpdated,
-      };
-    },
+      },
+    }),
     onError: (error) => {
-      logger.error(
-        `Error updating transcription: ${getErrorMessage(error, `TranscriptionDisplay.updateTranscription(${recordingId})`)}`,
-      );
+      // Simple error handling without logging
+      console.error(getErrorMessage(error, `Failed to update transcription`));
     },
     onSuccess: () => {
       // Invalidate queries to refresh data

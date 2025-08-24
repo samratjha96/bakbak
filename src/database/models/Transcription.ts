@@ -1,5 +1,5 @@
 import { getDatabase } from "../connection";
-import { DbTranscription, TranscriptionSegment } from "../types";
+import { DbTranscription } from "../types";
 import crypto from "crypto";
 
 /**
@@ -121,7 +121,7 @@ export class TranscriptionModel {
       INSERT INTO transcriptions (
         id, recording_id, text, romanization, language,
         status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       transcription.id,
@@ -129,7 +129,6 @@ export class TranscriptionModel {
       transcription.text,
       transcription.romanization,
       transcription.language,
-      transcription.segments,
       transcription.status,
       transcription.created_at,
       transcription.updated_at,

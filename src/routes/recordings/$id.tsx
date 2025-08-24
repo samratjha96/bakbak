@@ -4,7 +4,6 @@ import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
 import { BackIcon, EditIcon, SaveIcon } from "~/components/ui/Icons";
 import { Link } from "@tanstack/react-router";
-import { useNavigate } from "@tanstack/react-router";
 import {
   useMutation,
   useSuspenseQuery,
@@ -20,12 +19,46 @@ import { formatDuration } from "~/utils/formatting";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";
 import { TranscriptionDisplay } from "~/components/transcription/TranscriptionDisplay";
 import { TranslationAccordion } from "~/components/translation/TranslationAccordion";
-import { AudioPlayer } from "~/components/audio/AudioPlayer";
+import { AudioWaveSurferPlayer } from "~/components/audio/AudioWaveSurferPlayer";
+
+function RecordingPlayer({
+  fetchPresignedUrl,
+}: {
+  fetchPresignedUrl: () => Promise<string | { url: string; directUrl?: string }>;
+}) {
+  const [resolvedUrl, setResolvedUrl] = React.useState<string | null>(null);
+  const [failed, setFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetchPresignedUrl();
+        const url = typeof res === "string" ? res : res.url || res.directUrl;
+        if (mounted) setResolvedUrl(url || null);
+      } catch (_) {
+        if (mounted) setFailed(true);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [fetchPresignedUrl]);
+
+  // Hide the whole section if we cannot resolve a playable URL (or still loading)
+  if (failed || !resolvedUrl) return null;
+
+  return (
+    <AudioWaveSurferPlayer
+      url={resolvedUrl}
+      className="w-full sm:w-[520px] max-w-full"
+    />
+  );
+}
 
 // A dynamic recording view that shows transcription and notes in one page
 function RecordingDetailPage() {
   const { id } = Route.useParams();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Fetch recording data
@@ -35,21 +68,17 @@ function RecordingDetailPage() {
   const isError = recordingQueryResult.isError;
 
   // Define presigned URL fetch function with caching
-  const fetchPresignedUrl = React.useCallback(async () => {
+  const fetchPresignedUrl = React.useCallback(async (): Promise<string | { url: string; directUrl?: string }> => {
     // Try to get from cache first
-    const cachedData = queryClient.getQueryData([
+    const cachedData = queryClient.getQueryData<any>([
       "recording",
       id,
       "presignedUrl",
     ]);
 
     // Return cached data if valid and not expired
-    if (
-      cachedData &&
-      cachedData.expiresAt &&
-      new Date(cachedData.expiresAt) > new Date()
-    ) {
-      return cachedData;
+    if (cachedData && cachedData.url) {
+      return cachedData as { url: string; directUrl?: string; expiresAt?: string };
     }
 
     try {
@@ -59,7 +88,7 @@ function RecordingDetailPage() {
       // Cache the result
       queryClient.setQueryData(["recording", id, "presignedUrl"], result);
 
-      return result;
+      return result as { url: string; directUrl?: string };
     } catch (error) {
       console.error("Error fetching presigned URL:", error);
       throw error; // Re-throw to let the AudioPlayer component handle it
@@ -188,13 +217,13 @@ function RecordingDetailPage() {
   return (
     <Layout actionBarContent={actionBar}>
       <div className="container py-4">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 mb-6">
           <div className="flex-1">
             {editingTitle ? (
               <div className="mb-2">
                 <input
                   type="text"
-                  className="text-2xl font-semibold bg-transparent border-b-2 border-primary focus:outline-none w-full"
+                  className="text-xl sm:text-2xl font-semibold bg-transparent border-b-2 border-primary focus:outline-none w-full"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   onBlur={handleSaveTitle}
@@ -210,16 +239,16 @@ function RecordingDetailPage() {
               </div>
             ) : (
               <div className="flex items-center gap-2 mb-2 group">
-                <h1 className="text-2xl font-semibold">{recording.title}</h1>
+                <h1 className="text-xl sm:text-2xl font-semibold">{recording.title}</h1>
                 <button
                   onClick={() => setEditingTitle(true)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                 >
                   <EditIcon className="w-4 h-4 text-gray-400 hover:text-primary" />
                 </button>
               </div>
             )}
-            <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap mt-1">
+            <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center mt-1">
               <span>{recording.language}</span>
               <span className="mx-1.5">•</span>
               <span>{formattedDuration}</span>
@@ -228,7 +257,10 @@ function RecordingDetailPage() {
             </div>
           </div>
 
-          <AudioPlayer onFetchUrl={fetchPresignedUrl} />
+          {/* WaveSurfer player with scrubbing and duration */}
+          <div className="w-full sm:w-auto">
+            <RecordingPlayer fetchPresignedUrl={fetchPresignedUrl} />
+          </div>
         </div>
 
         {/* Transcription Section - Let TranscriptionDisplay handle its own editing */}
@@ -245,6 +277,7 @@ function RecordingDetailPage() {
                   recordingId={id}
                   variant="primary"
                   size="md"
+                  currentStatus={recording.transcriptionStatus}
                 />
               </div>
             )}

@@ -4,8 +4,6 @@ export type {
   DbRecording,
   DbTranscription,
   DbTranslation,
-  DbNote,
-  DbVocabularyItem,
   DbUser,
 } from "./types";
 

@@ -4,6 +4,7 @@ import {
   TranslateTextCommandInput,
 } from "@aws-sdk/client-translate";
 import { translateClient } from "./translate-client";
+import { normalizeTranslateLanguage } from "~/lib/languages";
 
 /**
  * Simple, focused translation service - no unnecessary abstractions.
@@ -69,38 +70,8 @@ export class Translate {
    * Normalize language codes for AWS Translate
    */
   private normalizeLanguage(code: string): string {
-    // Extract base language (e.g., 'en' from 'en-US')
-    const base = code.split("-")[0].toLowerCase();
-
-    // AWS Translate supported languages
-    const supported = [
-      "en",
-      "es",
-      "fr",
-      "de",
-      "it",
-      "ja",
-      "ko",
-      "pt",
-      "ru",
-      "zh",
-      "ar",
-      "hi",
-      "cs",
-      "da",
-      "fi",
-      "he",
-      "id",
-      "nl",
-      "no",
-      "pl",
-      "sv",
-      "tr",
-      "uk",
-      "vi",
-    ];
-
-    return supported.includes(base) ? base : "en";
+    // Use the centralized language module for normalization
+    return normalizeTranslateLanguage(code);
   }
 
   /**

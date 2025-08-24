@@ -22,3 +22,4 @@ data
 .nitro
 .tanstack
 tasks/
+better-auth_migrations

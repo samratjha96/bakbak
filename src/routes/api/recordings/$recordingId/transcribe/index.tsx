@@ -4,6 +4,7 @@ import { notFound } from "@tanstack/react-router";
 import {
   fetchRecording,
   updateRecordingTranscriptionStatus,
+  getRecordingPresignedUrl,
 } from "~/data/recordings";
 import { z } from "zod";
 import { apiSuccess, apiError, apiNotFound } from "~/utils/apiResponse";
@@ -13,6 +14,7 @@ import {
   apiResponseMiddleware,
   methodGuardMiddleware,
 } from "~/middleware/apiMiddleware";
+import { transcribe } from "~/lib/transcribe";
 
 // Create a logger for this API route
 const logger = createLogger("API.TranscribeRoute");
@@ -45,7 +47,7 @@ const startTranscription = createServerFn({ method: "POST" })
       };
     }
 
-    // Update the transcription status
+    // Update the transcription status to IN_PROGRESS
     await updateRecordingTranscriptionStatus({
       data: {
         id: recordingId,
@@ -53,15 +55,57 @@ const startTranscription = createServerFn({ method: "POST" })
       },
     });
 
-    // In a real implementation, we would start an async transcription process here
-    // For now, we'll simulate with a mock response
+    try {
+      // Get a presigned URL for the audio file
+      const { url: audioUrl } = await getRecordingPresignedUrl({ data: recordingId });
+      
+      // Get language code from the recording
+      const languageCode = recording.language || "en";
 
-    return {
-      status: 202,
-      message: "Transcription process started",
-      recordingId,
-      requestedAt: new Date().toISOString(),
-    };
+      // Start a transcription job with AWS Transcribe
+      const jobId = await transcribe.startTranscription(
+        recordingId,
+        audioUrl,
+        languageCode
+      );
+      
+      logger.info(
+        `Transcription job started with ID: ${jobId} for recording ${recordingId}`,
+      );
+
+      // Update the transcription job URL in the database
+      await updateRecordingTranscriptionStatus({
+        data: {
+          id: recordingId,
+          status: "IN_PROGRESS",
+          transcriptionUrl: jobId, // Store the job ID in the transcriptionUrl field
+        },
+      });
+
+      return {
+        status: 202,
+        message: "Transcription process started",
+        recordingId,
+        jobId,
+        requestedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      logger.error(
+        `Error starting transcription for recording ${recordingId}: ${error}`,
+      );
+      
+      // Update status to FAILED if there was an error
+      await updateRecordingTranscriptionStatus({
+        data: {
+          id: recordingId,
+          status: "FAILED",
+        },
+      });
+      
+      throw new Error(
+        `Failed to start transcription: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   });
 
 export const Route = createFileRoute(
@@ -75,6 +119,14 @@ export const Route = createFileRoute(
   }),
   serverComponent: async ({ params, deps, request }) => {
     logger.info(`Request received: ${request.method} ${request.url}`);
+    
+    // Debug AWS environment variables
+    console.log('AWS Environment Variables:', {
+      AWS_REGION: process.env.AWS_REGION,
+      AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+      AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ? '***' : undefined,
+      AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? '***' : undefined,
+    });
 
     if (params.recordingId !== deps.recordingId) {
       logger.error(

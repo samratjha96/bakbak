@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mobile-first · UI Ideas</title>
+    <style>
+      :root {
+        --bg: #0e111a;
+        --panel: #121622;
+        --line: rgba(255,255,255,0.06);
+        --text: #e6ecf8;
+        --muted: #98a3b8;
+        --brand: #14b8a6;
+        --accent: #6366f1;
+        --shadow: 0 10px 30px rgba(0,0,0,.5);
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; background: radial-gradient(700px 700px at 80% -10%, rgba(20,184,166,.15), transparent), var(--bg); color: var(--text); display:flex; align-items:center; justify-content:center; padding: 20px; }
+
+      .phone { width: 380px; max-width: 100%; height: 780px; border-radius: 28px; background: var(--panel); border:1px solid var(--line); box-shadow: var(--shadow); display:flex; flex-direction:column; overflow:hidden; }
+      .head { display:flex; align-items:center; justify-content:space-between; padding: 14px; border-bottom:1px solid var(--line); }
+      .brand { display:flex; align-items:center; gap:10px; }
+      .logo { width:22px; height:22px; border-radius:7px; background: linear-gradient(135deg, var(--brand), #0ea5e9); box-shadow: 0 10px 20px rgba(20,184,166,.35); }
+      .badge { font-size: 11px; padding:6px 8px; border-radius:999px; background: rgba(99,102,241,.15); border: 1px solid rgba(99,102,241,.35); color: #c7d2fe; }
+
+      .content { padding: 16px; display:flex; flex-direction:column; gap: 12px; }
+      .wave { height: 180px; border-radius: 16px; background: linear-gradient(180deg, #0b0f1b, #121a33); border:1px solid var(--line); position:relative; overflow:hidden; }
+      .wave::after { content:""; position:absolute; inset:0; background: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 2px, transparent 2px 6px); opacity:.85; }
+      .tip { color: var(--muted); font-size: 13px; }
+
+      .big-mic { position: absolute; left: 50%; transform: translateX(-50%); bottom: 92px; width: 82px; height: 82px; background: linear-gradient(135deg, var(--brand), #10b981); border: 0; color: #032a28; font-weight: 800; border-radius: 999px; box-shadow: 0 14px 30px rgba(16,185,129,.45); }
+
+      .tabs { display:flex; gap: 8px; }
+      .tab { flex:1; padding: 10px 12px; border-radius: 12px; background: #0b0f1b; border:1px solid var(--line); color: var(--muted); text-align:center; }
+      .tab.active { color:white; background: rgba(20,184,166,.12); border-color: rgba(20,184,166,.4); }
+
+      .cards { display:grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+      .card { background: #0b0f1b; border:1px solid var(--line); border-radius: 14px; padding: 12px; }
+      .card h4 { margin: 0 0 6px; font-size: 14px; }
+      .card p { margin: 0; color: var(--muted); font-size: 12px; }
+
+      .nav { margin-top: auto; height: 78px; border-top:1px solid var(--line); background: var(--panel); display:flex; align-items:center; justify-content:space-around; position: relative; }
+      .nav .item { color: var(--muted); text-align:center; font-size: 12px; }
+      .nav .item.active { color: white; }
+    </style>
+  </head>
+  <body>
+    <div class="phone">
+      <div class="head">
+        <div class="brand"><div class="logo"></div><strong>Lingua</strong></div>
+        <span class="badge">EN → ES</span>
+      </div>
+
+      <div class="content">
+        <div class="wave"></div>
+        <div class="tip">Tap and hold to speak. Release to stop recording.</div>
+        <div class="tabs">
+          <div class="tab active">Learn</div>
+          <div class="tab">Practice</div>
+          <div class="tab">Review</div>
+        </div>
+        <div class="cards">
+          <div class="card"><h4>Shadow</h4><p>Repeat after native speaker</p></div>
+          <div class="card"><h4>Translate</h4><p>Build bilingual phrases</p></div>
+          <div class="card"><h4>Pronounce</h4><p>Rate your pronunciation</p></div>
+          <div class="card"><h4>Review</h4><p>Spaced repetition</p></div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <div class="item">Home</div>
+        <div class="item active">Record</div>
+        <div class="item">Profile</div>
+        <button class="big-mic">🎙</button>
+      </nav>
+    </div>
+  </body>
+  <script>
+    (function(){
+      const qs = s => document.querySelector(s);
+      const qsa = s => Array.from(document.querySelectorAll(s));
+
+      // Bottom nav state
+      const items = qsa('.nav .item');
+      items.forEach(i=> i.addEventListener('click', ()=>{
+        items.forEach(a=> a.classList.remove('active'));
+        i.classList.add('active');
+        toast(`${i.textContent.trim()} selected`);
+      }));
+
+      // Record button with timer
+      const mic = qs('.big-mic');
+      let recording = false, t0, raf, last = 0;
+      const head = qs('.head .badge');
+      function fmt(ms){ const s = Math.floor(ms/1000); const m = Math.floor(s/60); const r = s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
+      function loop(ts){ if(!t0) t0 = ts; last = ts - t0; head.textContent = `REC ${fmt(last)}`; raf = requestAnimationFrame(loop); }
+      mic.addEventListener('mousedown', start); mic.addEventListener('touchstart', start, {passive:true});
+      mic.addEventListener('mouseup', stop); mic.addEventListener('mouseleave', stop); mic.addEventListener('touchend', stop);
+      function start(){ if(recording) return; recording = true; mic.textContent = '⏺'; mic.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)'; t0 = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); toast('Recording…'); }
+      function stop(){ if(!recording) return; recording = false; mic.textContent = '🎙'; mic.style.background = ''; cancelAnimationFrame(raf); toast(`Saved clip (${fmt(last)})`); head.textContent = 'EN → ES'; }
+
+      // Tabs
+      const tabs = qsa('.tab');
+      tabs.forEach(t=> t.addEventListener('click', ()=>{
+        tabs.forEach(a=> a.classList.remove('active'));
+        t.classList.add('active');
+      }));
+
+      // Toast
+      let toastEl, timer;
+      function toast(msg){
+        if(!toastEl){
+          toastEl = document.createElement('div');
+          toastEl.style.position = 'fixed'; toastEl.style.left = '50%'; toastEl.style.bottom = '86px'; toastEl.style.transform = 'translateX(-50%)';
+          toastEl.style.background = 'rgba(2,6,23,.9)'; toastEl.style.padding = '8px 10px'; toastEl.style.borderRadius = '10px'; toastEl.style.fontSize = '12px';
+          document.body.appendChild(toastEl);
+        }
+        toastEl.textContent = msg; toastEl.style.opacity = '1'; clearTimeout(timer); timer = setTimeout(()=> toastEl.style.opacity = '0', 1200);
+      }
+    })();
+  </script>
+  </html>
+
+

@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { DocumentIcon } from "~/components/ui/Icons";
-import { Recording } from "~/types/recording";
+import { startTranscriptionJob } from "~/server/transcribe-jobs";
+import { transcriptionStatusQuery } from "~/data/recordings";
 
 interface TranscribeButtonProps {
   recordingId: string;
@@ -10,6 +12,7 @@ interface TranscribeButtonProps {
   className?: string;
   variant?: "primary" | "secondary" | "outline";
   size?: "sm" | "md" | "lg";
+  currentStatus?: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
 }
 
 /**
@@ -22,44 +25,47 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
   className = "",
   variant = "primary",
   size = "md",
+  currentStatus = "NOT_STARTED",
 }) => {
   const queryClient = useQueryClient();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  
+  // Bind the server function
+  const boundStartTranscription = useServerFn(startTranscriptionJob);
+
+  // Poll transcription status if in progress
+  const { data: statusData } = useQuery({
+    ...transcriptionStatusQuery(recordingId),
+    enabled: currentStatus === "IN_PROGRESS" || isStarting,
+  });
 
   // Mutation to start transcription
   const transcribeMutation = useMutation({
-    mutationFn: async () => {
-      setIsLoading(true);
-      const response = await fetch(
-        `/api/recordings/${recordingId}/transcribe`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to start transcription");
-      }
-
-      return response.json();
-    },
+    mutationFn: () => boundStartTranscription({ data: { recordingId } }),
     onSuccess: () => {
       // Invalidate the recording query to refresh data
       queryClient.invalidateQueries({ queryKey: ["recording", recordingId] });
-
+      
+      // Start polling for status updates
+      queryClient.invalidateQueries({ queryKey: ["transcription", "status", recordingId] });
+      
       // Call the callback if provided
       if (onTranscriptionStarted) {
         onTranscriptionStarted();
       }
     },
-    onSettled: () => {
-      setIsLoading(false);
-    },
+    onMutate: () => setIsStarting(true),
+    onSettled: () => setIsStarting(false),
   });
+
+  // Determine the actual status (from polling or props)
+  const actualStatus = statusData?.transcriptionStatus || currentStatus;
+  const isInProgress = actualStatus === "IN_PROGRESS" || isStarting;
+  
+  // Hide the button entirely when transcription is in progress
+  if (isInProgress && !isStarting) {
+    return null;
+  }
 
   // Button variant styles
   const variantStyles = {
@@ -78,35 +84,44 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
   };
 
   const handleClick = () => {
-    if (!disabled && !isLoading) {
+    if (!disabled && !isInProgress) {
       transcribeMutation.mutate();
     }
+  };
+
+  // Get appropriate button text and icon
+  const getButtonContent = () => {
+    if (isStarting) {
+      return (
+        <>
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent align-[-0.125em]"></span>
+          <span>Starting...</span>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <DocumentIcon className="w-5 h-5" />
+        <span>Transcribe</span>
+      </>
+    );
   };
 
   return (
     <button
       onClick={handleClick}
-      disabled={disabled || isLoading}
+      disabled={disabled || isInProgress}
       className={`
         ${variantStyles[variant]} 
         ${sizeStyles[size]} 
         rounded flex items-center justify-center gap-2 transition-colors
         ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-        ${isLoading ? "opacity-70" : ""}
+        ${isInProgress ? "opacity-70" : ""}
         ${className}
       `}
     >
-      {isLoading ? (
-        <>
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent align-[-0.125em]"></span>
-          <span>Processing...</span>
-        </>
-      ) : (
-        <>
-          <DocumentIcon className="w-5 h-5" />
-          <span>Transcribe</span>
-        </>
-      )}
+      {getButtonContent()}
     </button>
   );
 };

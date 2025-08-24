@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Minimal Dashboard · UI Ideas</title>
+    <style>
+      :root {
+        --bg: #f7f8fc;
+        --panel: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --line: #e5e7eb;
+        --brand: #4f46e5;
+        --accent: #22c55e;
+        --shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        grid-template-rows: 64px 1fr;
+        grid-template-areas:
+          "sidebar topbar"
+          "sidebar main";
+        height: 100dvh;
+      }
+      .sidebar {
+        grid-area: sidebar;
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        padding: 18px 14px;
+        display: flex; flex-direction: column; gap: 10px;
+      }
+      .brand {
+        display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px;
+      }
+      .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--brand), #6366f1); box-shadow: 0 8px 16px rgba(79,70,229,0.25); }
+      .brand span { font-weight: 700; letter-spacing: .2px; }
+      nav { margin-top: 12px; display: grid; gap: 6px; }
+      .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: 10px; color: #0f172a; text-decoration: none; }
+      .nav-item:hover { background: #f1f5f9; }
+      .nav-item.active { background: #eef2ff; color: var(--brand); }
+      .spacer { flex: 1; }
+      .upgrade { margin-top: auto; background: #f1f5f9; border: 1px dashed #d1d5db; padding: 12px; border-radius: 12px; font-size: 13px; color: #334155; }
+
+      .topbar {
+        grid-area: topbar;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        display: flex; align-items: center; gap: 12px;
+        padding: 0 20px;
+      }
+      .search { flex: 1; display: flex; align-items: center; gap: 10px; }
+      .search input { width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+      .btn {
+        background: var(--brand); color: white; border: 0; border-radius: 999px; padding: 10px 14px; font-weight: 600; cursor: pointer; box-shadow: 0 8px 16px rgba(79,70,229,0.3);
+      }
+      .btn.secondary { background: #0f172a; box-shadow: 0 8px 16px rgba(15,23,42,0.2); }
+
+      .main { grid-area: main; padding: 20px; overflow: auto; }
+      .grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; }
+      @media (max-width: 980px){
+        .app { grid-template-columns: 1fr; grid-template-rows: 64px auto 1fr; grid-template-areas: "topbar" "sidebar" "main"; }
+        .sidebar { flex-direction: row; overflow: auto; }
+        .grid { grid-template-columns: 1fr; }
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+      }
+      .panel h3 { margin: 0; padding: 16px 16px 0; font-size: 16px; }
+      .panel .content { padding: 16px; }
+
+      .audio {
+        padding: 18px 18px 20px;
+      }
+      .wave {
+        height: 140px;
+        border-radius: 12px;
+        background: repeating-linear-gradient(90deg, #e5e7eb 0 2px, transparent 2px 6px), linear-gradient(180deg, #fafafa, #f5f7fb);
+        border: 1px solid #e5e7eb;
+        margin-bottom: 14px;
+      }
+      .transport { display: flex; align-items: center; gap: 10px; }
+      .transport .play { width: 44px; height: 44px; border-radius: 999px; background: var(--brand); color: white; border: 0; font-weight: 700; }
+      .pill { padding: 8px 10px; border-radius: 999px; background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 13px; }
+
+      .list { display: grid; gap: 12px; }
+      .tile { display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; }
+      .thumb { width: 56px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, #e0e7ff, #f1f5f9); border: 1px solid #e2e8f0; }
+      .tile h4 { margin: 0; font-size: 14px; }
+      .tile p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+      .progress { font-size: 12px; color: #16a34a; background: #dcfce7; border-radius: 999px; padding: 4px 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand"><div class="logo"></div><span>Lingua</span></div>
+        <nav>
+          <a class="nav-item active" href="#">Dashboard</a>
+          <a class="nav-item" href="#">Recordings</a>
+          <a class="nav-item" href="#">Practice</a>
+          <a class="nav-item" href="#">Vocabulary</a>
+          <a class="nav-item" href="#">Settings</a>
+        </nav>
+        <div class="spacer"></div>
+        <div class="upgrade">Tip: Press R to start a quick recording.</div>
+      </aside>
+
+      <header class="topbar">
+        <div class="search"><input placeholder="Search lessons, words, recordings…" /></div>
+        <button class="btn">New Recording</button>
+        <button class="btn secondary">Import</button>
+      </header>
+
+      <main class="main">
+        <div class="grid">
+          <section class="panel">
+            <h3>Current Session</h3>
+            <div class="content audio">
+              <div class="wave" aria-hidden="true"></div>
+              <div class="transport">
+                <button class="play">▶</button>
+                <span class="pill">Speed 1.0×</span>
+                <span class="pill">Loop Off</span>
+                <span class="pill">EN → ES</span>
+                <div style="flex:1"></div>
+                <button class="btn">Transcribe</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3>Quick Actions</h3>
+            <div class="content" style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px;">
+              <div class="tile" style="grid-template-columns: 1fr;">
+                <h4 style="margin:0">Practice Pronunciation</h4>
+                <p>Micro lessons based on your last session</p>
+              </div>
+              <div class="tile" style="grid-template-columns: 1fr;">
+                <h4 style="margin:0">Shadow This Clip</h4>
+                <p>Repeat after native speaker</p>
+              </div>
+              <div class="tile" style="grid-template-columns: 1fr;">
+                <h4 style="margin:0">Translate Key Phrases</h4>
+                <p>Build bilingual flashcards</p>
+              </div>
+              <div class="tile" style="grid-template-columns: 1fr;">
+                <h4 style="margin:0">Review Vocabulary</h4>
+                <p>Spaced repetition queue</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" style="grid-column: 1 / -1;">
+            <h3>Recent Lessons</h3>
+            <div class="content list">
+              <div class="tile">
+                <div class="thumb"></div>
+                <div>
+                  <h4>Café Conversation – Ordering</h4>
+                  <p>3m 24s · Transcript available</p>
+                </div>
+                <span class="progress">In progress</span>
+              </div>
+              <div class="tile">
+                <div class="thumb"></div>
+                <div>
+                  <h4>Travel Phrases – Train Station</h4>
+                  <p>5m 10s · New words: 7</p>
+                </div>
+                <span class="progress" style="background:#e0e7ff;color:#4338ca;">New</span>
+              </div>
+              <div class="tile">
+                <div class="thumb"></div>
+                <div>
+                  <h4>Pronunciation Drills – R & RR</h4>
+                  <p>2m 05s · Last practiced yesterday</p>
+                </div>
+                <span class="progress" style="background:#fef3c7;color:#b45309;">Due today</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+  <script>
+    (function(){
+      const qs = s => document.querySelector(s);
+      const qsa = s => Array.from(document.querySelectorAll(s));
+
+      // Views
+      const views = {
+        dashboard: qs('[data-view="dashboard"]'),
+        recordings: null,
+        practice: null,
+        vocabulary: null,
+        settings: null,
+      };
+
+      // Build simple sub-views dynamically to keep HTML tidy
+      const main = qs('.main');
+      const dashboardSection = main.firstElementChild.parentElement; // grid container already holds dashboard panels
+      dashboardSection.setAttribute('data-view', 'dashboard');
+
+      function createPanel(title, html){
+        const s = document.createElement('section');
+        s.className = 'panel';
+        s.innerHTML = `<h3>${title}</h3><div class="content">${html}</div>`;
+        return s;
+      }
+
+      function createView(id){
+        const wrap = document.createElement('div');
+        wrap.setAttribute('data-view', id);
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        wrap.style.display = 'none';
+        return wrap;
+      }
+
+      const recordingsView = createView('recordings');
+      recordingsView.append(
+        createPanel('Recordings', `
+          <div class="list">
+            <div class="tile"><div class="thumb"></div><div><h4>Street Market – Bargaining</h4><p>4m 18s · 12 Aug</p></div><button class="btn secondary">Open</button></div>
+            <div class="tile"><div class="thumb"></div><div><h4>Small Talk – Weather</h4><p>2m 31s · 11 Aug</p></div><button class="btn secondary">Open</button></div>
+            <div class="tile"><div class="thumb"></div><div><h4>Pronunciation – LL/Y</h4><p>3m 03s · 10 Aug</p></div><button class="btn secondary">Open</button></div>
+          </div>
+        `)
+      );
+
+      const practiceView = createView('practice');
+      practiceView.append(
+        createPanel('Practice Modes', `
+          <div class="list">
+            <div class="tile" style="grid-template-columns:1fr;">
+              <h4 style="margin:0">Shadowing</h4>
+              <p>Repeat lines with auto-loop and pace guidance</p>
+            </div>
+            <div class="tile" style="grid-template-columns:1fr;">
+              <h4 style="margin:0">Pronunciation</h4>
+              <p>Targeted sounds based on your transcripts</p>
+            </div>
+            <div class="tile" style="grid-template-columns:1fr;">
+              <h4 style="margin:0">Listening</h4>
+              <p>Comprehension checks and dictate back</p>
+            </div>
+          </div>
+        `)
+      );
+
+      const vocabView = createView('vocabulary');
+      vocabView.append(
+        createPanel('Vocabulary', `
+          <div class="list">
+            <div class="tile" style="grid-template-columns:1fr auto;">
+              <div><h4>Horario</h4><p>Schedule · From: Train Station</p></div>
+              <button class="btn">Review</button>
+            </div>
+            <div class="tile" style="grid-template-columns:1fr auto;">
+              <div><h4>Cuenta</h4><p>Bill/Check · From: Café</p></div>
+              <button class="btn">Review</button>
+            </div>
+            <div class="tile" style="grid-template-columns:1fr auto;">
+              <div><h4>Dirección</h4><p>Direction/Address · From: Directions</p></div>
+              <button class="btn">Review</button>
+            </div>
+          </div>
+        `)
+      );
+
+      const settingsView = createView('settings');
+      settingsView.append(
+        createPanel('Settings', `
+          <div style="display:grid; gap:12px;">
+            <label class="tile" style="grid-template-columns:1fr auto;">
+              <div><h4>Target Language</h4><p>English → Spanish</p></div>
+              <span class="pill">Change</span>
+            </label>
+            <label class="tile" style="grid-template-columns:1fr auto;">
+              <div><h4>Auto-Transcribe</h4><p>Start transcription after recording</p></div>
+              <input type="checkbox" checked />
+            </label>
+            <label class="tile" style="grid-template-columns:1fr auto;">
+              <div><h4>Theme</h4><p>Light</p></div>
+              <span class="pill">Toggle</span>
+            </label>
+          </div>
+        `)
+      );
+
+      const grid = qs('.grid');
+      grid.after(recordingsView, practiceView, vocabView, settingsView);
+      views.recordings = recordingsView;
+      views.practice = practiceView;
+      views.vocabulary = vocabView;
+      views.settings = settingsView;
+
+      function showView(id){
+        Object.entries(views).forEach(([key, el])=>{
+          if(!el) return;
+          el.style.display = key === id ? '' : 'none';
+        });
+        qsa('.nav-item').forEach(a=>{
+          a.classList.toggle('active', a.textContent.trim().toLowerCase() === (id === 'dashboard' ? 'dashboard' : id));
+        });
+      }
+      showView('dashboard');
+
+      qsa('.nav-item').forEach(a=>{
+        a.addEventListener('click', (e)=>{
+          e.preventDefault();
+          const label = a.textContent.trim().toLowerCase();
+          if(label === 'dashboard') showView('dashboard');
+          else showView(label);
+        });
+      });
+
+      // Transport controls
+      const playBtn = qs('.transport .play');
+      let playing = false;
+      function setPlayState(p){
+        playing = p; playBtn.textContent = p ? '⏸' : '▶';
+        toast(p ? 'Playing…' : 'Paused');
+      }
+      playBtn.addEventListener('click', ()=> setPlayState(!playing));
+
+      // Pills toggle
+      qsa('.pill').forEach(p=>{
+        p.addEventListener('click', ()=>{
+          if(p.textContent.includes('Speed')){
+            const cur = p.textContent.match(/([0-9]+\.[0-9])×/);
+            const next = cur ? (parseFloat(cur[1]) >= 1.5 ? 1.0 : (parseFloat(cur[1]) + 0.2).toFixed(1)) : '1.0';
+            p.textContent = `Speed ${next}×`;
+            toast(`Speed set to ${next}×`);
+          } else if(p.textContent.includes('Loop')){
+            const on = /On/i.test(p.textContent);
+            p.textContent = on ? 'Loop Off' : 'Loop On';
+            toast(on ? 'Loop disabled' : 'Loop enabled');
+          } else if(p.textContent.includes('EN')){
+            p.textContent = p.textContent.includes('EN → ES') ? 'ES → EN' : 'EN → ES';
+            toast(`Direction: ${p.textContent}`);
+          }
+        });
+      });
+
+      // Transcribe button
+      const transcribe = qsa('.btn').find(b=>b.textContent.includes('Transcribe'));
+      if(transcribe){
+        transcribe.addEventListener('click', ()=>{
+          transcribe.disabled = true; transcribe.textContent = 'Transcribing…';
+          toast('Transcription started');
+          setTimeout(()=>{ transcribe.disabled = false; transcribe.textContent = 'Transcribe'; toast('Transcript ready'); }, 1400);
+        });
+      }
+
+      // Simple toast
+      let toastEl;
+      function ensureToast(){
+        if(!toastEl){
+          toastEl = document.createElement('div');
+          toastEl.style.position = 'fixed';
+          toastEl.style.right = '16px';
+          toastEl.style.bottom = '16px';
+          toastEl.style.background = '#0f172a';
+          toastEl.style.color = 'white';
+          toastEl.style.padding = '10px 12px';
+          toastEl.style.borderRadius = '10px';
+          toastEl.style.boxShadow = '0 12px 24px rgba(0,0,0,.2)';
+          document.body.appendChild(toastEl);
+        }
+      }
+      let toastTimer;
+      function toast(msg){
+        ensureToast();
+        toastEl.textContent = msg;
+        toastEl.style.opacity = '1';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(()=>{ toastEl.style.opacity = '0'; }, 1200);
+      }
+    })();
+  </script>
+  </html>
+
+

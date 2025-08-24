@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { TranscriptionScreen } from "~/components/screens";
 
+// Deprecated route: redirect to recordings list for now
 export const Route = createFileRoute("/transcribe")({
-  component: TranscriptionScreen,
+  beforeLoad: () => {
+    if (typeof window !== "undefined") {
+      window.location.replace("/recordings");
+    }
+  },
+  component: () => null,
 });

@@ -37,6 +37,8 @@ export function useAudioRecorder(): AudioRecorderHook {
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isPausedRef = useRef<boolean>(false);
+  const TIMESLICE_MS = 500; // collect chunks periodically to support manual pause
 
   // Cleanup function to stop all media recording
   const cleanup = useCallback(() => {
@@ -44,6 +46,11 @@ export function useAudioRecorder(): AudioRecorderHook {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+    }
+
+    // Revoke object URL to prevent memory leaks
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
     }
 
     // Stop media recorder if active
@@ -74,7 +81,7 @@ export function useAudioRecorder(): AudioRecorderHook {
     // Reset states
     setIsRecording(false);
     setIsPaused(false);
-  }, []);
+  }, [audioUrl]);
 
   // Start recording
   const startRecording = useCallback(async () => {
@@ -103,39 +110,55 @@ export function useAudioRecorder(): AudioRecorderHook {
 
       setAnalyserNode(analyser);
 
-      // Create media recorder with mp3 format
-      const options = { mimeType: "audio/mpeg" };
+      // Prefer a widely supported audio mime type
+      const preferredMimeTypes = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+        "audio/mp4",
+      ];
 
-      // Try to create with MP3 format, fallback to browser default if not supported
+      const supportedMimeType = preferredMimeTypes.find((type) => {
+        // Some older browsers may not implement isTypeSupported
+        try {
+          const MR: any = MediaRecorder as any;
+          return (
+            typeof MR !== "undefined" &&
+            typeof MR.isTypeSupported === "function" &&
+            MR.isTypeSupported(type)
+          );
+        } catch {
+          return false;
+        }
+      });
+
       let mediaRecorder;
-      try {
-        mediaRecorder = new MediaRecorder(stream, options);
-        console.log(
-          "[useAudioRecorder] Successfully created MediaRecorder with audio/mpeg format",
-        );
-      } catch (err) {
-        console.warn(
-          "[useAudioRecorder] audio/mpeg not supported, falling back to browser default:",
-          err,
-        );
+      if (supportedMimeType) {
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: supportedMimeType,
+        });
+        console.log(`Using audio format: ${supportedMimeType}`);
+      } else {
         mediaRecorder = new MediaRecorder(stream);
-        console.log(
-          `[useAudioRecorder] Using format: ${mediaRecorder.mimeType}`,
-        );
+        console.log(`Using default audio format: ${mediaRecorder.mimeType}`);
       }
 
       mediaRecorderRef.current = mediaRecorder;
 
       // Set up event handlers
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        // Only keep chunks when not paused (works even if native pause isn't supported)
+        if (event.data.size > 0 && !isPausedRef.current) {
           audioChunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = () => {
+        const firstChunkType = audioChunksRef.current[0]?.type;
+        const mimeType =
+          firstChunkType || mediaRecorder.mimeType || "audio/webm";
         const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/mpeg",
+          type: mimeType,
         });
         const url = URL.createObjectURL(audioBlob);
 
@@ -144,17 +167,18 @@ export function useAudioRecorder(): AudioRecorderHook {
         setIsRecording(false);
       };
 
-      // Start recording
-      mediaRecorder.start();
+      // Start recording with a timeslice so we can drop chunks while "paused"
+      mediaRecorder.start(TIMESLICE_MS);
       setIsRecording(true);
       setIsPaused(false);
+      isPausedRef.current = false;
 
       // Start duration timer
       timerRef.current = setInterval(() => {
         setDuration((prevDuration) => prevDuration + 1);
       }, 1000);
     } catch (err) {
-      console.error("Error starting recording:", err);
+      console.error("Failed to start recording:", err);
       setError(err instanceof Error ? err : new Error(String(err)));
       cleanup();
     }
@@ -185,8 +209,28 @@ export function useAudioRecorder(): AudioRecorderHook {
     ) {
       mediaRecorderRef.current.pause();
       setIsPaused(true);
+      isPausedRef.current = true;
+
+      // Suspend processing/visualization to save CPU, but keep tracks enabled so recorder stays alive
+      try {
+        audioContextRef.current?.suspend().catch(() => {});
+      } catch (_) {}
 
       // Pause timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    } else if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state === "recording"
+    ) {
+      // Fallback: keep recorder running but drop chunks while paused
+      setIsPaused(true);
+      isPausedRef.current = true;
+      try {
+        audioContextRef.current?.suspend().catch(() => {});
+      } catch (_) {}
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
@@ -203,8 +247,27 @@ export function useAudioRecorder(): AudioRecorderHook {
     ) {
       mediaRecorderRef.current.resume();
       setIsPaused(false);
+      isPausedRef.current = false;
+
+      // Resume processing/visualization
+      try {
+        audioContextRef.current?.resume().catch(() => {});
+      } catch (_) {}
 
       // Resume timer
+      timerRef.current = setInterval(() => {
+        setDuration((prevDuration) => prevDuration + 1);
+      }, 1000);
+    } else if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state === "recording"
+    ) {
+      // Fallback resume: simply start accepting chunks again
+      setIsPaused(false);
+      isPausedRef.current = false;
+      try {
+        audioContextRef.current?.resume().catch(() => {});
+      } catch (_) {}
       timerRef.current = setInterval(() => {
         setDuration((prevDuration) => prevDuration + 1);
       }, 1000);
@@ -213,12 +276,17 @@ export function useAudioRecorder(): AudioRecorderHook {
 
   // Reset recording
   const resetRecording = useCallback(() => {
+    // Revoke previous URL before cleanup
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
     cleanup();
     setDuration(0);
     setAudioBlob(null);
     setAudioUrl(null);
+    isPausedRef.current = false;
     audioChunksRef.current = [];
-  }, [cleanup]);
+  }, [cleanup, audioUrl]);
 
   // Clean up on unmount
   useEffect(() => {

@@ -155,7 +155,7 @@ export class RecordingModel {
       INSERT INTO recordings (
         id, user_id, title, description, file_path, language,
         duration, metadata, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       recording.id,
@@ -165,8 +165,7 @@ export class RecordingModel {
       recording.file_path,
       recording.language,
       recording.duration,
-      recording.source_type,
-      recording.source_details,
+      recording.metadata,
       recording.status,
       recording.created_at,
       recording.updated_at,

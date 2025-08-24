@@ -87,7 +87,7 @@ const DashboardSidebar: React.FC<{
 
       <div className="flex flex-col gap-2">
         <Link
-          to="/record"
+          to="/recordings/new"
           className="flex items-center justify-center gap-2 py-2 px-4 bg-primary text-white font-medium rounded-lg hover:bg-secondary transition-colors"
         >
           <MicrophoneIcon className="w-4 h-4" />
@@ -162,7 +162,7 @@ export const DashboardScreen: React.FC = () => {
       primaryAction={{
         label: "New Recording",
         icon: <MicrophoneIcon className="w-4 h-4" />,
-        to: "/record",
+        to: "/recordings/new",
         primary: true,
       }}
     />

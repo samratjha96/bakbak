@@ -12,12 +12,7 @@ import {
   TranscriptionStatus,
 } from "~/types/recording";
 import { getDatabase } from "~/database/connection";
-import {
-  DbRecording,
-  DbTranscription,
-  DbTranslation,
-  DbNote,
-} from "~/database/types";
+import { DbRecording, DbTranscription, DbTranslation } from "~/database/types";
 import { auth } from "~/lib/auth";
 import { s3 } from "~/lib/s3";
 
@@ -48,6 +43,10 @@ function mapJoinedRowToRecording(
     };
     recording.transcriptionText = row.transcription_text;
     recording.transcriptionLastUpdated = new Date(row.transcription_updated_at);
+    // Map job_id from transcriptions table for job tracking
+    if (row.transcription_job_id) {
+      recording.transcriptionUrl = row.transcription_job_id;
+    }
   }
 
   // Add translation data if available
@@ -57,11 +56,11 @@ function mapJoinedRowToRecording(
     recording.translationLastUpdated = new Date(row.translation_updated_at);
   }
 
-  // Add notes if available
-  if (row.note_id) {
+  // Add notes from recordings table if available
+  if (row.notes) {
     recording.notes = {
-      content: row.note_content,
-      lastUpdated: new Date(row.note_updated_at),
+      content: row.notes,
+      lastUpdated: new Date(row.updated_at),
     };
   }
 
@@ -138,6 +137,7 @@ export const fetchRecordings = createServerFn({ method: "GET" }).handler(
           t.text as transcription_text,
           t.romanization as transcription_romanization,
           t.language as transcription_language,
+          t.job_id as transcription_job_id,
           t.status as transcription_status,
           t.created_at as transcription_created_at,
           t.updated_at as transcription_updated_at,
@@ -147,21 +147,15 @@ export const fetchRecordings = createServerFn({ method: "GET" }).handler(
           tr.target_language as translation_target_language,
           tr.status as translation_status,
           tr.created_at as translation_created_at,
-          tr.updated_at as translation_updated_at,
-          n.id as note_id,
-          n.content as note_content,
-          n.timestamp as note_timestamp,
-          n.created_at as note_created_at,
-          n.updated_at as note_updated_at
+          tr.updated_at as translation_updated_at
         FROM recordings r
         LEFT JOIN transcriptions t ON r.id = t.recording_id
         LEFT JOIN translations tr ON t.id = tr.transcription_id
-        LEFT JOIN notes n ON r.id = n.recording_id AND n.user_id = ?
         WHERE r.user_id = ?
         ORDER BY r.created_at DESC
       `,
         )
-        .all(userId, userId);
+        .all(userId);
 
       // Map results efficiently
       const recordingsMap = new Map<string, Recording>();
@@ -196,6 +190,7 @@ export const fetchRecording = createServerFn({ method: "GET" })
         t.text as transcription_text,
         t.romanization as transcription_romanization,
         t.language as transcription_language,
+        t.job_id as transcription_job_id,
         t.status as transcription_status,
         t.created_at as transcription_created_at,
         t.updated_at as transcription_updated_at,
@@ -205,20 +200,14 @@ export const fetchRecording = createServerFn({ method: "GET" })
         tr.target_language as translation_target_language,
         tr.status as translation_status,
         tr.created_at as translation_created_at,
-        tr.updated_at as translation_updated_at,
-        n.id as note_id,
-        n.content as note_content,
-        n.timestamp as note_timestamp,
-        n.created_at as note_created_at,
-        n.updated_at as note_updated_at
+        tr.updated_at as translation_updated_at
       FROM recordings r
       LEFT JOIN transcriptions t ON r.id = t.recording_id
       LEFT JOIN translations tr ON t.id = tr.transcription_id
-      LEFT JOIN notes n ON r.id = n.recording_id AND n.user_id = ?
       WHERE r.id = ? AND r.user_id = ?
     `,
       )
-      .get(userId, id, userId);
+      .get(id, userId);
 
     if (!row) {
       throw notFound();
@@ -246,8 +235,32 @@ export const createRecording = createServerFn({ method: "POST" })
     const recordingId = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    // Use the requested S3 file path format
-    const filePath = `recordings/XqmkB9YbkUfYoHhUy4FBkMShidp6KHdx/2025-07-27/${crypto.randomUUID()}.webm`;
+    // Derive S3 file path from provided audioUrl if available
+    const filePath =
+      (() => {
+        try {
+          const audioUrl = (data as any).audioUrl as string | undefined;
+          if (!audioUrl) return null;
+          const u = new URL(audioUrl);
+          const host = u.host;
+          const pathname = u.pathname.replace(/^\//, "");
+          const bucket = process.env.AWS_S3_BUCKET;
+          // Virtual-hosted–style: <bucket>.s3.*.amazonaws.com/<key>
+          if (bucket && host.startsWith(`${bucket}.s3`)) return pathname;
+          // Path-style: s3.*.amazonaws.com/<bucket>/<key> or s3.amazonaws.com/<bucket>/<key>
+          const parts = pathname.split("/");
+          if (parts.length >= 2) {
+            if (!bucket || parts[0] === bucket) {
+              return parts.slice(1).join("/");
+            }
+            return parts.join("/");
+          }
+        } catch {}
+        return null;
+      })() ||
+      `recordings/${userId}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.webm`;
+
+    const notesContent: string | null = data.notes?.content ?? null;
 
     const dbRecording = {
       id: recordingId,
@@ -257,6 +270,7 @@ export const createRecording = createServerFn({ method: "POST" })
       file_path: filePath,
       language: data.language || (null as string | null),
       duration: data.duration,
+      notes: notesContent,
       status: "processing" as const,
       created_at: now,
     };
@@ -265,8 +279,8 @@ export const createRecording = createServerFn({ method: "POST" })
       `
        INSERT INTO recordings (
          id, user_id, title, description, file_path, language,
-         duration, status, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         duration, notes, status, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      `,
     ).run(
       dbRecording.id,
@@ -276,6 +290,7 @@ export const createRecording = createServerFn({ method: "POST" })
       dbRecording.file_path,
       dbRecording.language,
       dbRecording.duration,
+      dbRecording.notes,
       dbRecording.status,
       dbRecording.created_at,
       now,
@@ -351,44 +366,17 @@ export const updateRecordingNotes = createServerFn({ method: "POST" })
     const userId = getCurrentUserId();
     const now = new Date().toISOString();
 
-    // Check if note exists
-    let dbNote = db
-      .prepare(
-        `
-      SELECT * FROM notes WHERE recording_id = ? AND user_id = ?
-    `,
-      )
-      .get(data.id, userId) as DbNote | undefined;
-
-    if (dbNote && data.notes.content !== undefined) {
-      // Update existing note
-      db.prepare(
-        `
-        UPDATE notes SET content = ?, updated_at = ? WHERE id = ?
-      `,
-      ).run(data.notes.content, now, dbNote.id);
-    } else if (
-      data.notes.content !== undefined &&
-      data.notes.content !== null
-    ) {
-      // Create new note
-      const noteId = crypto.randomUUID();
-      db.prepare(
-        `
-        INSERT INTO notes (id, recording_id, user_id, content, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `,
-      ).run(noteId, data.id, userId, data.notes.content, now, now);
-
-      dbNote = {
-        id: noteId,
-        recording_id: data.id,
-        user_id: userId,
-        content: data.notes.content as string,
-        created_at: now,
-        updated_at: now,
-      };
+    // Ensure the recording belongs to the user
+    const existing = db
+      .prepare(`SELECT id FROM recordings WHERE id = ? AND user_id = ?`)
+      .get(data.id, userId) as { id: string } | undefined;
+    if (!existing) {
+      throw new Error("Recording not found or permission denied");
     }
+
+    db.prepare(
+      `UPDATE recordings SET notes = ?, updated_at = ? WHERE id = ?`,
+    ).run(data.notes.content ?? null, now, data.id);
 
     return fetchRecording({ data: data.id });
   });
@@ -401,7 +389,7 @@ export const updateRecordingTranscriptionStatus = createServerFn({
       id: string;
       status: TranscriptionStatus;
       transcriptionText?: string;
-      transcriptionUrl?: string;
+      jobId?: string;
     }) => data,
   )
   .handler(async ({ data }) => {
@@ -422,24 +410,31 @@ export const updateRecordingTranscriptionStatus = createServerFn({
       db.prepare(
         `
         UPDATE transcriptions 
-        SET status = ?, text = COALESCE(?, text), updated_at = ?
+        SET status = ?, text = COALESCE(?, text), job_id = COALESCE(?, job_id), updated_at = ?
         WHERE recording_id = ?
       `,
-      ).run(data.status, data.transcriptionText || null, now, data.id);
-    } else if (data.transcriptionText) {
-      // Create new transcription
+      ).run(
+        data.status,
+        data.transcriptionText || null,
+        data.jobId || null,
+        now,
+        data.id,
+      );
+    } else {
+      // Create new transcription record even without text (for status tracking)
       const transcriptionId = crypto.randomUUID();
       db.prepare(
         `
         INSERT INTO transcriptions (
-          id, recording_id, text, language, status, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          id, recording_id, text, language, job_id, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
       ).run(
         transcriptionId,
         data.id,
-        data.transcriptionText,
+        data.transcriptionText || null,
         "auto",
+        data.jobId || null,
         data.status,
         now,
         now,
@@ -579,6 +574,88 @@ export const updateRecording = createServerFn({ method: "POST" })
     return fetchRecording({ data: data.id });
   });
 
+export const deleteRecording = createServerFn({ method: "POST" })
+  .validator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    const db = getDatabase();
+    const userId = getCurrentUserId();
+
+    // Verify recording exists and belongs to user
+    const existing = db
+      .prepare(
+        `SELECT id, file_path FROM recordings WHERE id = ? AND user_id = ?`,
+      )
+      .get(id, userId) as { id: string; file_path: string } | undefined;
+
+    if (!existing) {
+      throw new Error(
+        "Recording not found or you do not have permission to delete it.",
+      );
+    }
+
+    // First attempt to delete the S3 object (idempotent on S3 side)
+    try {
+      await s3.delete(existing.file_path);
+    } catch (error) {
+      console.error("Error deleting S3 object:", error);
+      throw new Error(
+        "Could not delete audio file from storage. Please try again.",
+      );
+    }
+
+    // Then delete from the database in a transaction (cascades to related rows)
+    const tx = (db as any).transaction(
+      (recordingId: string, ownerId: string) => {
+        db.prepare(`DELETE FROM recordings WHERE id = ? AND user_id = ?`).run(
+          recordingId,
+          ownerId,
+        );
+      },
+    );
+
+    try {
+      tx(id, userId);
+    } catch (error) {
+      console.error("Error deleting recording from database:", error);
+      throw new Error(
+        "Deleted file from storage, but failed to update the database. Please contact support.",
+      );
+    }
+
+    return { success: true };
+  });
+
+/**
+ * Get the raw S3 path for a recording (for AWS services like Transcribe)
+ */
+export const getRecordingPath = createServerFn({ method: "GET" })
+  .validator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    const db = getDatabase();
+    const userId = getCurrentUserId();
+
+    // Check if recording exists and belongs to user
+    const recording = db
+      .prepare(
+        `SELECT id, file_path FROM recordings WHERE id = ? AND user_id = ?`,
+      )
+      .get(id, userId) as { id: string; file_path: string } | undefined;
+
+    if (!recording) {
+      throw new Error(
+        "Recording not found or you do not have permission to access it.",
+      );
+    }
+
+    // Return S3 URI format for AWS services
+    const s3Uri = `s3://${process.env.AWS_S3_BUCKET || "your-bucket"}/${recording.file_path}`;
+
+    return {
+      s3Uri,
+      filePath: recording.file_path,
+    };
+  });
+
 /**
  * Generate a presigned URL for downloading a recording
  */
@@ -593,7 +670,14 @@ export const getRecordingPresignedUrl = createServerFn({ method: "GET" })
       .prepare(
         `SELECT id, file_path, language, duration FROM recordings WHERE id = ? AND user_id = ?`,
       )
-      .get(id, userId);
+      .get(id, userId) as
+      | {
+          id: string;
+          file_path: string;
+          language: string | null;
+          duration: number;
+        }
+      | undefined;
 
     if (!recording) {
       throw new Error(

@@ -46,6 +46,7 @@ export function initializeSchema(db: Database.Database): void {
       file_path TEXT NOT NULL,
       language TEXT,
       duration INTEGER NOT NULL, -- in seconds
+      notes TEXT, -- User notes for this recording
       metadata JSON, -- For any additional recording metadata
       status TEXT CHECK(status IN ('processing', 'ready', 'error')) DEFAULT 'processing',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -94,6 +94,12 @@ export const getPresignedUploadUrl = createServerFn()
     const bucket = data.bucket || defaultBucket;
     const expiresIn = data.expiresIn || 3600;
 
+    if (!bucket) {
+      throw new Error(
+        "S3 bucket not configured. Please set AWS_S3_BUCKET environment variable.",
+      );
+    }
+
     try {
       const command = new PutObjectCommand({
         Bucket: bucket,
@@ -103,10 +109,7 @@ export const getPresignedUploadUrl = createServerFn()
 
       return await getSignedUrl(s3Client, command, { expiresIn });
     } catch (error) {
-      console.error(
-        `Error generating presigned upload URL for ${data.key}:`,
-        error,
-      );
+      console.error(`[S3] Failed to generate presigned URL:`, error);
       throw error;
     }
   });
@@ -143,9 +146,14 @@ export const getS3Url = createServerFn()
   .validator((data: { bucket?: string; key: string }) => data)
   .handler(async ({ data }) => {
     const bucket = data.bucket || defaultBucket;
-    // Get region from environment or default to us-east-1
     const region = process.env.AWS_REGION || "us-east-1";
-    // Use path-style URL format to match our client configuration
+
+    if (!bucket) {
+      throw new Error(
+        "S3 bucket not configured. Please set AWS_S3_BUCKET environment variable.",
+      );
+    }
+
     return `https://s3.${region}.amazonaws.com/${bucket}/${data.key}`;
   });
 

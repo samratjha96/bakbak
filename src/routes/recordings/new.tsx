@@ -16,7 +16,8 @@ import { createRecording } from "~/data/recordings";
 import { formatDuration } from "~/utils/formatting";
 import { useAudioRecorder } from "~/hooks/useAudioRecorder";
 import { AudioWaveform } from "~/components/AudioWaveform";
-import { languages } from "~/config/languages";
+import { AudioWaveSurferPlayer } from "~/components/audio/AudioWaveSurferPlayer";
+import { languages } from "~/lib/languages";
 import { useSession } from "~/lib/auth-client";
 import { getPresignedUploadUrl, getS3Url } from "~/server/s3";
 import { RecordingStoragePaths } from "~/services/storage/RecordingStoragePaths";
@@ -31,6 +32,7 @@ const uploadAudioRecording = createServerFn({ method: "POST" })
     const audioFile = data.get("audioFile") as File;
     const userId = data.get("userId") as string;
     const fileExtension = (data.get("fileExtension") as string) || "webm";
+    const contentType = (data.get("contentType") as string) || `audio/${fileExtension}`;
 
     if (!userId) {
       throw new Error("User ID is required for recording upload");
@@ -40,60 +42,68 @@ const uploadAudioRecording = createServerFn({ method: "POST" })
       throw new Error("Valid audio file is required for upload");
     }
 
-    return { audioFile, userId, fileExtension };
+    return { audioFile, userId, fileExtension, contentType };
   })
-  .handler(async ({ data: { audioFile, userId, fileExtension } }) => {
-    // Convert File to Blob for S3 upload
-    const audioBlob = new Blob([await audioFile.arrayBuffer()], {
-      type: `audio/${fileExtension}`,
-    });
+  .handler(async ({ data: { audioFile, userId, fileExtension, contentType } }) => {
+    try {
+      const audioBlob = new Blob([await audioFile.arrayBuffer()], {
+        type: contentType || `audio/${fileExtension}`,
+      });
 
-    // Generate a structured path using the RecordingStoragePaths utility
-    const storagePath = RecordingStoragePaths.getAudioPath(
-      userId,
-      fileExtension,
-    );
-    const recordingUUID =
-      RecordingStoragePaths.extractRecordingUUID(storagePath);
-
-    if (!recordingUUID) {
-      throw new Error(
-        "Failed to generate recording UUID - check system requirements",
+      const storagePath = RecordingStoragePaths.getAudioPath(
+        userId,
+        fileExtension,
       );
+      
+      const recordingUUID =
+        RecordingStoragePaths.extractRecordingUUID(storagePath);
+
+      if (!recordingUUID) {
+        throw new Error(
+          "Failed to generate recording UUID - check system requirements",
+        );
+      }
+
+      console.log(`Uploading ${audioFile.name} (${Math.round(audioFile.size/1024)}KB) to ${storagePath}`);
+
+      const presignedUrl = await getPresignedUploadUrl({
+        data: {
+          key: storagePath,
+          contentType: contentType || `audio/${fileExtension}`,
+        },
+      });
+
+      const response = await fetch(presignedUrl, {
+        method: "PUT",
+        body: audioBlob,
+        headers: {
+          "Content-Type": contentType || `audio/${fileExtension}`,
+        },
+      });
+
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.error(`Upload failed: ${response.status} ${response.statusText}`, responseText);
+        throw new Error(
+          `S3 upload failed with status ${response.status}: ${response.statusText}. Response: ${responseText}`,
+        );
+      }
+
+      console.log(`Upload successful: ${storagePath}`);
+
+      const fileUrl = await getS3Url({ data: { key: storagePath } });
+
+      return {
+        url: fileUrl,
+        recordingUUID,
+        storagePath,
+        userId,
+      };
+      
+    } catch (error) {
+      console.error(`Upload failed:`, error);
+      throw error;
     }
-
-    // Get a presigned URL from the server function
-    const presignedUrl = await getPresignedUploadUrl({
-      data: {
-        key: storagePath,
-        contentType: `audio/${fileExtension}`,
-      },
-    });
-
-    // Upload the file directly to S3
-    const response = await fetch(presignedUrl, {
-      method: "PUT",
-      body: audioBlob,
-      headers: {
-        "Content-Type": `audio/${fileExtension}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `S3 upload failed with status ${response.status}: ${response.statusText}`,
-      );
-    }
-
-    // Get the public URL for the uploaded file
-    const fileUrl = await getS3Url({ data: { key: storagePath } });
-
-    return {
-      url: fileUrl,
-      recordingUUID,
-      storagePath,
-      userId,
-    };
   });
 
 function NewRecordingPage() {
@@ -101,8 +111,6 @@ function NewRecordingPage() {
   const [language, setLanguage] = React.useState("ja");
   const [initialNotes, setInitialNotes] = React.useState("");
   const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -131,38 +139,7 @@ function NewRecordingPage() {
     }
   }, [recordedAudioUrl]);
 
-  // Handle play/pause of recorded audio
-  const togglePlayback = () => {
-    if (!audioRef.current || !audioUrl) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch((err) => {
-        console.error("Error playing audio:", err);
-      });
-    }
-  };
-
-  // Listen for audio play/pause events
-  React.useEffect(() => {
-    const audioElement = audioRef.current;
-    if (!audioElement) return;
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleEnded = () => setIsPlaying(false);
-
-    audioElement.addEventListener("play", handlePlay);
-    audioElement.addEventListener("pause", handlePause);
-    audioElement.addEventListener("ended", handleEnded);
-
-    return () => {
-      audioElement.removeEventListener("play", handlePlay);
-      audioElement.removeEventListener("pause", handlePause);
-      audioElement.removeEventListener("ended", handleEnded);
-    };
-  }, [audioRef.current, audioUrl]);
+  // No manual audio element; WaveSurfer handles playback UI
 
   // Show error messages if recording fails
   React.useEffect(() => {
@@ -190,7 +167,6 @@ function NewRecordingPage() {
 
   const handleSave = async () => {
     if (!audioBlob) {
-      console.error("No audio recording to save");
       setUploadError(
         "No audio recording to save. Please record something first.",
       );
@@ -206,69 +182,58 @@ function NewRecordingPage() {
     setUploadError(null);
 
     try {
-      // Create FormData for the server function
+      const blobType = audioBlob.type || "audio/webm";
+      const ext = blobType.includes("ogg")
+        ? "ogg"
+        : blobType.includes("mp4") || blobType.includes("aac")
+        ? "m4a"
+        : blobType.includes("mpeg")
+        ? "mp3"
+        : "webm";
+
       const formData = new FormData();
-      const audioFile = new File([audioBlob], `recording.mp3`, {
-        type: `audio/mpeg`,
+      const audioFile = new File([audioBlob], `recording.${ext}`, {
+        type: blobType,
         lastModified: Date.now(),
       });
 
       formData.append("audioFile", audioFile);
       formData.append("userId", session.user.id);
-      formData.append("fileExtension", "mp3");
+      formData.append("fileExtension", ext);
+      formData.append("contentType", blobType);
 
-      // Upload using the co-located server function
       const uploadResult = await uploadAudioRecording({ data: formData });
 
-      // Create a new recording with the uploaded URL
       createRecordingMutation.mutate({
         data: {
           title: title || "Untitled Recording",
           language,
           duration: duration,
           audioUrl: uploadResult.url,
-          notes: initialNotes
-            ? {
-                content: initialNotes,
-                vocabulary: [],
-              }
-            : undefined,
+          notes: initialNotes ? { content: initialNotes } : undefined,
         },
       });
+      
     } catch (error) {
-      console.error("Error uploading recording:", error);
-      setUploadError(
-        error instanceof Error
-          ? error.message
-          : "Failed to upload recording. Please try again.",
-      );
+      console.error("Failed to save recording:", error);
+      
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Failed to upload recording. Please try again.";
+      
+      setUploadError(errorMessage);
     } finally {
       setIsUploading(false);
     }
   };
 
-  // Action bar for both mobile and desktop
-  const actionBar = (
-    <ActionBar
-      secondaryAction={{
-        label: "Cancel",
-        icon: <CloseIcon className="w-4 h-4" />,
-        to: "/recordings",
-      }}
-      primaryAction={{
-        label: isUploading ? "Uploading..." : "Save Recording",
-        icon: <SaveIcon className="w-4 h-4" />,
-        onClick: handleSave,
-        primary: true,
-        disabled: createRecordingMutation.isPending || isUploading,
-      }}
-    />
-  );
+  // Hide global bottom action bar; we'll provide mobile/desktop scoped CTAs within the page
+  const actionBar = <div className="hidden" />;
 
   return (
     <Layout actionBarContent={actionBar}>
       {/* Main content container with max-width constraint and centered horizontally */}
-      <div className="container mx-auto px-4 md:px-6 py-6 md:py-8 max-w-6xl">
+      <div className="container mx-auto px-4 md:px-6 py-6 md:py-8 pb-24 lg:pb-8 max-w-6xl">
         {/* Header - visible on all screen sizes */}
         <div className="mb-6 md:mb-8">
           <h1 className="text-2xl font-semibold">New Recording</h1>
@@ -284,63 +249,49 @@ function NewRecordingPage() {
             {/* Recording visualizer and controls */}
             <div className="bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 rounded-lg p-4 md:p-6 mb-6">
               {/* Waveform container with fixed aspect ratio */}
-              <div className="relative w-full aspect-[4/1] mb-6 flex items-center justify-center">
-                {/* Audio waveform visualization */}
-                {analyserNode ? (
-                  <div className="w-full h-full">
-                    <AudioWaveform
-                      analyserNode={analyserNode}
-                      isPaused={isPaused}
-                      isRecording={isRecording}
-                      width={300}
-                      height={60}
-                      barColor="#101828"
-                    />
+              <div className="relative w-full mb-6">
+                {/* Live waveform during recording; WaveSurfer player after */}
+                {isRecording ? (
+                  <div className="w-full">
+                    {/* Keep existing visualizer for live mic */}
+                    {analyserNode && (
+                      <AudioWaveform
+                        analyserNode={analyserNode}
+                        isPaused={isPaused}
+                        isRecording={isRecording}
+                        width={800}
+                        height={96}
+                        barColor="#6366F1"
+                        barGap={2}
+                        barWidth={3}
+                      />
+                    )}
                   </div>
+                ) : audioUrl ? (
+                  <AudioWaveSurferPlayer url={audioUrl} />
                 ) : (
-                  /* Waveform placeholder when not recording */
                   <div className="w-full h-10 md:h-16 bg-gradient-to-b from-gray-300 to-gray-300 dark:from-gray-700 dark:to-gray-700 bg-[length:100%_20%,100%_20%,100%_20%] bg-[position:0_0,0_50%,0_100%] bg-no-repeat opacity-50 rounded" />
                 )}
               </div>
 
               <div className="flex flex-col items-center">
-                {/* Recording controls - centered flex layout */}
-                <div className="flex items-center justify-center gap-6 md:gap-8 mb-4">
-                  {/* Play/Pause button - only enabled when there's recorded audio */}
-                  <button
-                    className={`btn flex-none ${!audioUrl ? "opacity-50 cursor-not-allowed" : ""}`}
-                    onClick={togglePlayback}
-                    disabled={!audioUrl}
-                  >
-                    {isPlaying ? (
-                      <PauseIcon className="w-6 h-6 md:w-8 md:h-8" />
-                    ) : (
-                      <PlayIcon className="w-6 h-6 md:w-8 md:h-8" />
-                    )}
-                  </button>
+                {/* Recording state badge */}
+                {isRecording && (
+                  <div className="mb-3 inline-flex items-center gap-2 text-sm text-red-600">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                    Recording
+                  </div>
+                )}
 
-                  {/* Record/Stop button */}
+                {/* Recording controls - centered flex layout */}
+                <div className="flex items-center justify-center gap-5 md:gap-7 mb-3">
+                  {/* Primary control: big Pause/Resume while recording, big Record to start */}
                   {isRecording ? (
                     <button
-                      className="btn flex-none bg-error text-white hover:bg-red-600 p-4 md:p-6 rounded-full shadow-md hover:shadow-lg transition-all"
-                      onClick={stopRecording}
-                    >
-                      <RecordIcon className="w-6 h-6 md:w-8 md:h-8" />
-                    </button>
-                  ) : (
-                    <button
-                      className="btn flex-none bg-white dark:bg-gray-800 shadow-md p-4 md:p-6 rounded-full shadow-md hover:shadow-lg transition-all"
-                      onClick={startRecording}
-                    >
-                      <RecordIcon className="w-6 h-6 md:w-8 md:h-8" />
-                    </button>
-                  )}
-
-                  {/* Pause/Resume button - only visible when recording */}
-                  {isRecording && (
-                    <button
-                      className="btn flex-none"
+                      className="flex-none p-4 md:p-6 rounded-full shadow-md hover:shadow-lg transition-colors active:scale-95 bg-primary text-white hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary/30"
                       onClick={isPaused ? resumeRecording : pauseRecording}
+                      aria-label={isPaused ? "Resume recording" : "Pause recording"}
+                      title={isPaused ? "Resume" : "Pause"}
                     >
                       {isPaused ? (
                         <PlayIcon className="w-6 h-6 md:w-8 md:h-8" />
@@ -348,13 +299,56 @@ function NewRecordingPage() {
                         <PauseIcon className="w-6 h-6 md:w-8 md:h-8" />
                       )}
                     </button>
+                  ) : !audioUrl ? (
+                    <button
+                      className="flex-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow-md p-4 md:p-6 rounded-full hover:bg-primary/10 hover:text-primary transition-colors active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      onClick={startRecording}
+                      aria-label="Start recording"
+                      title="Start"
+                    >
+                      <RecordIcon className="w-6 h-6 md:w-8 md:h-8" />
+                    </button>
+                  ) : null}
+
+                  {/* Secondary control: Complete to finalize while recording */}
+                  {isRecording && (
+                    <button
+                      className="flex-none inline-flex items-center gap-2 px-4 py-3 md:px-5 md:py-3 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-300/40"
+                      onClick={stopRecording}
+                      aria-label="Complete recording"
+                      title="Complete recording"
+                    >
+                      <SaveIcon className="w-4 h-4" />
+                      Complete
+                    </button>
+                  )}
+
+                  {/* After completion: show smaller Record Again control with confirm, no giant button */}
+                  {!isRecording && audioUrl && (
+                    <button
+                      className="flex-none inline-flex items-center gap-2 px-4 py-3 md:px-5 md:py-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      onClick={() => {
+                        if (confirm("Discard current recording and record again?")) {
+                          resetRecording();
+                          setAudioUrl(null);
+                        }
+                      }}
+                      aria-label="Record again"
+                      title="Record again"
+                    >
+                      Record Again
+                    </button>
                   )}
                 </div>
 
-                {/* Hidden audio element for playback */}
-                {audioUrl && (
-                  <audio ref={audioRef} src={audioUrl} className="hidden" />
+                {/* Label under primary control for clarity */}
+                {isRecording && (
+                  <div className="text-xs text-gray-500 mb-1">
+                    {isPaused ? "Paused" : "Tap to pause"}
+                  </div>
                 )}
+
+                {/* WaveSurfer handles playback UI */}
 
                 {/* Timer - prominent and centered */}
                 <div className="text-lg md:text-xl font-medium text-gray-700 dark:text-gray-300">
@@ -451,6 +445,24 @@ function NewRecordingPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+        {/* Sticky mobile CTA bar - visible only on small screens */}
+        <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 supports-[backdrop-filter]:dark:bg-gray-900/80">
+          <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-3">
+            <button
+              className="flex-1 py-2.5 px-4 border border-gray-200 dark:border-gray-800 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => navigate({ to: "/recordings" })}
+            >
+              Cancel
+            </button>
+            <button
+              className={`flex-1 py-2.5 px-4 rounded-lg text-white transition-colors ${createRecordingMutation.isPending || isUploading || isRecording || !audioBlob ? "bg-primary/60 cursor-not-allowed" : "bg-primary hover:bg-secondary"}`}
+              onClick={handleSave}
+              disabled={createRecordingMutation.isPending || isUploading || isRecording || !audioBlob}
+            >
+              {isRecording ? "Recording..." : isUploading ? "Uploading..." : "Save"}
+            </button>
           </div>
         </div>
       </div>

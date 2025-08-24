@@ -8,6 +8,7 @@ export interface DbRecording {
   file_path: string;
   language?: string;
   duration: number; // in seconds
+  notes?: string; // User notes for this recording
   metadata?: string; // JSON string
   status: "processing" | "ready" | "error";
   created_at: string; // ISO timestamp
@@ -20,6 +21,7 @@ export interface DbTranscription {
   text: string;
   romanization?: string;
   language: string;
+  job_id?: string; // External service job identifier (e.g., AWS Transcribe job ID)
   status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
   created_at: string; // ISO timestamp
   updated_at: string; // ISO timestamp
@@ -36,15 +38,7 @@ export interface DbTranslation {
   updated_at: string; // ISO timestamp
 }
 
-export interface DbNote {
-  id: string;
-  recording_id: string;
-  user_id: string;
-  content: string;
-  timestamp?: number; // optional position in recording (in seconds)
-  created_at: string; // ISO timestamp
-  updated_at: string; // ISO timestamp
-}
+// Notes are now part of the recordings table - no separate DbNote interface needed
 
 export interface DbUser {
   id: string;

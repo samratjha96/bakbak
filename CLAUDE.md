@@ -77,7 +77,12 @@ The application uses TanStack Query for data fetching:
 ## Build and Run Guidelines
 
 - Use npm for all build and run commands
+- Use npm build to compile the project
 
 ## Documentation Sources
 
 - Use https://tanstack.com/start/latest/docs/framework/react/ as documentation source for anything related to building API endpoints, server functions, middlewares etc
+
+## Tool Preferences
+
+- Use npm for all commands. That's our tool of choice

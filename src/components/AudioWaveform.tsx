@@ -22,7 +22,7 @@ export function AudioWaveform({
   barColor = "#101828",
 }: AudioWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
 
   // Main effect to handle visualization
   useEffect(() => {
@@ -43,15 +43,11 @@ export function AudioWaveform({
     const bufferLength = analyserNode.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
-    // Get actual data from the analyser if we're recording
+    // Initialize with actual data if available, otherwise zeros
     if (isRecording) {
       analyserNode.getByteFrequencyData(dataArray);
     } else {
-      // Generate sample data for non-recording state
-      for (let i = 0; i < bufferLength; i++) {
-        // Generate random values for a nice static waveform
-        dataArray[i] = Math.floor(Math.random() * 40) + 10;
-      }
+      dataArray.fill(0);
     }
 
     // This function draws bars based on the current dataArray
@@ -113,9 +109,9 @@ export function AudioWaveform({
 
     // Cleanup
     return () => {
-      if (animationRef.current) {
+      if (animationRef.current !== null) {
         cancelAnimationFrame(animationRef.current);
-        animationRef.current = undefined;
+        animationRef.current = null;
       }
     };
   }, [
@@ -131,9 +127,9 @@ export function AudioWaveform({
 
   // When isRecording changes from true to false, explicitly cancel animations
   useEffect(() => {
-    if (!isRecording && animationRef.current) {
+    if (!isRecording && animationRef.current !== null) {
       cancelAnimationFrame(animationRef.current);
-      animationRef.current = undefined;
+      animationRef.current = null;
     }
   }, [isRecording]);
 

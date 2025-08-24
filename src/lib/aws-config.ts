@@ -2,12 +2,12 @@ export const AWS_CONFIG = {
   region: process.env.AWS_REGION || "us-east-1",
   credentials: {},
   retryConfig: {
-    maxAttempts: 3,
+    maxAttempts: 5,
     retryMode: "standard",
   },
   timeouts: {
-    connectionTimeout: 5000,
-    socketTimeout: 30000,
+    connectionTimeout: 10000, // Increased from 5000
+    socketTimeout: 60000, // Increased from 30000
   },
 };
 
@@ -66,16 +66,40 @@ export function validateAwsConfig(): {
 
   // Check required environment variables
   if (!process.env.AWS_S3_BUCKET) {
-    errors.push("AWS_S3_BUCKET environment variable is required");
+    errors.push(
+      "AWS_S3_BUCKET environment variable is required for transcription output",
+    );
   }
 
   if (!process.env.AWS_REGION) {
     warnings.push("AWS_REGION not set, using default: us-east-1");
   }
 
+  // Check Transcribe-specific permission requirements
+  if (!process.env.AWS_S3_BUCKET) {
+    errors.push(
+      "AWS Transcribe requires an S3 bucket for output. Set AWS_S3_BUCKET environment variable.",
+    );
+  } else {
+    // If bucket exists, check if it follows naming requirements
+    const bucketName = process.env.AWS_S3_BUCKET;
+    if (bucketName.includes("_") || bucketName.includes(".")) {
+      errors.push(
+        `S3 bucket name '${bucketName}' contains underscores or dots, which may cause issues with Transcribe output location.`,
+      );
+    }
+
+    if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(bucketName)) {
+      warnings.push(
+        `S3 bucket name '${bucketName}' may not conform to AWS bucket naming rules.`,
+      );
+    }
+  }
+
   // Require explicit AWS credentials configuration
   if (
     !process.env.AWS_ACCESS_KEY_ID &&
+    !process.env.AWS_SECRET_ACCESS_KEY &&
     !process.env.AWS_PROFILE &&
     !process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI &&
     !process.env.AWS_WEB_IDENTITY_TOKEN_FILE
@@ -85,11 +109,39 @@ export function validateAwsConfig(): {
         "AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, AWS_PROFILE, " +
         "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI, or AWS_WEB_IDENTITY_TOKEN_FILE",
     );
+  } else {
+    // Check for common credential issues
+    if (process.env.AWS_ACCESS_KEY_ID && !process.env.AWS_SECRET_ACCESS_KEY) {
+      errors.push(
+        "AWS_ACCESS_KEY_ID is set but AWS_SECRET_ACCESS_KEY is missing",
+      );
+    }
+
+    if (!process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+      errors.push(
+        "AWS_SECRET_ACCESS_KEY is set but AWS_ACCESS_KEY_ID is missing",
+      );
+    }
   }
 
-  return {
+  const result = {
     isValid: errors.length === 0,
     errors,
     warnings,
   };
+
+  // Log validation results
+  if (!result.isValid) {
+    console.error("AWS Configuration validation failed:", result.errors);
+  }
+
+  if (result.warnings.length > 0) {
+    console.warn("AWS Configuration warnings:", result.warnings);
+  }
+
+  if (result.isValid && result.warnings.length === 0) {
+    console.log("AWS Configuration valid");
+  }
+
+  return result;
 }

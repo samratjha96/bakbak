@@ -93,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                 Dashboard
               </Link>
               <Link
-                to="/record"
+                to="/recordings/new"
                 className="py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => setMobileMenuOpen(false)}
               >

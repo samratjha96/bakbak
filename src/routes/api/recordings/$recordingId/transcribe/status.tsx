@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
-import { fetchRecording } from "~/data/recordings";
+import { fetchRecording, updateRecordingTranscriptionStatus } from "~/data/recordings";
 import { z } from "zod";
 import { transcribe } from "~/lib/transcribe";
 import {
@@ -44,22 +44,71 @@ const getTranscriptionStatus = createServerFn({ method: "GET" })
       };
     }
 
-    // Get the job ID from the transcriptionUrl (this depends on your implementation)
-    // Typically, the job ID might be stored directly or extracted from the URL
-    const jobId = recording.transcriptionUrl.split("/").pop() || "";
+    // The jobId is stored directly in the transcriptionUrl field
+    const jobId = recording.transcriptionUrl;
 
-    // Get the transcription service and check the status
-    // Use the singleton transcription service instance
-    const status = await transcribe.getTranscriptionStatus(jobId);
-
-    return {
-      status: 200,
-      transcriptionStatus: recording.transcriptionStatus,
-      jobStatus: status.status,
-      errorMessage: status.errorMessage,
-      recordingId,
-      requestedAt: new Date().toISOString(),
-    };
+    try {
+      // Get the transcription status from AWS Transcribe
+      const status = await transcribe.getTranscriptionStatus(jobId);
+      
+      // Check if the job is completed
+      if (status.status === "COMPLETED") {
+        logger.info(`Transcription completed for recording ${recordingId}`);
+        
+        // Get the transcription result
+        const result = await transcribe.getTranscriptionResult(jobId);
+        
+        // Update the recording with the transcription text
+        await updateRecordingTranscriptionStatus({
+          data: {
+            id: recordingId,
+            status: "COMPLETED",
+            transcriptionText: result.text,
+          },
+        });
+        
+        return {
+          status: 200,
+          transcriptionStatus: "COMPLETED",
+          jobStatus: status.status,
+          text: result.text,
+          recordingId,
+          requestedAt: new Date().toISOString(),
+        };
+      }
+      
+      // Check if the job failed
+      if (status.status === "FAILED") {
+        logger.error(`Transcription failed for recording ${recordingId}: ${status.errorMessage}`);
+        
+        // Update the recording status to FAILED
+        await updateRecordingTranscriptionStatus({
+          data: {
+            id: recordingId,
+            status: "FAILED",
+          },
+        });
+      }
+      
+      return {
+        status: 200,
+        transcriptionStatus: recording.transcriptionStatus,
+        jobStatus: status.status,
+        errorMessage: status.errorMessage,
+        recordingId,
+        requestedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      logger.error(`Error checking transcription status: ${error}`);
+      return {
+        status: 500,
+        transcriptionStatus: recording.transcriptionStatus,
+        jobStatus: "ERROR",
+        errorMessage: error instanceof Error ? error.message : String(error),
+        recordingId,
+        requestedAt: new Date().toISOString(),
+      };
+    }
   });
 
 export const Route = createFileRoute(

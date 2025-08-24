@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
-import { MicrophoneIcon, PlusIcon, DocumentIcon } from "~/components/ui/Icons";
-import { Link } from "@tanstack/react-router";
+import { MicrophoneIcon, PlusIcon, DocumentIcon, TrashIcon } from "~/components/ui/Icons";
+import { Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { useSession } from "~/lib/auth-client";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { recordingsQuery } from "~/data/recordings";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { recordingsQuery, deleteRecording } from "~/data/recordings";
 import { formatDuration, formatRelativeDate } from "~/utils/formatting";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
@@ -43,6 +43,7 @@ const RecordingItem: React.FC<{
   date: string;
   isTranscribed?: boolean;
   transcriptionStatus?: TStatus;
+  onDeleted?: (id: string) => void;
 }> = ({
   id,
   title,
@@ -51,12 +52,31 @@ const RecordingItem: React.FC<{
   date,
   isTranscribed = false,
   transcriptionStatus = "NOT_STARTED",
+  onDeleted,
 }) => {
   // Format duration as MM:SS
   const formattedDuration = formatDuration(duration);
+  const navigate = useNavigate();
+  const deleteMutation = useMutation({
+    mutationFn: async () => deleteRecording({ data: id }),
+  });
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on a button or link
+    if (
+      (e.target as Element).closest("button") ||
+      (e.target as Element).closest("a")
+    ) {
+      return;
+    }
+    navigate({ to: "/recordings/$id", params: { id } });
+  };
 
   return (
-    <div className="flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors gap-4">
+    <div
+      onClick={handleCardClick}
+      className="flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors gap-4"
+    >
       <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
         <MicrophoneIcon className="w-5 h-5 text-primary" />
       </div>
@@ -102,6 +122,29 @@ const RecordingItem: React.FC<{
         >
           View
         </Link>
+        <button
+          className="ml-1 text-gray-400 hover:text-red-600 transition-colors"
+          onClick={async (e) => {
+            e.stopPropagation();
+            if (deleteMutation.isPending) return;
+            const confirmed = confirm("Delete this recording? This cannot be undone.");
+            if (!confirmed) return;
+            try {
+              await deleteMutation.mutateAsync();
+              onDeleted?.(id);
+            } catch (err) {
+              alert(
+                err instanceof Error
+                  ? err.message
+                  : "Failed to delete recording. Please try again.",
+              );
+            }
+          }}
+          aria-label="Delete recording"
+          title="Delete"
+        >
+          <TrashIcon className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
@@ -251,6 +294,7 @@ function RecordingsPage() {
                   date={formatRelativeDate(new Date(recording.createdAt))}
                   isTranscribed={recording.isTranscribed}
                   transcriptionStatus={recording.transcriptionStatus}
+                  onDeleted={() => recordingsQueryResult.refetch()}
                 />
               </React.Fragment>
             ))}

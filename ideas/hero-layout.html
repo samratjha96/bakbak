@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hero Layout · UI Ideas</title>
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --panel: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --line: #e5e7eb;
+        --brand: #2563eb;
+        --accent: #22c55e;
+        --shadow: 0 14px 34px rgba(2,6,23,.08);
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; background: var(--bg); color: var(--text); }
+
+      .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 20px 60px; }
+      header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+      .brand { display:flex; align-items:center; gap:10px; }
+      .logo { width:28px; height:28px; border-radius:8px; background: linear-gradient(135deg, var(--brand), #60a5fa); box-shadow: 0 12px 24px rgba(37,99,235,.3); }
+      .btn { background: var(--brand); color: white; border: 0; border-radius: 999px; padding: 10px 14px; font-weight: 700; box-shadow: 0 10px 20px rgba(37,99,235,.35); }
+
+      .hero { margin-top: 18px; background: var(--panel); border:1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); display:grid; grid-template-columns: 1.2fr 1fr; overflow:hidden; }
+      @media (max-width: 1000px){ .hero { grid-template-columns: 1fr; } }
+      .left { padding: 24px; }
+      .left h1 { margin:0 0 8px; font-size: 28px; }
+      .left p { margin:0; color: var(--muted); }
+      .wave { height: 200px; border-radius: 12px; background: linear-gradient(180deg, #eff6ff, #e0e7ff); border:1px solid var(--line); margin-top: 16px; position:relative; overflow:hidden; }
+      .wave::after { content:""; position:absolute; inset:0; background: repeating-linear-gradient(90deg, rgba(59,130,246,.35) 0 2px, transparent 2px 6px); opacity:.7; }
+      .controls { display:flex; align-items:center; gap: 10px; margin-top: 14px; }
+      .pill { padding: 8px 10px; border-radius: 999px; background: #f1f5f9; border:1px solid var(--line); }
+
+      .right { padding: 24px; background: linear-gradient(180deg, #f8fafc, #f1f5f9); border-left: 1px solid var(--line); display:grid; gap: 12px; }
+      .card { background: white; border:1px solid var(--line); border-radius: 14px; padding: 14px; }
+      .card h3 { margin: 0 0 8px; font-size: 16px; }
+      .goal { height: 10px; background: #eef2ff; border-radius: 999px; overflow:hidden; }
+      .goal > span { display:block; height:100%; width: 70%; background: linear-gradient(90deg, #22c55e, #86efac); }
+
+      .grid { margin-top: 18px; display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+      @media (max-width: 900px){ .grid { grid-template-columns: 1fr; } }
+      .panel { background: var(--panel); border:1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 14px; }
+      .panel h3 { margin:0 0 8px; font-size: 16px; }
+      .item { display:flex; align-items:center; gap: 10px; padding: 10px; border:1px solid var(--line); border-radius: 12px; }
+      .dot { width: 10px; height: 10px; background: #10b981; border-radius: 999px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="brand"><div class="logo"></div><strong>Lingua</strong></div>
+        <button class="btn">Start Recording</button>
+      </header>
+
+      <section class="hero">
+        <div class="left">
+          <h1>Your daily practice, simplified</h1>
+          <p>Record, transcribe and learn from real conversations. Focus on what matters.</p>
+          <div class="wave"></div>
+          <div class="controls">
+            <button class="btn">Play</button>
+            <span class="pill">EN → ES</span>
+            <span class="pill">Speed 1.0×</span>
+            <span class="pill">Auto-Loop</span>
+          </div>
+        </div>
+        <aside class="right">
+          <div class="card">
+            <h3>Daily Goal</h3>
+            <div class="goal"><span></span></div>
+            <p style="margin:8px 0 0; color: var(--muted);">14 / 20 minutes practiced</p>
+          </div>
+          <div class="card">
+            <h3>Quick Tasks</h3>
+            <div class="item"><div class="dot"></div> Shadow last 30s</div>
+            <div class="item"><div class="dot" style="background:#6366f1"></div> Translate highlights</div>
+            <div class="item"><div class="dot" style="background:#f59e0b"></div> Review 10 words</div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <h3>Recent Recordings</h3>
+          <div class="item">Airport check-in – 02:41</div>
+          <div class="item">Coffee order – 03:15</div>
+          <div class="item">Directions – 01:52</div>
+        </div>
+        <div class="panel">
+          <h3>Learning Streak</h3>
+          <div class="item">7-day streak · Keep it up!</div>
+          <div class="item">Next milestone: 14 days</div>
+        </div>
+        <div class="panel">
+          <h3>Vocabulary Queue</h3>
+          <div class="item">Gracias · Thank you</div>
+          <div class="item">Horario · Schedule</div>
+          <div class="item">Puerta · Gate</div>
+        </div>
+      </section>
+    </div>
+  </body>
+  <script>
+    (function(){
+      const qs = s => document.querySelector(s);
+      const qsa = s => Array.from(document.querySelectorAll(s));
+
+      // Hero controls
+      const play = qsa('.btn').find(b=> b.textContent.includes('Play'));
+      let playing = false;
+      function set(p){ playing = p; play.textContent = p ? 'Pause' : 'Play'; toast(p ? 'Playing…' : 'Paused'); }
+      play.addEventListener('click', ()=> set(!playing));
+
+      // Pills toggle
+      qsa('.pill').forEach(p=> p.addEventListener('click', ()=>{
+        if(p.textContent.includes('Speed')){
+          const cur = p.textContent.match(/([0-9]+\.[0-9])×/);
+          const next = cur ? (parseFloat(cur[1]) >= 1.4 ? 1.0 : (parseFloat(cur[1]) + 0.2).toFixed(1)) : '1.0';
+          p.textContent = `Speed ${next}×`;
+          toast(`Speed ${next}×`);
+        } else if(p.textContent.includes('Auto-Loop')){
+          p.textContent = p.textContent.includes('Auto-Loop') ? 'Loop Off' : 'Auto-Loop';
+          toast(p.textContent);
+        }
+      }));
+
+      // Quick tasks
+      qsa('.item').forEach(i=> i.addEventListener('click', ()=>{
+        i.style.background = '#e0f2fe';
+        i.style.borderColor = '#93c5fd';
+        toast(`Started: ${i.textContent.trim()}`);
+        setTimeout(()=>{ i.style.background = ''; i.style.borderColor = ''; toast('Completed'); }, 1000);
+      }));
+
+      // Simple toast
+      let toastEl, timer;
+      function toast(msg){
+        if(!toastEl){
+          toastEl = document.createElement('div');
+          toastEl.style.position = 'fixed'; toastEl.style.right = '16px'; toastEl.style.bottom = '16px';
+          toastEl.style.background = '#0f172a'; toastEl.style.color = 'white'; toastEl.style.padding = '10px 12px'; toastEl.style.borderRadius = '10px';
+          document.body.appendChild(toastEl);
+        }
+        toastEl.textContent = msg; toastEl.style.opacity = '1'; clearTimeout(timer); timer = setTimeout(()=> toastEl.style.opacity = '0', 1200);
+      }
+    })();
+  </script>
+  </html>
+
+
