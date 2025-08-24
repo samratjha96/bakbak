@@ -5,7 +5,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
 import { TranscriptionStatus } from "~/types/recording";
-import { getDatabase, getCurrentUserId } from "~/database/connection";
+import {
+  getDatabase,
+  getCurrentUserId,
+  isAuthenticated,
+} from "~/database/connection";
 import { createLogger } from "~/utils/logger";
 import { AppError } from "~/utils/errorHandling";
 
@@ -27,7 +31,11 @@ export const fetchTranscriptionData = createServerFn({ method: "GET" })
 
     try {
       const db = getDatabase();
-      const userId = getCurrentUserId();
+      const authed = await isAuthenticated();
+      if (!authed) {
+        throw notFound();
+      }
+      const userId = await getCurrentUserId();
 
       const result = db
         .prepare(

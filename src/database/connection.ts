@@ -2,6 +2,8 @@ import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
+import { auth } from "~/lib/auth";
+import { getWebRequest } from "@tanstack/react-start/server";
 
 // Database connection singleton
 let db: Database.Database | null = null;
@@ -44,40 +46,23 @@ export function closeDatabase(): void {
 }
 
 // Helper function to get current user ID from the auth system
-export function getCurrentUserId(): string | null {
-  // In a server context, this would use getSession() from better-auth
-  // In browser context, this would use useSession() from better-auth/react
-
-  // Since this is a shared utility that could be used in either context,
-  // the actual implementation depends on where it's called from
-
+export async function getCurrentUserId(): Promise<string | null> {
   try {
-    // For development/testing only - ensure a test user exists
-    if (process.env.NODE_ENV !== "production") {
-      const db = getDatabase();
-      let testUser = db.prepare("SELECT id FROM user LIMIT 1").get() as
-        | { id: string }
-        | undefined;
-
-      if (!testUser) {
-        const userId = crypto.randomUUID();
-        const now = new Date().toISOString();
-        db.prepare(
-          `
-          INSERT INTO user (id, name, email, email_verified, image, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `,
-        ).run(userId, "Test User", "test@example.com", 1, null, now, now);
-        testUser = { id: userId };
-      }
-
-      return testUser.id;
-    }
-
-    // No user resolution in production context
-    return null;
+    const request = getWebRequest();
+    const session = await auth.api.getSession({ headers: request.headers });
+    return session?.user?.id ?? null;
   } catch (error) {
     console.error("Error getting current user ID:", error);
     return null;
+  }
+}
+
+export async function isAuthenticated(): Promise<boolean> {
+  try {
+    const request = getWebRequest();
+    const session = await auth.api.getSession({ headers: request.headers });
+    return !!session;
+  } catch {
+    return false;
   }
 }

@@ -7,6 +7,7 @@ import * as React from "react";
 import { useSession } from "~/lib/auth-client";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { recordingsQuery, deleteRecording } from "~/data/recordings";
+import type { Recording } from "~/types/recording";
 import { formatDuration, formatRelativeDate } from "~/utils/formatting";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
@@ -191,9 +192,12 @@ const RecordingsSidebar: React.FC<{
 };
 
 function RecordingsPage() {
-  const { data: session } = useSession();
-  const recordingsQueryResult = useSuspenseQuery(recordingsQuery());
-  const recordings = recordingsQueryResult.data || [];
+  const { data: session, isPending } = useSession();
+  const recordingsQueryResult = useSuspenseQuery({
+    ...recordingsQuery(),
+    enabled: !!session,
+  } as any);
+  const recordings: Recording[] = (recordingsQueryResult.data as any) || [];
   const isLoading = recordingsQueryResult.isLoading;
   const isError = recordingsQueryResult.isError;
   const userName = session?.user?.name?.split(" ")[0] || "User";
@@ -231,6 +235,19 @@ function RecordingsPage() {
       }}
     />
   );
+
+  if (!session && !isPending) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-semibold">Please sign in</h1>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300">You must be signed in to view your recordings.</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout actionBarContent={actionBar}>
@@ -307,6 +324,11 @@ function RecordingsPage() {
 }
 
 export const Route = createFileRoute("/recordings/")({
+  beforeLoad: async ({ context }) => {
+    // This ensures the route only loads for authenticated users
+    // The auth client will handle redirects if not authenticated
+    return {};
+  },
   loader: async ({ context }) => {
     await context.queryClient.ensureQueryData(recordingsQuery());
     return {};

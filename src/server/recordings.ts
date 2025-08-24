@@ -11,7 +11,11 @@ import {
   Notes,
   TranscriptionStatus,
 } from "~/types/recording";
-import { getDatabase, getCurrentUserId } from "~/database/connection";
+import {
+  getDatabase,
+  getCurrentUserId,
+  isAuthenticated,
+} from "~/database/connection";
 import { DbRecording, DbTranscription, DbTranslation } from "~/database/types";
 import { getS3Url } from "~/lib/aws-config";
 import { s3 } from "~/lib/s3";
@@ -74,7 +78,11 @@ export const fetchRecordings = createServerFn({ method: "GET" }).handler(
   async () => {
     try {
       const db = getDatabase();
-      const userId = getCurrentUserId();
+      const authed = await isAuthenticated();
+      if (!authed) {
+        return [];
+      }
+      const userId = await getCurrentUserId();
 
       // Check if recordings table exists first
       const tablesExist = db
@@ -142,7 +150,11 @@ export const fetchRecording = createServerFn({ method: "GET" })
   .validator((id: string) => id)
   .handler(async ({ data: id }) => {
     const db = getDatabase();
-    const userId = getCurrentUserId();
+    const authed = await isAuthenticated();
+    if (!authed) {
+      throw notFound();
+    }
+    const userId = await getCurrentUserId();
 
     // Single optimized query with JOINs
     const row = db
@@ -195,7 +207,11 @@ export const createRecording = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const db = getDatabase();
-    const userId = getCurrentUserId();
+    const authed = await isAuthenticated();
+    if (!authed) {
+      throw new Error("Not authenticated");
+    }
+    const userId = await getCurrentUserId();
     const recordingId = crypto.randomUUID();
     const now = new Date().toISOString();
 
@@ -327,7 +343,11 @@ export const updateRecordingNotes = createServerFn({ method: "POST" })
   .validator((data: { id: string; notes: Partial<Notes> }) => data)
   .handler(async ({ data }) => {
     const db = getDatabase();
-    const userId = getCurrentUserId();
+    const authed = await isAuthenticated();
+    if (!authed) {
+      throw new Error("Not authenticated");
+    }
+    const userId = await getCurrentUserId();
     const now = new Date().toISOString();
 
     // Ensure the recording belongs to the user
@@ -492,7 +512,11 @@ export const updateRecording = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const db = getDatabase();
-    const userId = getCurrentUserId();
+    const authed = await isAuthenticated();
+    if (!authed) {
+      throw new Error("Not authenticated");
+    }
+    const userId = await getCurrentUserId();
     const now = new Date().toISOString();
 
     // Check if recording exists and belongs to user
@@ -542,7 +566,11 @@ export const deleteRecording = createServerFn({ method: "POST" })
   .validator((id: string) => id)
   .handler(async ({ data: id }) => {
     const db = getDatabase();
-    const userId = getCurrentUserId();
+    const authed = await isAuthenticated();
+    if (!authed) {
+      throw new Error("Not authenticated");
+    }
+    const userId = await getCurrentUserId();
 
     // Verify recording exists and belongs to user
     const existing = db
@@ -596,7 +624,11 @@ export const getRecordingPath = createServerFn({ method: "GET" })
   .validator((id: string) => id)
   .handler(async ({ data: id }) => {
     const db = getDatabase();
-    const userId = getCurrentUserId();
+    const authed = await isAuthenticated();
+    if (!authed) {
+      throw new Error("Not authenticated");
+    }
+    const userId = await getCurrentUserId();
 
     // Check if recording exists and belongs to user
     const recording = db
@@ -627,7 +659,10 @@ export const getRecordingPresignedUrl = createServerFn({ method: "GET" })
   .validator((id: string) => id)
   .handler(async ({ data: id }) => {
     const db = getDatabase();
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
 
     // Check if recording exists and belongs to user
     const recording = db

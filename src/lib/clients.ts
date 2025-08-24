@@ -32,5 +32,3 @@ export const translateClient = new TranslateClient({
     socketTimeout: 15000,
   }),
 });
-
-
