@@ -1,20 +1,14 @@
 # Multi-stage build for optimized production image
 FROM node:20-slim AS base
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-  python3 \
-  make \
-  g++ \
-  curl \
-  unzip \
-  && rm -rf /var/lib/apt/lists/*
-
-# Install AWS CLI (smaller installation)
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-    unzip awscliv2.zip && \
-    ./aws/install && \
-    rm -rf awscliv2.zip aws/
+# Install system dependencies (minimal set for building native modules)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    curl \
+    ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Dependencies stage
 FROM base AS deps
@@ -34,10 +28,11 @@ RUN npm run build
 FROM node:20-slim AS runner
 WORKDIR /app
 
-# Install runtime dependencies only
-RUN apt-get update && apt-get install -y \
+# Install minimal runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
   curl \
-  && rm -rf /var/lib/apt/lists/*
+  ca-certificates \
+  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN groupadd --gid 1001 nodejs && \
