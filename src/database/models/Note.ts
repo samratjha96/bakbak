@@ -51,7 +51,7 @@ function mapDbToNote(db: DbNote): Note {
     recordingId: db.recording_id,
     userId: db.user_id,
     content: db.content,
-    timestamp: db.timestamp,
+    timestamp: db.timestamp ?? undefined,
     createdAt: new Date(db.created_at),
     updatedAt: new Date(db.updated_at),
   };

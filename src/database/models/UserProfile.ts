@@ -112,11 +112,11 @@ export class UserProfileModel {
       preferred_language: input.preferredLanguage,
       learning_languages: input.learningLanguages
         ? JSON.stringify(input.learningLanguages)
-        : null,
+        : undefined,
       native_language: input.nativeLanguage,
       daily_goal: input.dailyGoal,
       theme: input.theme || "light",
-      settings: input.settings ? JSON.stringify(input.settings) : null,
+      settings: input.settings ? JSON.stringify(input.settings) : undefined,
       created_at: now,
       updated_at: now,
     };

@@ -1,5 +1,5 @@
 import { getDatabase } from "../connection";
-import { DbTranslation, TranslationSegment } from "../types";
+import { DbTranslation } from "../types";
 import crypto from "crypto";
 
 /**
