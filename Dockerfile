@@ -13,13 +13,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Dependencies stage
 FROM base AS deps
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Build stage
 FROM base AS builder
 WORKDIR /app
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
