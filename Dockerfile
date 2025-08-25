@@ -1,59 +1,29 @@
-# Multi-stage build for optimized production image
-FROM node:20-slim AS base
+FROM node:20-slim
 
-# Install system dependencies (minimal set for building native modules)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
     curl \
-    ca-certificates \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
-# Dependencies stage
-FROM base AS deps
-WORKDIR /app
+# Copy package files
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
 
-# Build stage
-FROM base AS builder
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+# Install dependencies
+RUN npm install
+
+# Copy source code
 COPY . .
+
+# Build application
 RUN npm run build
 
-# Production stage
-FROM node:20-slim AS runner
-WORKDIR /app
-
-# Install minimal runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  curl \
-  ca-certificates \
-  && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
-RUN groupadd --gid 1001 nodejs && \
-    useradd --uid 1001 --gid nodejs --shell /bin/bash --create-home tanstack
-
-# Copy built application and production dependencies
-COPY --from=deps --chown=tanstack:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=tanstack:nodejs /app/dist ./dist
-COPY --from=builder --chown=tanstack:nodejs /app/package.json ./package.json
-COPY --from=builder --chown=tanstack:nodejs /app/scripts ./scripts
-
-# Rebuild native dependencies for production
+# Rebuild native dependencies
 RUN npm rebuild better-sqlite3
-
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3010
-ENV HOSTNAME="0.0.0.0"
-
-# Switch to non-root user
-USER tanstack
 
 # Expose port
 EXPOSE 3010
