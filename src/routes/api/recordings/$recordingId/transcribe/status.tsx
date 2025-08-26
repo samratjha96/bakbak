@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
-import { fetchRecording, updateRecordingTranscriptionStatus } from "~/data/recordings";
+import { fetchRecording, updateRecordingTranscriptionStatus } from "~/lib/recordings";
 import { z } from "zod";
 import { transcribe } from "~/lib/transcribe";
 import {

@@ -14,7 +14,7 @@ import {
   updateRecordingNotes,
   updateRecording,
   getRecordingPresignedUrl,
-} from "~/data/recordings";
+} from "~/lib/recordings";
 import { formatDuration } from "~/utils/formatting";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";
 import { TranscriptionDisplay } from "~/components/transcription/TranscriptionDisplay";

@@ -6,7 +6,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { useSession } from "~/lib/auth-client";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { recordingsQuery, deleteRecording } from "~/data/recordings";
+import { recordingsQuery, deleteRecording } from "~/lib/recordings";
 import type { Recording } from "~/types/recording";
 import { formatDuration, formatRelativeDate } from "~/utils/formatting";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";

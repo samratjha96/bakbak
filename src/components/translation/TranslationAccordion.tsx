@@ -7,7 +7,7 @@ import {
 } from "~/components/ui/Icons";
 import { TranslationStatus } from "./TranslationStatus";
 import type { TranslationStatus as TStatus } from "./TranslationStatus";
-import { updateRecordingTranslation } from "~/data/recordings";
+import { updateRecordingTranslation } from "~/lib/recordings";
 import { useServerFn } from "@tanstack/react-start";
 import { fetchTranslationData, createTranslationForRecording } from "~/server/translation";
 import { createLogger } from "~/utils/logger";

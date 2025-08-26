@@ -13,7 +13,7 @@ import { createLogger } from "~/utils/logger";
 import { AppError } from "~/utils/errorHandling";
 import { translate } from "~/lib/translate";
 import { normalizeTranslateLanguage } from "~/lib/languages";
-import { fetchRecording, updateRecordingTranslation } from "~/data/recordings";
+import { fetchRecording, updateRecordingTranslation } from "~/lib/recordings";
 
 const logger = createLogger("TranslationServer");
 

@@ -3,7 +3,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { DocumentIcon } from "~/components/ui/Icons";
 import { startTranscriptionJob } from "~/server/transcribe-jobs";
-import { transcriptionStatusQuery } from "~/data/recordings";
+import { transcriptionStatusQuery } from "~/lib/recordings";
 
 interface TranscribeButtonProps {
   recordingId: string;

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
 import { z } from "zod";
-import { fetchRecording } from "~/data/recordings";
+import { fetchRecording } from "~/lib/recordings";
 import { apiSuccess, apiError, apiNotFound, apiMethodNotAllowed } from "~/utils/apiResponse";
 import { createLogger } from "~/utils/logger";
 import { handleApiError } from "~/utils/errorHandling";

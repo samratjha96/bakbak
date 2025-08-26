@@ -9,7 +9,7 @@ import {
   updateRecordingTranscriptionStatus,
   getRecordingPath,
   updateRecordingTranscription,
-} from "~/data/recordings";
+} from "~/lib/recordings";
 import { AppError } from "~/utils/errorHandling";
 import { TranscriptionStatus } from "~/types/recording";
 import { transliterateText } from "~/lib/transliterate";

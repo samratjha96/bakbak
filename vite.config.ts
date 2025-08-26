@@ -7,6 +7,7 @@ export default defineConfig({
   server: {
     port: parseInt(process.env.PORT || "3010"),
     host: "0.0.0.0",
+    allowedHosts: "all",
   },
   plugins: [
     tsConfigPaths({

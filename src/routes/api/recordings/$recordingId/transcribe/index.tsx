@@ -5,7 +5,7 @@ import {
   fetchRecording,
   updateRecordingTranscriptionStatus,
   getRecordingPresignedUrl,
-} from "~/data/recordings";
+} from "~/lib/recordings";
 import { z } from "zod";
 import { apiSuccess, apiError, apiNotFound } from "~/utils/apiResponse";
 import { createLogger } from "~/utils/logger";

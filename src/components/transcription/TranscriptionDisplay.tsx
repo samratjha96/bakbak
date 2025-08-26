@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { EditIcon, SaveIcon } from "~/components/ui/Icons";
 import { TranscriptionStatus } from "./TranscriptionStatus";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
-import { updateRecordingTranscription, transcriptionStatusQuery } from "~/data/recordings";
+import { updateRecordingTranscription, transcriptionStatusQuery } from "~/lib/recordings";
 import { fetchTranscriptionData } from "~/server/transcription";
 import { getErrorMessage } from "~/utils/errorHandling";
 
