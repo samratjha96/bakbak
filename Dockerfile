@@ -33,4 +33,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:3010/ || exit 1
 
 # Start application
-CMD ["npm", "start", "--", "--port", "3010", "--host", "0.0.0.0"]
+CMD ["node", ".output/server/index.mjs"]
