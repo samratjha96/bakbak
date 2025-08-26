@@ -9,7 +9,6 @@ interface AudioRecorderState {
   analyserNode: AnalyserNode | null;
   error: Error | null;
 }
-
 interface AudioRecorderHook extends AudioRecorderState {
   startRecording: () => Promise<void>;
   stopRecording: () => void;
