@@ -4,6 +4,15 @@ import tsConfigPaths from "vite-tsconfig-paths";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
+  server: {
+    port: parseInt(process.env.PORT || "3010"),
+    host: "0.0.0.0",
+    allowedHosts: [
+      'bakbak.techbrohomelab.xyz',
+      'localhost',
+      '127.0.0.1',
+    ],
+  },
   plugins: [
     tsConfigPaths({
       projects: ["./tsconfig.json"],
