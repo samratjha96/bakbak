@@ -4,8 +4,6 @@ import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
 import {
   MicrophoneIcon,
-  PlusIcon,
-  DocumentIcon,
   TrashIcon,
   ChevronRightIcon,
 } from "~/components/ui/Icons";
@@ -18,7 +16,11 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { recordingsQuery, deleteRecording, transcriptionStatusQuery } from "~/lib/recordings";
+import {
+  recordingsQuery,
+  deleteRecording,
+  transcriptionStatusQuery,
+} from "~/lib/recordings";
 import {
   workspaceRecordingsQuery,
   userWorkspacesQuery,
@@ -203,13 +205,6 @@ const RecordingsSidebar: React.FC<{
           <MicrophoneIcon className="w-4 h-4" />
           New Recording
         </Link>
-        <button
-          className="flex items-center justify-center gap-2 py-2 px-4 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-          onClick={() => {}}
-        >
-          <PlusIcon className="w-4 h-4" />
-          Create Folder
-        </button>
       </div>
     </div>
   );
@@ -246,11 +241,6 @@ function RecordingsPage() {
 
   const actionBar = (
     <ActionBar
-      secondaryAction={{
-        label: "Create Folder",
-        icon: <PlusIcon className="w-4 h-4" />,
-        onClick: () => {},
-      }}
       primaryAction={{
         label: "New Recording",
         icon: <MicrophoneIcon className="w-4 h-4" />,
@@ -280,14 +270,6 @@ function RecordingsPage() {
       <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold">Hello, {userName}</h1>
-
-          {/* Desktop quick actions, hidden on mobile */}
-          <div className="hidden md:block lg:hidden">
-            <button className="py-1.5 px-3 border border-gray-200 dark:border-gray-700 rounded-md text-sm flex items-center gap-1.5">
-              <PlusIcon className="w-4 h-4" />
-              Create Folder
-            </button>
-          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -330,13 +312,6 @@ function RecordingsPage() {
                   <ChevronRightIcon className="w-3.5 h-3.5" />
                 </Link>
               )}
-              <Link
-                to="/recordings"
-                className="text-xs text-primary font-medium inline-flex items-center gap-1 hover:text-secondary hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-              >
-                View All
-                <ChevronRightIcon className="w-3.5 h-3.5" />
-              </Link>
             </div>
           </div>
 
