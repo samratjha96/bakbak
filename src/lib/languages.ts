@@ -49,6 +49,13 @@ export const languages: Language[] = [
     transcribeCode: "de-DE",
     translateCode: "de",
   },
+  {
+    code: "en",
+    name: "English",
+    nativeName: "English",
+    transcribeCode: "en-US",
+    translateCode: "en",
+  },
 ];
 
 export const getLanguageByCode = (code: string) =>
@@ -62,7 +69,7 @@ export const getAWSLanguageCode = (
 export const normalizeTranslateLanguage = (code: string) => {
   const base = code.split("-")[0].toLowerCase();
   return (
-    languages.find((lang) => lang.translateCode === base)?.translateCode || "hi"
+    languages.find((lang) => lang.translateCode === base)?.translateCode || "en"
   );
 };
 
@@ -85,6 +92,7 @@ export const getDefaultScriptForLanguage = (
 ): string | undefined => {
   const base = normalizeTranslateLanguage(languageCode);
   const defaults: Record<string, string> = {
+    en: "Latn",
     fr: "Latn",
     es: "Latn",
     de: "Latn",
@@ -103,6 +111,7 @@ export const getSupportedScriptsForLanguage = (
 ): string[] => {
   const base = normalizeTranslateLanguage(languageCode);
   const supported: Record<string, string[]> = {
+    en: ["Latn"],
     fr: ["Latn"],
     es: ["Latn"],
     de: ["Latn"],
