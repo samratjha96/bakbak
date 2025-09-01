@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
 import {
@@ -319,10 +319,11 @@ function RecordingsPage() {
 }
 
 export const Route = createFileRoute("/recordings/")({
-  beforeLoad: async ({ context }) => {
-    // This ensures the route only loads for authenticated users
-    // The auth client will handle redirects if not authenticated
-    return {};
+  beforeLoad: async () => {
+    const { isAuthenticated } = await import("~/database/connection");
+    if (!(await isAuthenticated())) {
+      throw redirect({ to: "/" });
+    }
   },
   loader: async ({ context }) => {
     // Workspaces are now managed by the Header component and WorkspaceContext

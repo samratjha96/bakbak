@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import * as React from "react";
 import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
@@ -374,6 +374,12 @@ function RecordingDetailPage() {
 }
 
 export const Route = createFileRoute("/recordings/$id")({
+  beforeLoad: async () => {
+    const { isAuthenticated } = await import("~/database/connection");
+    if (!(await isAuthenticated())) {
+      throw redirect({ to: "/" });
+    }
+  },
   loader: async ({ params: { id }, context }) => {
     try {
       const data = await context.queryClient.ensureQueryData(

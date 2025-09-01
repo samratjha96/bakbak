@@ -8,3 +8,7 @@ export const authClient = createAuthClient({
 });
 
 export const { signIn, signUp, signOut, useSession } = authClient;
+
+export function triggerSignIn(callbackURL: string = "/recordings") {
+  return signIn.social({ provider: "google", callbackURL });
+}

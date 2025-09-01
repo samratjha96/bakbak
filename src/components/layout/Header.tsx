@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { useSession, signOut, signIn } from "~/lib/auth-client";
+import { useSession, signOut, triggerSignIn } from "~/lib/auth-client";
+import { useNavigate } from "@tanstack/react-router";
 import { MicrophoneIcon } from "~/components/ui/Icons";
 import { WorkspaceSelector } from "~/components/workspace";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -11,6 +12,7 @@ import { useWorkspace } from "~/contexts/WorkspaceContext";
 interface HeaderProps {}
 
 export const Header: React.FC<HeaderProps> = () => {
+  const navigate = useNavigate();
   const { data } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const { currentWorkspaceId, setCurrentWorkspaceId, setWorkspaces } =
@@ -103,7 +105,7 @@ export const Header: React.FC<HeaderProps> = () => {
                     {data.user?.name?.split(" ")[0]}
                   </span>
                   <button
-                    onClick={() => signOut()}
+                    onClick={() => navigate({ to: "/logout" })}
                     className="py-1.5 px-4 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     Sign Out
@@ -111,7 +113,7 @@ export const Header: React.FC<HeaderProps> = () => {
                 </div>
               ) : (
                 <button
-                  onClick={() => signIn.social({ provider: "google" })}
+                  onClick={() => triggerSignIn()}
                   className="py-1.5 px-4 bg-primary hover:bg-secondary text-white rounded-lg text-sm font-medium transition-colors"
                 >
                   Sign In

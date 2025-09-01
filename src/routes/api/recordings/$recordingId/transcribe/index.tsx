@@ -62,7 +62,7 @@ const startTranscription = createServerFn({ method: "POST" })
       });
 
       // Get language code from the recording
-      const languageCode = recording.language || "en";
+      const languageCode = recording.language || "hi";
 
       // Start a transcription job with AWS Transcribe
       const jobId = await transcribe.startTranscription(

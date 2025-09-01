@@ -115,7 +115,7 @@ export const createTranslationForRecording = createServerFn({ method: "POST" })
 
     // Perform translation
     const srcLang = recording.language || "auto";
-    const tgtLang = normalizeTranslateLanguage(targetLanguage || "en");
+    const tgtLang = normalizeTranslateLanguage(targetLanguage || "hi");
     const translatedText = await translate.translateText(
       recording.transcriptionText,
       srcLang,

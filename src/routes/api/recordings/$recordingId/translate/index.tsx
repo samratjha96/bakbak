@@ -70,7 +70,7 @@ const initiateTranslation = createServerFn({ method: "POST" })
       translatedText = await translate.translateText(
         recording.transcriptionText,
         sourceLang,
-        normalizeTranslateLanguage(targetLanguage || "en"),
+        normalizeTranslateLanguage(targetLanguage || "hi"),
       );
     } catch (error: any) {
       logger.error(`Error calling AWS Translate:`, error);

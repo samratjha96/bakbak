@@ -183,3 +183,85 @@ For loaders/beforeLoad on the server, you can also read session headers via `get
 - Server session retrieval with headers: [Basic usage: getSession](https://github.com/better-auth/better-auth/blob/canary/docs/content/docs/basic-usage.mdx)
 
 
+
+## Project conventions and pitfalls (read before changing auth)
+
+- Client auth helpers live in `src/lib/auth-client.ts` only
+  - Export `signIn`, `signOut`, `useSession` from the created client
+  - Provide `triggerSignIn(callbackURL = "/recordings")` and reuse it in UI
+  - Do not create additional client auth files or duplicate helpers
+
+- Server-side session checks are centralized in `src/database/connection.ts`
+  - Use `isAuthenticated()` and `getCurrentUserId()` which wrap `getWebRequest()` + `auth.api.getSession({ headers })`
+  - If you need new server-side auth helpers, add them here instead of new files
+
+- SSR route guards (no flicker)
+  - Use `beforeLoad` in TanStack Start routes and dynamically import server helpers to avoid pulling Node deps into client bundles:
+
+```ts
+// Public landing: redirect authed users to /recordings
+export const Route = createFileRoute("/")({
+  beforeLoad: async () => {
+    const { isAuthenticated } = await import("~/database/connection");
+    if (await isAuthenticated()) throw redirect({ to: "/recordings" });
+  },
+  component: HomePage,
+});
+
+// Protected routes: redirect unauthenticated to /
+export const Route = createFileRoute("/recordings/")({
+  beforeLoad: async () => {
+    const { isAuthenticated } = await import("~/database/connection");
+    if (!(await isAuthenticated())) throw redirect({ to: "/" });
+  },
+  component: RecordingsPage,
+});
+```
+
+- OAuth callback destinations
+  - Always pass a `callbackURL` when initiating social sign-in so success redirects are deterministic:
+
+```ts
+// src/lib/auth-client.ts
+export function triggerSignIn(callbackURL: string = "/recordings") {
+  return signIn.social({ provider: "google", callbackURL });
+}
+```
+
+- Sign-out redirects
+  - Use the client’s `fetchOptions.onSuccess` to navigate after sign-out (keeps concerns in the client):
+
+```ts
+const navigate = useNavigate();
+signOut({ fetchOptions: { onSuccess: () => navigate({ to: "/" }) } });
+```
+
+- Optional: server-driven sign-out route (TanStack Start recommended)
+  - Provide `/logout` that clears the session on the server and redirects with no client race condition:
+
+```ts
+// src/routes/logout.tsx
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { getWebRequest } from "@tanstack/react-start/server";
+import { auth } from "~/lib/auth";
+
+const logoutFn = createServerFn().handler(async () => {
+  const request = getWebRequest();
+  await auth.api.signOut({ headers: request.headers });
+  throw redirect({ to: "/" });
+});
+
+export const Route = createFileRoute("/logout")({
+  preload: false,
+  loader: () => logoutFn(),
+});
+```
+
+- Naming & file layout
+  - `src/lib/auth.ts` is the Better Auth server instance
+  - Do not introduce additional `auth.ts`-like files; it’s confusing
+  - Reuse `src/lib/auth-client.ts` for client and `src/database/connection.ts` for server-side checks
+
+- Avoid client-side only redirects for auth
+  - Rely on SSR `beforeLoad` guards to prevent UI flicker and stale views

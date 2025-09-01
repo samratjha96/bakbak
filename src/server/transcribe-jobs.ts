@@ -79,7 +79,7 @@ export const startTranscriptionJob = createServerFn({ method: "POST" })
       try {
         // Get S3 URI and start transcription
         const { s3Uri } = await getRecordingPath({ data: recordingId });
-        const languageCode = recording.language || "en";
+        const languageCode = recording.language || "hi";
         console.log(`[Transcribe] Starting job for ${recordingId}`);
         const jobId = await transcribe.startTranscription(
           recordingId,

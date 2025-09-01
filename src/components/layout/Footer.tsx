@@ -48,6 +48,11 @@ export const Footer: React.FC = () => {
               <ul className="flex flex-col space-y-1 mt-2 text-gray-500">
                 <li>
                   <Link to="/" className="hover:text-primary">
+                    Hindi
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/" className="hover:text-primary">
                     Japanese
                   </Link>
                 </li>
@@ -58,12 +63,17 @@ export const Footer: React.FC = () => {
                 </li>
                 <li>
                   <Link to="/" className="hover:text-primary">
-                    Mandarin
+                    French
                   </Link>
                 </li>
                 <li>
                   <Link to="/" className="hover:text-primary">
                     Spanish
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/" className="hover:text-primary">
+                    German
                   </Link>
                 </li>
               </ul>
@@ -151,12 +161,32 @@ export const Footer: React.FC = () => {
                 <ul className="flex flex-col space-y-1 mt-1 text-gray-500">
                   <li>
                     <Link to="/" className="hover:text-primary">
+                      Hindi
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/" className="hover:text-primary">
                       Japanese
                     </Link>
                   </li>
                   <li>
                     <Link to="/" className="hover:text-primary">
                       Korean
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/" className="hover:text-primary">
+                      French
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/" className="hover:text-primary">
+                      Spanish
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/" className="hover:text-primary">
+                      German
                     </Link>
                   </li>
                 </ul>

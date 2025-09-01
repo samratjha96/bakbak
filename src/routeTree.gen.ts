@@ -13,6 +13,7 @@ import { createServerRootRoute } from '@tanstack/react-start/server'
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TranscribeRouteImport } from './routes/transcribe'
 import { Route as RecordRouteImport } from './routes/record'
+import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RecordingsIndexRouteImport } from './routes/recordings/index'
 import { Route as WorkspaceNewRouteImport } from './routes/workspace/new'
@@ -37,6 +38,11 @@ const TranscribeRoute = TranscribeRouteImport.update({
 const RecordRoute = RecordRouteImport.update({
   id: '/record',
   path: '/record',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogoutRoute = LogoutRouteImport.update({
+  id: '/logout',
+  path: '/logout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -113,6 +119,7 @@ const ApiAuthSplatServerRoute = ApiAuthSplatServerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/logout': typeof LogoutRoute
   '/record': typeof RecordRoute
   '/transcribe': typeof TranscribeRoute
   '/recordings/$id': typeof RecordingsIdRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/logout': typeof LogoutRoute
   '/record': typeof RecordRoute
   '/transcribe': typeof TranscribeRoute
   '/recordings/$id': typeof RecordingsIdRoute
@@ -146,6 +154,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/logout': typeof LogoutRoute
   '/record': typeof RecordRoute
   '/transcribe': typeof TranscribeRoute
   '/recordings/$id': typeof RecordingsIdRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/logout'
     | '/record'
     | '/transcribe'
     | '/recordings/$id'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/logout'
     | '/record'
     | '/transcribe'
     | '/recordings/$id'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/logout'
     | '/record'
     | '/transcribe'
     | '/recordings/$id'
@@ -213,6 +225,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LogoutRoute: typeof LogoutRoute
   RecordRoute: typeof RecordRoute
   TranscribeRoute: typeof TranscribeRoute
   RecordingsIdRoute: typeof RecordingsIdRoute
@@ -263,6 +276,13 @@ declare module '@tanstack/react-router' {
       path: '/record'
       fullPath: '/record'
       preLoaderRoute: typeof RecordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logout': {
+      id: '/logout'
+      path: '/logout'
+      fullPath: '/logout'
+      preLoaderRoute: typeof LogoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -365,6 +385,7 @@ declare module '@tanstack/react-start/server' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LogoutRoute: LogoutRoute,
   RecordRoute: RecordRoute,
   TranscribeRoute: TranscribeRoute,
   RecordingsIdRoute: RecordingsIdRoute,

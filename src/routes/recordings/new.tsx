@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import * as React from "react";
 import { Layout } from "~/components/layout";
@@ -109,7 +109,7 @@ const uploadAudioRecording = createServerFn({ method: "POST" })
 
 function NewRecordingPage() {
   const [title, setTitle] = React.useState("");
-  const [language, setLanguage] = React.useState("ja");
+  const [language, setLanguage] = React.useState("hi");
   const [initialNotes, setInitialNotes] = React.useState("");
   const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
 
@@ -488,5 +488,11 @@ function NewRecordingPage() {
 }
 
 export const Route = createFileRoute("/recordings/new")({
+  beforeLoad: async () => {
+    const { isAuthenticated } = await import("~/database/connection");
+    if (!(await isAuthenticated())) {
+      throw redirect({ to: "/" });
+    }
+  },
   component: NewRecordingPage,
 });
