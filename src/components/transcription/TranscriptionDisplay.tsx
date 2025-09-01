@@ -4,7 +4,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { EditIcon, SaveIcon } from "~/components/ui/Icons";
 import { TranscriptionStatus } from "./TranscriptionStatus";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
-import { updateRecordingTranscription, transcriptionStatusQuery } from "~/lib/recordings";
+import {
+  updateRecordingTranscription,
+  transcriptionStatusQuery,
+} from "~/lib/recordings";
 import { fetchTranscriptionData } from "~/server/transcription";
 import { getErrorMessage } from "~/utils/errorHandling";
 
@@ -93,21 +96,24 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   useEffect(() => {
     if ((jobStatusData as any)?.transcriptionStatus === "COMPLETED") {
       queryClient.invalidateQueries({ queryKey: ["recording", recordingId] });
-      queryClient.invalidateQueries({ queryKey: ["transcription", recordingId] });
+      queryClient.invalidateQueries({
+        queryKey: ["transcription", recordingId],
+      });
     }
   }, [jobStatusData?.transcriptionStatus, queryClient, recordingId]);
 
   // Mutation to update transcription using server function
   const updateTranscriptionMutation = useMutation({
-    mutationFn: (newText: string) => updateRecordingTranscription({
-      data: {
-        id: recordingId,
-        transcription: {
-          text: newText,
-          isComplete: true,
+    mutationFn: (newText: string) =>
+      updateRecordingTranscription({
+        data: {
+          id: recordingId,
+          transcription: {
+            text: newText,
+            isComplete: true,
+          },
         },
-      },
-    }),
+      }),
     onError: (error) => {
       // Simple error handling without logging
       console.error(getErrorMessage(error, `Failed to update transcription`));

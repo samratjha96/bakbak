@@ -7,7 +7,8 @@
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "start": "vite start",
-    "lint": "npx prettier **/**/*.ts* --write",
+    "lint": "npx prettier \"**/*.{ts,tsx,js,jsx}\" --write",
+    "lint:check": "npx prettier \"**/*.{ts,tsx,js,jsx}\" --check",
     "db:setup": "node scripts/setup-db.js --seed"
   },
   "dependencies": {

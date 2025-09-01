@@ -9,7 +9,10 @@ import { TranslationStatus } from "./TranslationStatus";
 import type { TranslationStatus as TStatus } from "./TranslationStatus";
 import { updateRecordingTranslation } from "~/lib/recordings";
 import { useServerFn } from "@tanstack/react-start";
-import { fetchTranslationData, createTranslationForRecording } from "~/server/translation";
+import {
+  fetchTranslationData,
+  createTranslationForRecording,
+} from "~/server/translation";
 import { createLogger } from "~/utils/logger";
 import { getErrorMessage } from "~/utils/errorHandling";
 
@@ -112,7 +115,9 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
         throw new Error("No transcription available to translate");
       }
 
-      logger.info(`Found transcription, calling server function for translation`);
+      logger.info(
+        `Found transcription, calling server function for translation`,
+      );
 
       const result = await boundCreateTranslation({
         data: { recordingId, targetLanguage },

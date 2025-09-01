@@ -24,7 +24,9 @@ import { AudioWaveSurferPlayer } from "~/components/audio/AudioWaveSurferPlayer"
 function RecordingPlayer({
   fetchPresignedUrl,
 }: {
-  fetchPresignedUrl: () => Promise<string | { url: string; directUrl?: string }>;
+  fetchPresignedUrl: () => Promise<
+    string | { url: string; directUrl?: string }
+  >;
 }) {
   const [resolvedUrl, setResolvedUrl] = React.useState<string | null>(null);
   const [failed, setFailed] = React.useState(false);
@@ -68,7 +70,9 @@ function RecordingDetailPage() {
   const isError = recordingQueryResult.isError;
 
   // Define presigned URL fetch function with caching
-  const fetchPresignedUrl = React.useCallback(async (): Promise<string | { url: string; directUrl?: string }> => {
+  const fetchPresignedUrl = React.useCallback(async (): Promise<
+    string | { url: string; directUrl?: string }
+  > => {
     // Try to get from cache first
     const cachedData = queryClient.getQueryData<any>([
       "recording",
@@ -78,7 +82,11 @@ function RecordingDetailPage() {
 
     // Return cached data if valid and not expired
     if (cachedData && cachedData.url) {
-      return cachedData as { url: string; directUrl?: string; expiresAt?: string };
+      return cachedData as {
+        url: string;
+        directUrl?: string;
+        expiresAt?: string;
+      };
     }
 
     try {
@@ -239,7 +247,9 @@ function RecordingDetailPage() {
               </div>
             ) : (
               <div className="flex items-center gap-2 mb-2 group">
-                <h1 className="text-xl sm:text-2xl font-semibold">{recording.title}</h1>
+                <h1 className="text-xl sm:text-2xl font-semibold">
+                  {recording.title}
+                </h1>
                 <button
                   onClick={() => setEditingTitle(true)}
                   className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"

@@ -86,3 +86,7 @@ The application uses TanStack Query for data fetching:
 ## Tool Preferences
 
 - Use npm for all commands. That's our tool of choice
+
+## Documentation References
+
+- Refer to @docs/auth.md when dealing with anything related to auth and headers

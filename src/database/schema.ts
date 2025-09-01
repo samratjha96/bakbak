@@ -193,12 +193,22 @@ export function initializeSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_sharing_with_user_id ON recording_sharing(shared_with_user_id);
   `);
 
-  // Update recordings table to add workspace support
+  // Update recordings table to add workspace support (only if column doesn't exist)
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(recordings)").all();
+    const hasWorkspaceId = tableInfo.some(
+      (column: any) => column.name === "workspace_id",
+    );
+
+    if (!hasWorkspaceId) {
+      db.exec(`ALTER TABLE recordings ADD COLUMN workspace_id TEXT;`);
+    }
+  } catch (error) {
+    // Column may already exist, continue
+  }
+
+  // Create index for workspace queries
   db.exec(`
-    -- Add workspace_id column to recordings if it doesn't exist
-    ALTER TABLE recordings ADD COLUMN workspace_id TEXT;
-    
-    -- Create index for workspace queries
     CREATE INDEX IF NOT EXISTS idx_recordings_workspace_id ON recordings(workspace_id);
   `);
 }

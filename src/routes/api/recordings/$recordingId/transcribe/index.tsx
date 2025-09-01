@@ -57,8 +57,10 @@ const startTranscription = createServerFn({ method: "POST" })
 
     try {
       // Get a presigned URL for the audio file
-      const { url: audioUrl } = await getRecordingPresignedUrl({ data: recordingId });
-      
+      const { url: audioUrl } = await getRecordingPresignedUrl({
+        data: recordingId,
+      });
+
       // Get language code from the recording
       const languageCode = recording.language || "en";
 
@@ -66,9 +68,9 @@ const startTranscription = createServerFn({ method: "POST" })
       const jobId = await transcribe.startTranscription(
         recordingId,
         audioUrl,
-        languageCode
+        languageCode,
       );
-      
+
       logger.info(
         `Transcription job started with ID: ${jobId} for recording ${recordingId}`,
       );
@@ -93,7 +95,7 @@ const startTranscription = createServerFn({ method: "POST" })
       logger.error(
         `Error starting transcription for recording ${recordingId}: ${error}`,
       );
-      
+
       // Update status to FAILED if there was an error
       await updateRecordingTranscriptionStatus({
         data: {
@@ -101,7 +103,7 @@ const startTranscription = createServerFn({ method: "POST" })
           status: "FAILED",
         },
       });
-      
+
       throw new Error(
         `Failed to start transcription: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -111,18 +113,19 @@ const startTranscription = createServerFn({ method: "POST" })
 export const Route = createFileRoute(
   "/api/recordings/$recordingId/transcribe/",
 )({
-  loaderDeps: ({ params }: { params: { recordingId: string } }) => ({ recordingId: params.recordingId }),
+  loaderDeps: ({ params }: { params: { recordingId: string } }) => ({
+    recordingId: params.recordingId,
+  }),
   serverComponent: async ({
     params,
     deps,
-    request
+    request,
   }: {
     params: { recordingId: string };
     deps: { recordingId: string };
     request: Request;
   }) => {
     logger.info(`Request received: ${request.method} ${request.url}`);
-    
 
     if (params.recordingId !== deps.recordingId) {
       logger.error(

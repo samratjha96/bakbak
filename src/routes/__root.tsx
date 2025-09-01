@@ -13,6 +13,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary";
 import { NotFound } from "~/components/NotFound";
 import ErrorBoundary from "~/components/ErrorBoundary";
+import { WorkspaceProvider } from "~/contexts/WorkspaceContext";
 import appCss from "~/styles/app.css?url";
 import { seo } from "~/utils/seo";
 // No need for manual polling - React Query handles refetching
@@ -91,7 +92,9 @@ function RootComponent() {
   return (
     <RootDocument>
       <ErrorBoundary>
-        <Outlet />
+        <WorkspaceProvider>
+          <Outlet />
+        </WorkspaceProvider>
       </ErrorBoundary>
     </RootDocument>
   );

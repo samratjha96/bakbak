@@ -32,7 +32,8 @@ const uploadAudioRecording = createServerFn({ method: "POST" })
     const audioFile = data.get("audioFile") as File;
     const userId = data.get("userId") as string;
     const fileExtension = (data.get("fileExtension") as string) || "webm";
-    const contentType = (data.get("contentType") as string) || `audio/${fileExtension}`;
+    const contentType =
+      (data.get("contentType") as string) || `audio/${fileExtension}`;
 
     if (!userId) {
       throw new Error("User ID is required for recording upload");
@@ -44,65 +45,67 @@ const uploadAudioRecording = createServerFn({ method: "POST" })
 
     return { audioFile, userId, fileExtension, contentType };
   })
-  .handler(async ({ data: { audioFile, userId, fileExtension, contentType } }) => {
-    try {
-      const audioBlob = new Blob([await audioFile.arrayBuffer()], {
-        type: contentType || `audio/${fileExtension}`,
-      });
+  .handler(
+    async ({ data: { audioFile, userId, fileExtension, contentType } }) => {
+      try {
+        const audioBlob = new Blob([await audioFile.arrayBuffer()], {
+          type: contentType || `audio/${fileExtension}`,
+        });
 
-      const storagePath = RecordingStoragePaths.getAudioPath(
-        userId,
-        fileExtension,
-      );
-      
-      const recordingUUID =
-        RecordingStoragePaths.extractRecordingUUID(storagePath);
-
-      if (!recordingUUID) {
-        throw new Error(
-          "Failed to generate recording UUID - check system requirements",
+        const storagePath = RecordingStoragePaths.getAudioPath(
+          userId,
+          fileExtension,
         );
+
+        const recordingUUID =
+          RecordingStoragePaths.extractRecordingUUID(storagePath);
+
+        if (!recordingUUID) {
+          throw new Error(
+            "Failed to generate recording UUID - check system requirements",
+          );
+        }
+
+        const presignedUrl = await getPresignedUploadUrl({
+          data: {
+            key: storagePath,
+            contentType: contentType || `audio/${fileExtension}`,
+          },
+        });
+
+        const response = await fetch(presignedUrl, {
+          method: "PUT",
+          body: audioBlob,
+          headers: {
+            "Content-Type": contentType || `audio/${fileExtension}`,
+          },
+        });
+
+        if (!response.ok) {
+          const responseText = await response.text();
+          console.error(
+            `Upload failed: ${response.status} ${response.statusText}`,
+            responseText,
+          );
+          throw new Error(
+            `S3 upload failed with status ${response.status}: ${response.statusText}. Response: ${responseText}`,
+          );
+        }
+
+        const fileUrl = await getS3Url({ data: { key: storagePath } });
+
+        return {
+          url: fileUrl,
+          recordingUUID,
+          storagePath,
+          userId,
+        };
+      } catch (error) {
+        console.error(`Upload failed:`, error);
+        throw error;
       }
-
-
-      const presignedUrl = await getPresignedUploadUrl({
-        data: {
-          key: storagePath,
-          contentType: contentType || `audio/${fileExtension}`,
-        },
-      });
-
-      const response = await fetch(presignedUrl, {
-        method: "PUT",
-        body: audioBlob,
-        headers: {
-          "Content-Type": contentType || `audio/${fileExtension}`,
-        },
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        console.error(`Upload failed: ${response.status} ${response.statusText}`, responseText);
-        throw new Error(
-          `S3 upload failed with status ${response.status}: ${response.statusText}. Response: ${responseText}`,
-        );
-      }
-
-
-      const fileUrl = await getS3Url({ data: { key: storagePath } });
-
-      return {
-        url: fileUrl,
-        recordingUUID,
-        storagePath,
-        userId,
-      };
-      
-    } catch (error) {
-      console.error(`Upload failed:`, error);
-      throw error;
-    }
-  });
+    },
+  );
 
 function NewRecordingPage() {
   const [title, setTitle] = React.useState("");
@@ -184,10 +187,10 @@ function NewRecordingPage() {
       const ext = blobType.includes("ogg")
         ? "ogg"
         : blobType.includes("mp4") || blobType.includes("aac")
-        ? "m4a"
-        : blobType.includes("mpeg")
-        ? "mp3"
-        : "webm";
+          ? "m4a"
+          : blobType.includes("mpeg")
+            ? "mp3"
+            : "webm";
 
       const formData = new FormData();
       const audioFile = new File([audioBlob], `recording.${ext}`, {
@@ -211,14 +214,14 @@ function NewRecordingPage() {
           notes: initialNotes ? { content: initialNotes } : undefined,
         },
       });
-      
     } catch (error) {
       console.error("[Upload] Failed to save recording:", error);
-      
-      const errorMessage = error instanceof Error
-        ? error.message
-        : "Failed to upload recording. Please try again.";
-      
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to upload recording. Please try again.";
+
       setUploadError(errorMessage);
     } finally {
       setIsUploading(false);
@@ -287,7 +290,9 @@ function NewRecordingPage() {
                     <button
                       className="flex-none p-4 md:p-6 rounded-full shadow-md hover:shadow-lg transition-colors active:scale-95 bg-primary text-white hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary/30"
                       onClick={isPaused ? resumeRecording : pauseRecording}
-                      aria-label={isPaused ? "Resume recording" : "Pause recording"}
+                      aria-label={
+                        isPaused ? "Resume recording" : "Pause recording"
+                      }
                       title={isPaused ? "Resume" : "Pause"}
                     >
                       {isPaused ? (
@@ -325,7 +330,9 @@ function NewRecordingPage() {
                     <button
                       className="flex-none inline-flex items-center gap-2 px-4 py-3 md:px-5 md:py-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
                       onClick={() => {
-                        if (confirm("Discard current recording and record again?")) {
+                        if (
+                          confirm("Discard current recording and record again?")
+                        ) {
                           resetRecording();
                           setAudioUrl(null);
                         }
@@ -341,7 +348,9 @@ function NewRecordingPage() {
                 {/* Label under primary control for clarity */}
                 {isRecording ? (
                   <div className="text-xs text-gray-500 mb-1">
-                    {isPaused ? "Paused – tap to resume" : "Recording… tap to pause"}
+                    {isPaused
+                      ? "Paused – tap to resume"
+                      : "Recording… tap to pause"}
                   </div>
                 ) : !audioUrl ? (
                   <div className="text-xs text-gray-500 mb-1">Tap to start</div>
@@ -445,25 +454,34 @@ function NewRecordingPage() {
               </div>
             </div>
           </div>
-          </div>
         </div>
-        {/* Sticky mobile CTA bar - visible only on small screens */}
-        <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 supports-[backdrop-filter]:dark:bg-gray-900/80">
-          <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-3">
-            <button
-              className="flex-1 py-2.5 px-4 border border-gray-200 dark:border-gray-800 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              onClick={() => navigate({ to: "/recordings" })}
-            >
-              Cancel
-            </button>
-            <button
-              className={`flex-1 py-2.5 px-4 rounded-lg text-white transition-colors ${createRecordingMutation.isPending || isUploading || isRecording || !audioBlob ? "bg-primary/60 cursor-not-allowed" : "bg-primary hover:bg-secondary"}`}
-              onClick={handleSave}
-              disabled={createRecordingMutation.isPending || isUploading || isRecording || !audioBlob}
-            >
-              {isRecording ? "Recording..." : isUploading ? "Uploading..." : "Save"}
-            </button>
-          </div>
+      </div>
+      {/* Sticky mobile CTA bar - visible only on small screens */}
+      <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 supports-[backdrop-filter]:dark:bg-gray-900/80">
+        <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-3">
+          <button
+            className="flex-1 py-2.5 px-4 border border-gray-200 dark:border-gray-800 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            onClick={() => navigate({ to: "/recordings" })}
+          >
+            Cancel
+          </button>
+          <button
+            className={`flex-1 py-2.5 px-4 rounded-lg text-white transition-colors ${createRecordingMutation.isPending || isUploading || isRecording || !audioBlob ? "bg-primary/60 cursor-not-allowed" : "bg-primary hover:bg-secondary"}`}
+            onClick={handleSave}
+            disabled={
+              createRecordingMutation.isPending ||
+              isUploading ||
+              isRecording ||
+              !audioBlob
+            }
+          >
+            {isRecording
+              ? "Recording..."
+              : isUploading
+                ? "Uploading..."
+                : "Save"}
+          </button>
+        </div>
       </div>
     </Layout>
   );

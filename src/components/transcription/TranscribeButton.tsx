@@ -29,7 +29,7 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [isStarting, setIsStarting] = useState(false);
-  
+
   // Bind the server function
   const boundStartTranscription = useServerFn(startTranscriptionJob);
 
@@ -45,13 +45,15 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
     onSuccess: () => {
       // Invalidate the recording query to refresh data
       queryClient.invalidateQueries({ queryKey: ["recording", recordingId] });
-      
+
       // Invalidate the recordings list query to update the recordings page reactively
       queryClient.invalidateQueries({ queryKey: ["recordings"] });
-      
+
       // Start polling for status updates
-      queryClient.invalidateQueries({ queryKey: ["transcription", "status", recordingId] });
-      
+      queryClient.invalidateQueries({
+        queryKey: ["transcription", "status", recordingId],
+      });
+
       // Call the callback if provided
       if (onTranscriptionStarted) {
         onTranscriptionStarted();
@@ -64,7 +66,7 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
   // Determine the actual status (from polling or props)
   const actualStatus = statusData?.transcriptionStatus || currentStatus;
   const isInProgress = actualStatus === "IN_PROGRESS" || isStarting;
-  
+
   // Hide button when transcription is in progress (but show while starting)
   if (isInProgress && !isStarting) {
     return null;

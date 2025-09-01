@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import Database from "better-sqlite3";
 import { reactStartCookies } from "better-auth/react-start";
+import { WorkspaceService } from "./workspaceService";
 
 export const auth = betterAuth({
   database: new Database("./data/sqlite.db"),
@@ -19,4 +20,22 @@ export const auth = betterAuth({
     },
   },
   plugins: [reactStartCookies()],
+  // TODO: Re-enable hooks after testing basic workspace functionality
+  // hooks: {
+  //   after: [
+  //     {
+  //       matcher(context) {
+  //         return context.path === "/sign-up/email" && context.method === "POST";
+  //       },
+  //       handler: async (ctx) => {
+  //         if (ctx.returned?.user?.id) {
+  //           await WorkspaceService.onUserSignup(
+  //             ctx.returned.user.id,
+  //             ctx.returned.user.email
+  //           );
+  //         }
+  //       },
+  //     },
+  //   ],
+  // },
 });

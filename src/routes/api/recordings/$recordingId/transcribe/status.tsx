@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
-import { fetchRecording, updateRecordingTranscriptionStatus } from "~/lib/recordings";
+import {
+  fetchRecording,
+  updateRecordingTranscriptionStatus,
+} from "~/lib/recordings";
 import { z } from "zod";
 import { transcribe } from "~/lib/transcribe";
 import {
@@ -50,14 +53,14 @@ const getTranscriptionStatus = createServerFn({ method: "GET" })
     try {
       // Get the transcription status from AWS Transcribe
       const status = await transcribe.getTranscriptionStatus(jobId);
-      
+
       // Check if the job is completed
       if (status.status === "COMPLETED") {
         logger.info(`Transcription completed for recording ${recordingId}`);
-        
+
         // Get the transcription result
         const result = await transcribe.getTranscriptionResult(jobId);
-        
+
         // Update the recording with the transcription text
         await updateRecordingTranscriptionStatus({
           data: {
@@ -66,7 +69,7 @@ const getTranscriptionStatus = createServerFn({ method: "GET" })
             transcriptionText: result.text,
           },
         });
-        
+
         return {
           status: 200,
           transcriptionStatus: "COMPLETED",
@@ -76,11 +79,13 @@ const getTranscriptionStatus = createServerFn({ method: "GET" })
           requestedAt: new Date().toISOString(),
         };
       }
-      
+
       // Check if the job failed
       if (status.status === "FAILED") {
-        logger.error(`Transcription failed for recording ${recordingId}: ${status.errorMessage}`);
-        
+        logger.error(
+          `Transcription failed for recording ${recordingId}: ${status.errorMessage}`,
+        );
+
         // Update the recording status to FAILED
         await updateRecordingTranscriptionStatus({
           data: {
@@ -89,7 +94,7 @@ const getTranscriptionStatus = createServerFn({ method: "GET" })
           },
         });
       }
-      
+
       return {
         status: 200,
         transcriptionStatus: recording.transcriptionStatus,
@@ -114,11 +119,13 @@ const getTranscriptionStatus = createServerFn({ method: "GET" })
 export const Route = createFileRoute(
   "/api/recordings/$recordingId/transcribe/status",
 )({
-  loaderDeps: ({ params }: { params: { recordingId: string } }) => ({ recordingId: params.recordingId }),
+  loaderDeps: ({ params }: { params: { recordingId: string } }) => ({
+    recordingId: params.recordingId,
+  }),
   serverComponent: async ({
     params,
     deps,
-    request
+    request,
   }: {
     params: { recordingId: string };
     deps: { recordingId: string };

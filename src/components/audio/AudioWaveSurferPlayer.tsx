@@ -109,5 +109,3 @@ export const AudioWaveSurferPlayer: React.FC<AudioWaveSurferPlayerProps> = ({
     </div>
   );
 };
-
-

@@ -1,15 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
-import {
-  fetchRecording,
-  updateRecordingTranscription,
-} from "~/lib/recordings";
+import { fetchRecording, updateRecordingTranscription } from "~/lib/recordings";
 import { z } from "zod";
-import { apiSuccess, apiError, apiMethodNotAllowed, apiNotFound } from "~/utils/apiResponse";
+import {
+  apiSuccess,
+  apiError,
+  apiMethodNotAllowed,
+  apiNotFound,
+} from "~/utils/apiResponse";
 import { createLogger } from "~/utils/logger";
 import { handleApiError } from "~/utils/errorHandling";
-import { apiResponseMiddleware, methodGuardMiddleware, parseJsonBodyMiddleware } from "~/middleware/apiMiddleware";
+import {
+  apiResponseMiddleware,
+  methodGuardMiddleware,
+  parseJsonBodyMiddleware,
+} from "~/middleware/apiMiddleware";
 import { transcribe } from "~/lib/transcribe";
 
 const logger = createLogger("API.TranscriptionRoute");
@@ -117,7 +123,7 @@ export const Route = createFileRoute(
   serverComponent: async ({
     params,
     deps,
-    request
+    request,
   }: {
     params: { recordingId: string };
     deps: { recordingId: string };

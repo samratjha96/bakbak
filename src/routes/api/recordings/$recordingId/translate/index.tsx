@@ -29,7 +29,9 @@ const initiateTranslation = createServerFn({ method: "POST" })
     methodGuardMiddleware(["POST"]),
     parseJsonBodyMiddleware,
   ])
-  .validator((params: { recordingId: string; targetLanguage?: string }) => params)
+  .validator(
+    (params: { recordingId: string; targetLanguage?: string }) => params,
+  )
   .handler(async ({ data }) => {
     const { recordingId, targetLanguage = "en" } = data;
 
@@ -53,7 +55,10 @@ const initiateTranslation = createServerFn({ method: "POST" })
     // Check if there's a transcription to translate
     if (!recording.isTranscribed || !recording.transcriptionText) {
       logger.warn(`No transcription available for recording ${recordingId}`);
-      return { status: 400, message: "No transcription available to translate" };
+      return {
+        status: 400,
+        message: "No transcription available to translate",
+      };
     }
 
     logger.info(`Transcription found, proceeding with translation`);
@@ -69,7 +74,10 @@ const initiateTranslation = createServerFn({ method: "POST" })
       );
     } catch (error: any) {
       logger.error(`Error calling AWS Translate:`, error);
-      return { status: 502, message: `Translation service error: ${error?.message || "Unknown error"}` };
+      return {
+        status: 502,
+        message: `Translation service error: ${error?.message || "Unknown error"}`,
+      };
     }
 
     // Update the recording with the translation
@@ -86,7 +94,9 @@ const initiateTranslation = createServerFn({ method: "POST" })
       logger.info(`Successfully updated recording with translation`);
     } catch (error: any) {
       logger.error(`Error updating translation:`, error);
-      throw new Error(`Failed to update recording with translation: ${error.message}`);
+      throw new Error(
+        `Failed to update recording with translation: ${error.message}`,
+      );
     }
 
     logger.info(`Returning successful response`);
@@ -99,52 +109,56 @@ const initiateTranslation = createServerFn({ method: "POST" })
     };
   });
 
-export const Route = createFileRoute(
-  "/api/recordings/$recordingId/translate/",
-)({
-  validateParams: z.object({
-    recordingId: z.string(),
-  }),
-  loaderDeps: ({ params }: { params: { recordingId: string } }) => ({
-    recordingId: params.recordingId,
-  }),
-  serverComponent: async ({ params, deps, request }: {
-    params: { recordingId: string };
-    deps: { recordingId: string };
-    request: Request;
-  }) => {
-    logger.info(`Request received: ${request.method} ${request.url}`);
+export const Route = createFileRoute("/api/recordings/$recordingId/translate/")(
+  {
+    validateParams: z.object({
+      recordingId: z.string(),
+    }),
+    loaderDeps: ({ params }: { params: { recordingId: string } }) => ({
+      recordingId: params.recordingId,
+    }),
+    serverComponent: async ({
+      params,
+      deps,
+      request,
+    }: {
+      params: { recordingId: string };
+      deps: { recordingId: string };
+      request: Request;
+    }) => {
+      logger.info(`Request received: ${request.method} ${request.url}`);
 
-    if (params.recordingId !== deps.recordingId) {
-      logger.error(
-        `Parameter mismatch: params=${params.recordingId}, deps=${deps.recordingId}`,
-      );
-      return apiError("recordingId mismatch", 400);
-    }
+      if (params.recordingId !== deps.recordingId) {
+        logger.error(
+          `Parameter mismatch: params=${params.recordingId}, deps=${deps.recordingId}`,
+        );
+        return apiError("recordingId mismatch", 400);
+      }
 
-    try {
-      if (request.method === "POST") {
-        // Parse body (we also parse in middleware within the server fn; harmless here)
-        const body = await request.json().catch(() => ({}));
-        const result = await initiateTranslation({
-          data: {
-            recordingId: params.recordingId,
-            ...body,
-          },
-        });
-        return apiSuccess(result);
+      try {
+        if (request.method === "POST") {
+          // Parse body (we also parse in middleware within the server fn; harmless here)
+          const body = await request.json().catch(() => ({}));
+          const result = await initiateTranslation({
+            data: {
+              recordingId: params.recordingId,
+              ...body,
+            },
+          });
+          return apiSuccess(result);
+        }
+        return apiMethodNotAllowed(["POST"]);
+      } catch (error) {
+        if (error === notFound()) {
+          logger.warn(`Recording not found: ${params.recordingId}`);
+          return apiNotFound(`Recording not found: ${params.recordingId}`);
+        }
+        const { error: errorMessage, status } = handleApiError(
+          error,
+          `API.TranslateRoute(${params.recordingId})`,
+        );
+        return apiError(errorMessage, status);
       }
-      return apiMethodNotAllowed(["POST"]);
-    } catch (error) {
-      if (error === notFound()) {
-        logger.warn(`Recording not found: ${params.recordingId}`);
-        return apiNotFound(`Recording not found: ${params.recordingId}`);
-      }
-      const { error: errorMessage, status } = handleApiError(
-        error,
-        `API.TranslateRoute(${params.recordingId})`,
-      );
-      return apiError(errorMessage, status);
-    }
-  },
-} as any);
+    },
+  } as any,
+);

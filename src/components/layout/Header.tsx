@@ -3,34 +3,64 @@ import { Link } from "@tanstack/react-router";
 import { useSession, signOut, signIn } from "~/lib/auth-client";
 import { MicrophoneIcon } from "~/components/ui/Icons";
 import { WorkspaceSelector } from "~/components/workspace";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { userWorkspacesQuery } from "~/lib/workspaceQueries";
+import { ensureUserWorkspace } from "~/lib/workspaceEnsure";
+import { useWorkspace } from "~/contexts/WorkspaceContext";
 
 interface HeaderProps {}
 
 export const Header: React.FC<HeaderProps> = () => {
   const { data } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  const [currentWorkspaceId, setCurrentWorkspaceId] = React.useState<string>();
+  const { currentWorkspaceId, setCurrentWorkspaceId, setWorkspaces } =
+    useWorkspace();
+
+  // Mutation to ensure user has a workspace
+  const ensureWorkspaceMutation = useMutation({
+    mutationFn: ensureUserWorkspace,
+  });
 
   // Fetch user workspaces using TanStack Query
   const {
     data: workspaces = [],
     isLoading: workspacesLoading,
     error: workspacesError,
+    refetch: refetchWorkspaces,
   } = useQuery({
     ...userWorkspacesQuery(),
     enabled: !!data?.user,
     retry: false, // Don't retry on auth errors
   });
 
-  // Set first workspace as current if none selected
+  // Ensure workspace exists for authenticated users
   React.useEffect(() => {
-    if (workspaces && workspaces.length > 0 && !currentWorkspaceId) {
-      setCurrentWorkspaceId(workspaces[0].id);
+    if (
+      data?.user &&
+      workspaces.length === 0 &&
+      !workspacesLoading &&
+      !ensureWorkspaceMutation.isPending
+    ) {
+      ensureWorkspaceMutation.mutate(undefined, {
+        onSuccess: () => {
+          // Refetch workspaces after ensuring workspace exists
+          refetchWorkspaces();
+        },
+      });
     }
-  }, [workspaces, currentWorkspaceId]);
+  }, [
+    data?.user,
+    workspaces.length,
+    workspacesLoading,
+    ensureWorkspaceMutation.isPending,
+  ]);
 
+  // Sync workspaces data with context
+  React.useEffect(() => {
+    if (workspaces && workspaces.length > 0) {
+      setWorkspaces(workspaces);
+    }
+  }, [workspaces, setWorkspaces]);
 
   return (
     <header className="bg-white dark:bg-gray-950 sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800">
@@ -45,14 +75,18 @@ export const Header: React.FC<HeaderProps> = () => {
 
           <div className="flex items-center gap-3">
             {/* Workspace Selector - shown when logged in and workspaces are available */}
-            {data?.user && !workspacesLoading && !workspacesError && workspaces && workspaces.length > 0 && (
-              <WorkspaceSelector
-                workspaces={workspaces}
-                currentWorkspaceId={currentWorkspaceId}
-                onWorkspaceChange={setCurrentWorkspaceId}
-              />
-            )}
-            
+            {data?.user &&
+              !workspacesLoading &&
+              !workspacesError &&
+              workspaces &&
+              workspaces.length > 0 && (
+                <WorkspaceSelector
+                  workspaces={workspaces}
+                  currentWorkspaceId={currentWorkspaceId || undefined}
+                  onWorkspaceChange={setCurrentWorkspaceId}
+                />
+              )}
+
             {/* Record CTA - desktop */}
             <Link
               to="/recordings/new"

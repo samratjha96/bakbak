@@ -3,12 +3,24 @@ import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
 import { z } from "zod";
 import { fetchRecording } from "~/lib/recordings";
-import { apiSuccess, apiError, apiNotFound, apiMethodNotAllowed } from "~/utils/apiResponse";
+import {
+  apiSuccess,
+  apiError,
+  apiNotFound,
+  apiMethodNotAllowed,
+} from "~/utils/apiResponse";
 import { createLogger } from "~/utils/logger";
 import { handleApiError } from "~/utils/errorHandling";
-import { apiResponseMiddleware, methodGuardMiddleware, parseJsonBodyMiddleware } from "~/middleware/apiMiddleware";
+import {
+  apiResponseMiddleware,
+  methodGuardMiddleware,
+  parseJsonBodyMiddleware,
+} from "~/middleware/apiMiddleware";
 import { transliterateText } from "~/lib/transliterate";
-import { getDefaultScriptForLanguage, isSupportedTranslateLanguage } from "~/lib/languages";
+import {
+  getDefaultScriptForLanguage,
+  isSupportedTranslateLanguage,
+} from "~/lib/languages";
 
 const logger = createLogger("API.TransliterateRoute");
 
@@ -46,7 +58,12 @@ const postTransliterate = createServerFn({ method: "POST" })
     }
 
     // Determine language
-    const lang = (languageCode || recording.translationLanguage || recording.language || "").toString();
+    const lang = (
+      languageCode ||
+      recording.translationLanguage ||
+      recording.language ||
+      ""
+    ).toString();
     if (!lang || !isSupportedTranslateLanguage(lang)) {
       return { status: 400, message: "Unknown or unsupported language code" };
     }
@@ -54,7 +71,10 @@ const postTransliterate = createServerFn({ method: "POST" })
     // Determine source script
     const srcScript = sourceScriptCode || getDefaultScriptForLanguage(lang);
     if (!srcScript) {
-      return { status: 400, message: "Unable to determine source script for language" };
+      return {
+        status: 400,
+        message: "Unable to determine source script for language",
+      };
     }
 
     // Perform transliteration
@@ -73,18 +93,23 @@ const postTransliterate = createServerFn({ method: "POST" })
         targetScriptCode,
       };
     } catch (error: any) {
-      return { status: 502, message: `Transliteration service error: ${error?.message || "Unknown error"}` };
+      return {
+        status: 502,
+        message: `Transliteration service error: ${error?.message || "Unknown error"}`,
+      };
     }
   });
 
 export const Route = createFileRoute(
   "/api/recordings/$recordingId/transliterate/",
 )({
-  loaderDeps: ({ params }: { params: { recordingId: string } }) => ({ recordingId: params.recordingId }),
-  serverComponent: async ({ 
-    params, 
-    deps, 
-    request 
+  loaderDeps: ({ params }: { params: { recordingId: string } }) => ({
+    recordingId: params.recordingId,
+  }),
+  serverComponent: async ({
+    params,
+    deps,
+    request,
   }: {
     params: { recordingId: string };
     deps: { recordingId: string };
@@ -97,7 +122,9 @@ export const Route = createFileRoute(
     try {
       if (request.method === "POST") {
         const body = await request.json().catch(() => ({}));
-        const result = await postTransliterate({ data: { recordingId: params.recordingId, ...body } });
+        const result = await postTransliterate({
+          data: { recordingId: params.recordingId, ...body },
+        });
         return apiSuccess(result);
       }
       return apiMethodNotAllowed(["POST"]);
@@ -113,5 +140,3 @@ export const Route = createFileRoute(
     }
   },
 } as any);
-
-

@@ -1,16 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
-import { MicrophoneIcon, PlusIcon, DocumentIcon, TrashIcon, ChevronRightIcon } from "~/components/ui/Icons";
+import {
+  MicrophoneIcon,
+  PlusIcon,
+  DocumentIcon,
+  TrashIcon,
+  ChevronRightIcon,
+} from "~/components/ui/Icons";
 import { Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { useSession } from "~/lib/auth-client";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { recordingsQuery, deleteRecording } from "~/lib/recordings";
-import type { Recording } from "~/types/recording";
+import {
+  workspaceRecordingsQuery,
+  userWorkspacesQuery,
+} from "~/lib/workspaceQueries";
+import type { Recording } from "~/database/models/Recording";
 import { formatDuration, formatRelativeDate } from "~/utils/formatting";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
+import { useWorkspace } from "~/contexts/WorkspaceContext";
 
 interface StatCardProps {
   value: string | number;
@@ -36,126 +47,65 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ text, time }) => (
   </div>
 );
 
-const RecordingItem: React.FC<{
-  id: string;
-  title: string;
-  language?: string;
-  duration: number;
-  date: string;
-  isTranscribed?: boolean;
-  transcriptionStatus?: TStatus;
-  onDeleted?: (id: string) => void;
-}> = ({
-  id,
-  title,
-  language,
-  duration,
-  date,
-  isTranscribed = false,
-  transcriptionStatus = "NOT_STARTED",
-  onDeleted,
-}) => {
-  // Format duration as MM:SS
-  const formattedDuration = formatDuration(duration);
-  const navigate = useNavigate();
-  const deleteMutation = useMutation({
-    mutationFn: async () => deleteRecording({ data: id }),
-  });
+const RecordingCard: React.FC<{
+  recording: Recording;
+  currentWorkspaceId?: string;
+}> = ({ recording, currentWorkspaceId }) => {
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking on a button or link
-    if (
-      (e.target as Element).closest("button") ||
-      (e.target as Element).closest("a")
-    ) {
-      return;
-    }
-    navigate({ to: "/recordings/$id", params: { id } });
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
   return (
-    <div
-      onClick={handleCardClick}
-      className="group flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors duration-150 ease-out gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          handleCardClick(e as any);
-        }
-      }}
-      aria-label={`Open recording ${title}`}
+    <Link
+      to="/recordings/$id"
+      params={{ id: recording.id }}
+      className="block p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
     >
-      <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
-        <MicrophoneIcon className="w-5 h-5 text-primary" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center">
-          <div className="font-medium text-gray-900 dark:text-gray-100 truncate group-hover:underline underline-offset-2">
-            {title}
-          </div>
-          {isTranscribed && (
-            <div className="ml-2 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs rounded-sm flex items-center">
-              <DocumentIcon className="w-3 h-3 mr-1" />
-              <span>Transcribed</span>
-            </div>
-          )}
-          {transcriptionStatus === "IN_PROGRESS" && (
-            <div className="ml-2 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-sm flex items-center">
-              <div className="w-3 h-3 mr-1 rounded-full border-2 border-solid border-current border-r-transparent animate-spin"></div>
-              <span>Processing</span>
-            </div>
-          )}
-        </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap mt-1 gap-1.5">
-          <span>{language}</span>
-          <span>•</span>
-          <span>{formattedDuration}</span>
-          <span>•</span>
-          <span>{date}</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        {!isTranscribed && transcriptionStatus !== "IN_PROGRESS" && (
-          <TranscribeButton
-            recordingId={id}
-            variant="outline"
-            size="sm"
-            className="px-2 py-1 text-xs"
-            currentStatus={transcriptionStatus}
-          />
-        )}
-        <Link to="/recordings/$id" params={{ id }} className="text-primary hover:text-secondary flex-shrink-0 text-sm font-medium">
-          View
-        </Link>
-        <button
-          className="ml-1 inline-flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors"
-          onClick={async (e) => {
-            e.stopPropagation();
-            if (deleteMutation.isPending) return;
-            const confirmed = confirm("Delete this recording? This cannot be undone.");
-            if (!confirmed) return;
-            try {
-              await deleteMutation.mutateAsync();
-              onDeleted?.(id);
-            } catch (err) {
-              alert(
-                err instanceof Error
-                  ? err.message
-                  : "Failed to delete recording. Please try again.",
-              );
-            }
-          }}
-          aria-label="Delete recording"
-          title="Delete"
+      <div className="flex items-start justify-between mb-2">
+        <h3 className="font-medium text-gray-900 line-clamp-2">
+          {recording.title}
+        </h3>
+        <span
+          className={`ml-2 px-2 py-1 text-xs rounded-full flex-shrink-0 ${
+            recording.status === "ready"
+              ? "bg-green-100 text-green-800"
+              : recording.status === "processing"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800"
+          }`}
         >
-          <TrashIcon className="w-4 h-4" />
-          <span className="hidden sm:inline text-xs">Delete</span>
-        </button>
-        <ChevronRightIcon className="w-5 h-5 text-gray-300 ml-1 transition-transform duration-150 group-hover:text-gray-400 group-hover:translate-x-0.5" />
+          {recording.status}
+        </span>
       </div>
-    </div>
+
+      {recording.description && (
+        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+          {recording.description}
+        </p>
+      )}
+
+      <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center gap-2">
+          {recording.language && (
+            <span className="px-2 py-1 bg-gray-100 rounded">
+              {recording.language}
+            </span>
+          )}
+          <span>{formatDuration(recording.duration)}</span>
+        </div>
+        <span>{formatDate(recording.createdAt.toString())}</span>
+      </div>
+    </Link>
   );
 };
 
@@ -200,14 +150,14 @@ const RecordingsSidebar: React.FC<{
 
 function RecordingsPage() {
   const { data: session, isPending } = useSession();
-  const recordingsQueryResult = useSuspenseQuery({
-    ...recordingsQuery(),
-    enabled: !!session,
-  } as any);
-  const recordings: Recording[] = (recordingsQueryResult.data as any) || [];
-  const isLoading = recordingsQueryResult.isLoading;
-  const isError = recordingsQueryResult.isError;
   const userName = session?.user?.name?.split(" ")[0] || "User";
+  const { currentWorkspaceId } = useWorkspace();
+
+  // Use workspace recordings instead of user recordings
+  const { data: recordings = [] } = useQuery({
+    ...workspaceRecordingsQuery(currentWorkspaceId || ""),
+    enabled: !!session?.user && !!currentWorkspaceId,
+  });
 
   const activities = [
     {
@@ -250,7 +200,9 @@ function RecordingsPage() {
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold">Please sign in</h1>
           </div>
-          <p className="text-gray-600 dark:text-gray-300">You must be signed in to view your recordings.</p>
+          <p className="text-gray-600 dark:text-gray-300">
+            You must be signed in to view your recordings.
+          </p>
         </div>
       </Layout>
     );
@@ -301,18 +253,18 @@ function RecordingsPage() {
               Recent Recordings
             </h2>
             <div className="flex items-center gap-4">
-              {session?.user && (
-                <Link 
-                  to="/workspace/$workspaceId" 
-                  params={{ workspaceId: `personal-${session.user.id}` }}
+              {currentWorkspaceId && (
+                <Link
+                  to="/workspace/$workspaceId"
+                  params={{ workspaceId: currentWorkspaceId }}
                   className="text-xs text-blue-600 font-medium inline-flex items-center gap-1 hover:text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
                 >
                   View Workspace
                   <ChevronRightIcon className="w-3.5 h-3.5" />
                 </Link>
               )}
-              <Link 
-                to="/recordings" 
+              <Link
+                to="/recordings"
                 className="text-xs text-primary font-medium inline-flex items-center gap-1 hover:text-secondary hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 View All
@@ -322,35 +274,41 @@ function RecordingsPage() {
           </div>
 
           {recordings.length === 0 ? (
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 text-center">
-              <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <MicrophoneIcon className="w-5 h-5 text-primary" />
-              </div>
-              <h3 className="font-medium mb-1">No recordings yet</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Start your first practice session to see it here.</p>
-              <Link to="/recordings/new" className="inline-flex items-center gap-2 py-2 px-4 bg-primary text-white rounded-lg hover:bg-secondary">
-                <MicrophoneIcon className="w-4 h-4" />
-                Start Recording
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <svg
+                className="w-12 h-12 text-gray-400 mx-auto mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                />
+              </svg>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No recordings yet
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Get started by creating your first recording in this workspace.
+              </p>
+              <Link
+                to="/recordings/new"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Create Recording
               </Link>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-              {recordings.map((recording, index) => (
-                <React.Fragment key={recording.id}>
-                  {index > 0 && (
-                    <div className="mx-4 border-t border-gray-100 dark:border-gray-800"></div>
-                  )}
-                  <RecordingItem
-                    id={recording.id}
-                    title={recording.title}
-                    language={recording.language}
-                    duration={recording.duration}
-                    date={formatRelativeDate(new Date(recording.createdAt))}
-                    isTranscribed={recording.isTranscribed}
-                    transcriptionStatus={recording.transcriptionStatus}
-                    onDeleted={() => recordingsQueryResult.refetch()}
-                  />
-                </React.Fragment>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {recordings.map((recording) => (
+                <RecordingCard
+                  key={recording.id}
+                  recording={recording}
+                  currentWorkspaceId={currentWorkspaceId || undefined}
+                />
               ))}
             </div>
           )}
@@ -367,7 +325,8 @@ export const Route = createFileRoute("/recordings/")({
     return {};
   },
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(recordingsQuery());
+    // Workspaces are now managed by the Header component and WorkspaceContext
+    // We'll let the component fetch workspace recordings once the workspace ID is available
     return {};
   },
   component: RecordingsPage,

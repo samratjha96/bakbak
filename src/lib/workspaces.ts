@@ -1,30 +1,27 @@
 import { createServerFn } from "@tanstack/react-start";
-import { auth } from "./auth";
 import { WorkspaceModel, RecordingModel } from "~/database/models";
+import { isAuthenticated, getCurrentUserId } from "~/database/connection";
 
 /**
  * Server function to fetch user's workspaces
  */
 export const fetchUserWorkspaces = createServerFn({ method: "GET" }).handler(
   async () => {
+    const authed = await isAuthenticated();
+    if (!authed) return [];
+
     try {
-      const session = await auth.api.getSession({
-        headers: new Headers(),
-      });
+      const userId = await getCurrentUserId();
+      if (!userId) return [];
 
-      if (!session?.user) {
-        // Return empty array instead of throwing error for unauthenticated users
-        return [];
-      }
-
-      const workspaces = WorkspaceModel.findByUserId(session.user.id);
+      const workspaces = WorkspaceModel.findByUserId(userId);
 
       // Add member count and user role for each workspace
       const workspacesWithDetails = workspaces.map((workspace) => {
         const members = WorkspaceModel.getMembers(workspace.id);
         const userMembership = WorkspaceModel.getMembership(
           workspace.id,
-          session.user.id,
+          userId,
         );
 
         return {
@@ -48,19 +45,17 @@ export const fetchUserWorkspaces = createServerFn({ method: "GET" }).handler(
 export const fetchWorkspaceDetails = createServerFn({ method: "GET" })
   .validator((input: { workspaceId: string }) => input)
   .handler(async ({ data }) => {
+    const authed = await isAuthenticated();
+    if (!authed) throw new Error("Unauthorized");
+
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error("Unauthorized");
+
+    const { workspaceId } = data;
+
     try {
-      const session = await auth.api.getSession({
-        headers: new Headers(),
-      });
-
-      if (!session?.user) {
-        throw new Error("Unauthorized");
-      }
-
-      const { workspaceId } = data;
-
       // Check if user has access to workspace
-      if (!WorkspaceModel.hasAccess(workspaceId, session.user.id)) {
+      if (!WorkspaceModel.hasAccess(workspaceId, userId)) {
         throw new Error("Forbidden");
       }
 
@@ -70,10 +65,7 @@ export const fetchWorkspaceDetails = createServerFn({ method: "GET" })
       }
 
       // Get user's membership info and member count
-      const membership = WorkspaceModel.getMembership(
-        workspaceId,
-        session.user.id,
-      );
+      const membership = WorkspaceModel.getMembership(workspaceId, userId);
       const members = WorkspaceModel.getMembers(workspaceId);
 
       return {
@@ -100,19 +92,17 @@ export const fetchWorkspaceDetails = createServerFn({ method: "GET" })
 export const fetchWorkspaceRecordings = createServerFn({ method: "GET" })
   .validator((input: { workspaceId: string }) => input)
   .handler(async ({ data }) => {
+    const authed = await isAuthenticated();
+    if (!authed) throw new Error("Unauthorized");
+
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error("Unauthorized");
+
+    const { workspaceId } = data;
+
     try {
-      const session = await auth.api.getSession({
-        headers: new Headers(),
-      });
-
-      if (!session?.user) {
-        throw new Error("Unauthorized");
-      }
-
-      const { workspaceId } = data;
-
       // Check if user has access to workspace
-      if (!WorkspaceModel.hasAccess(workspaceId, session.user.id)) {
+      if (!WorkspaceModel.hasAccess(workspaceId, userId)) {
         throw new Error("Forbidden");
       }
 
@@ -130,13 +120,11 @@ export const fetchWorkspaceRecordings = createServerFn({ method: "GET" })
 export const createWorkspace = createServerFn({ method: "POST" })
   .validator((input: { name: string; description?: string }) => input)
   .handler(async ({ data }) => {
-    const session = await auth.api.getSession({
-      headers: new Headers(),
-    });
+    const authed = await isAuthenticated();
+    if (!authed) throw new Error("Unauthorized");
 
-    if (!session) {
-      throw new Error("Unauthorized");
-    }
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error("Unauthorized");
 
     const { name, description } = data;
 
@@ -158,13 +146,13 @@ export const createWorkspace = createServerFn({ method: "POST" })
         name: name.trim(),
         description: description?.trim(),
         slug,
-        createdBy: session.user.id,
+        createdBy: userId,
       });
 
       // Create owner membership
       WorkspaceModel.createMembership({
         workspaceId: workspace.id,
-        userId: session.user.id,
+        userId: userId,
         role: "owner",
       });
 
@@ -187,22 +175,17 @@ export const inviteUserToWorkspace = createServerFn({ method: "POST" })
     }) => input,
   )
   .handler(async ({ data }) => {
-    const session = await auth.api.getSession({
-      headers: new Headers(),
-    });
+    const authed = await isAuthenticated();
+    if (!authed) throw new Error("Unauthorized");
 
-    if (!session) {
-      throw new Error("Unauthorized");
-    }
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error("Unauthorized");
 
     const { workspaceId, email, role } = data;
 
     try {
       // Check if user has permission to invite (owner or editor)
-      const membership = WorkspaceModel.getMembership(
-        workspaceId,
-        session.user.id,
-      );
+      const membership = WorkspaceModel.getMembership(workspaceId, userId);
       if (
         !membership ||
         membership.status !== "active" ||

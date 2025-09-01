@@ -110,11 +110,13 @@ const createTranslation = createServerFn({ method: "POST" })
 export const Route = createFileRoute(
   "/api/recordings/$recordingId/translation/",
 )({
-  loaderDeps: ({ params }: { params: { recordingId: string } }) => ({ recordingId: params.recordingId }),
+  loaderDeps: ({ params }: { params: { recordingId: string } }) => ({
+    recordingId: params.recordingId,
+  }),
   serverComponent: async ({
     params,
     deps,
-    request
+    request,
   }: {
     params: { recordingId: string };
     deps: { recordingId: string };

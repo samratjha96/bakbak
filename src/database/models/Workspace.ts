@@ -150,12 +150,14 @@ export class WorkspaceModel {
   static findByUserId(userId: string): Workspace[] {
     const db = getDatabase();
     const workspaces = db
-      .prepare(`
+      .prepare(
+        `
         SELECT w.* FROM workspaces w
         JOIN workspace_memberships wm ON w.id = wm.workspace_id
         WHERE wm.user_id = ? AND wm.status = 'active'
         ORDER BY w.created_at DESC
-      `)
+      `,
+      )
       .all(userId) as DbWorkspace[];
 
     return workspaces.map(mapDbToWorkspace);
@@ -183,12 +185,59 @@ export class WorkspaceModel {
       updated_at: now,
     };
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO workspaces (
         id, name, description, slug, avatar_url, settings,
         storage_quota, storage_used, created_by, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
+      workspace.id,
+      workspace.name,
+      workspace.description,
+      workspace.slug,
+      workspace.avatar_url,
+      workspace.settings,
+      workspace.storage_quota,
+      workspace.storage_used,
+      workspace.created_by,
+      workspace.created_at,
+      workspace.updated_at,
+    );
+
+    return mapDbToWorkspace(workspace);
+  }
+
+  /**
+   * Create a new workspace with a specific ID (for system workspaces like personal workspaces)
+   */
+  static createWithId(input: CreateWorkspaceInput & { id: string }): Workspace {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+
+    const workspace: DbWorkspace = {
+      id: input.id,
+      name: input.name,
+      description: input.description,
+      slug: input.slug,
+      avatar_url: undefined,
+      settings: "{}",
+      storage_quota: 1073741824, // 1GB
+      storage_used: 0,
+      created_by: input.createdBy,
+      created_at: now,
+      updated_at: now,
+    };
+
+    db.prepare(
+      `
+      INSERT INTO workspaces (
+        id, name, description, slug, avatar_url, settings,
+        storage_quota, storage_used, created_by, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    ).run(
       workspace.id,
       workspace.name,
       workspace.description,
@@ -222,9 +271,11 @@ export class WorkspaceModel {
     };
 
     if (input.name !== undefined) updates.name = input.name;
-    if (input.description !== undefined) updates.description = input.description;
+    if (input.description !== undefined)
+      updates.description = input.description;
     if (input.avatarUrl !== undefined) updates.avatar_url = input.avatarUrl;
-    if (input.settings !== undefined) updates.settings = JSON.stringify(input.settings);
+    if (input.settings !== undefined)
+      updates.settings = JSON.stringify(input.settings);
 
     // Build SET clause for SQL
     const setClause = Object.keys(updates)
@@ -236,11 +287,13 @@ export class WorkspaceModel {
     values.push(id); // Add id for WHERE clause
 
     // Execute update
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE workspaces
       SET ${setClause}
       WHERE id = ?
-    `).run(...values);
+    `,
+    ).run(...values);
 
     // Return updated workspace
     return this.findById(id);
@@ -258,7 +311,9 @@ export class WorkspaceModel {
   /**
    * Create a workspace membership
    */
-  static createMembership(input: CreateWorkspaceMembershipInput): WorkspaceMembership {
+  static createMembership(
+    input: CreateWorkspaceMembershipInput,
+  ): WorkspaceMembership {
     const db = getDatabase();
     const now = new Date().toISOString();
     const id = this.generateMembershipId();
@@ -276,12 +331,14 @@ export class WorkspaceModel {
       updated_at: now,
     };
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO workspace_memberships (
         id, workspace_id, user_id, role, status, invited_by,
         invited_at, joined_at, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       membership.id,
       membership.workspace_id,
       membership.user_id,
@@ -303,11 +360,13 @@ export class WorkspaceModel {
   static getMembers(workspaceId: string): WorkspaceMembership[] {
     const db = getDatabase();
     const memberships = db
-      .prepare(`
+      .prepare(
+        `
         SELECT * FROM workspace_memberships
         WHERE workspace_id = ? AND status = 'active'
         ORDER BY created_at ASC
-      `)
+      `,
+      )
       .all(workspaceId) as DbWorkspaceMembership[];
 
     return memberships.map(mapDbToMembership);
@@ -316,13 +375,18 @@ export class WorkspaceModel {
   /**
    * Get user's membership in a workspace
    */
-  static getMembership(workspaceId: string, userId: string): WorkspaceMembership | null {
+  static getMembership(
+    workspaceId: string,
+    userId: string,
+  ): WorkspaceMembership | null {
     const db = getDatabase();
     const membership = db
-      .prepare(`
+      .prepare(
+        `
         SELECT * FROM workspace_memberships
         WHERE workspace_id = ? AND user_id = ?
-      `)
+      `,
+      )
       .get(workspaceId, userId) as DbWorkspaceMembership | undefined;
 
     return membership ? mapDbToMembership(membership) : null;
@@ -342,7 +406,9 @@ export class WorkspaceModel {
   static removeMember(workspaceId: string, userId: string): boolean {
     const db = getDatabase();
     const result = db
-      .prepare("DELETE FROM workspace_memberships WHERE workspace_id = ? AND user_id = ?")
+      .prepare(
+        "DELETE FROM workspace_memberships WHERE workspace_id = ? AND user_id = ?",
+      )
       .run(workspaceId, userId);
     return result.changes > 0;
   }

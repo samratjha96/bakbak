@@ -2,23 +2,23 @@
 
 /**
  * Database initialization script
- * 
+ *
  * This script creates the database schema and can optionally seed data
  * for development or testing environments.
- * 
+ *
  * Run with:
  * node scripts/setup-db.js
- * 
+ *
  * Or with seed data:
  * node scripts/setup-db.js --seed
  */
 
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import crypto from 'crypto';
-import { execSync } from 'child_process';
+import Database from "better-sqlite3";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+import crypto from "crypto";
+import { execSync } from "child_process";
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -30,7 +30,7 @@ const shouldSeed = args.includes("--seed");
 const environment = process.env.NODE_ENV || "development";
 
 // Project root directory (one level up from scripts)
-const rootDir = path.resolve(__dirname, '..');
+const rootDir = path.resolve(__dirname, "..");
 
 // Ensure data directory exists
 const dataDir = path.join(rootDir, "data");
@@ -45,9 +45,9 @@ console.log(`Initializing database at ${dbPath}`);
 // Generate better-auth tables first
 console.log("Generating better-auth database schema...");
 try {
-  execSync('npx @better-auth/cli generate', { 
+  execSync("npx @better-auth/cli generate", {
     cwd: rootDir,
-    stdio: 'inherit' 
+    stdio: "inherit",
   });
   console.log("Better-auth schema generated successfully");
 } catch (error) {
@@ -112,7 +112,7 @@ const initializeSchema = (db) => {
     -- Index for queries by language
     CREATE INDEX IF NOT EXISTS idx_recordings_language ON recordings(language);
   `);
-  
+
   // Create Transcriptions table
   db.exec(`
     CREATE TABLE IF NOT EXISTS transcriptions (
@@ -131,7 +131,7 @@ const initializeSchema = (db) => {
     -- Index for faster queries by recording_id
     CREATE INDEX IF NOT EXISTS idx_transcriptions_recording_id ON transcriptions(recording_id);
   `);
-  
+
   // Create Translations table
   db.exec(`
     CREATE TABLE IF NOT EXISTS translations (
@@ -152,10 +152,9 @@ const initializeSchema = (db) => {
     -- Composite index for looking up translations by language pair
     CREATE INDEX IF NOT EXISTS idx_translations_languages ON translations(source_language, target_language);
   `);
-  
+
   // Notes are now part of the recordings table - no separate notes table needed
-  
-  
+
   // Create Workspaces table for collaboration
   db.exec(`
     CREATE TABLE IF NOT EXISTS workspaces (
@@ -228,11 +227,21 @@ const initializeSchema = (db) => {
     CREATE INDEX IF NOT EXISTS idx_sharing_with_user_id ON recording_sharing(shared_with_user_id);
   `);
 
-  // Add workspace_id column to recordings table
-  db.exec(`
-    -- Add workspace_id column to recordings if not exists
-    ALTER TABLE recordings ADD COLUMN workspace_id TEXT;
-  `);
+  // Add workspace_id column to recordings table (only if it doesn't exist)
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(recordings)").all();
+    const hasWorkspaceId = tableInfo.some(
+      (column) => column.name === "workspace_id",
+    );
+
+    if (!hasWorkspaceId) {
+      db.exec(`ALTER TABLE recordings ADD COLUMN workspace_id TEXT;`);
+    }
+  } catch (error) {
+    console.log(
+      "Note: workspace_id column may already exist in recordings table",
+    );
+  }
 
   // Create index for workspace queries on recordings
   db.exec(`
@@ -241,15 +250,251 @@ const initializeSchema = (db) => {
 };
 
 /**
+ * Migrate existing recordings to workspaces
+ * This function ensures all existing recordings are associated with a workspace
+ */
+const migrateExistingRecordings = (db) => {
+  console.log("Migrating existing recordings to workspaces...");
+
+  try {
+    // First, ensure all users have a personal workspace
+    const usersWithRecordings = db
+      .prepare(
+        `
+      SELECT DISTINCT user_id 
+      FROM recordings 
+      WHERE workspace_id IS NULL
+    `,
+      )
+      .all();
+
+    if (usersWithRecordings.length === 0) {
+      console.log("No recordings need migration");
+      return;
+    }
+
+    console.log(
+      `Found ${usersWithRecordings.length} users with recordings needing migration`,
+    );
+
+    for (const { user_id } of usersWithRecordings) {
+      const personalWorkspaceId = `personal-${user_id}`;
+
+      // Check if personal workspace exists for this user
+      const existingWorkspace = db
+        .prepare(
+          `
+        SELECT id FROM workspaces WHERE id = ?
+      `,
+        )
+        .get(personalWorkspaceId);
+
+      if (!existingWorkspace) {
+        console.log(`Creating personal workspace for user ${user_id}`);
+
+        const now = new Date().toISOString();
+
+        // Create personal workspace
+        try {
+          db.prepare(
+            `
+            INSERT INTO workspaces (
+              id, name, description, slug, settings, storage_quota, 
+              storage_used, created_by, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+          ).run(
+            personalWorkspaceId,
+            "Personal Workspace",
+            "Your personal workspace for private recordings",
+            personalWorkspaceId,
+            JSON.stringify({}),
+            1073741824, // 1GB
+            0,
+            user_id,
+            now,
+            now,
+          );
+
+          // Create workspace membership
+          db.prepare(
+            `
+            INSERT INTO workspace_memberships (
+              id, workspace_id, user_id, role, status, joined_at, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+          ).run(
+            `wsm-${personalWorkspaceId}-${user_id}`,
+            personalWorkspaceId,
+            user_id,
+            "owner",
+            "active",
+            now,
+            now,
+            now,
+          );
+
+          console.log(`Created personal workspace for user ${user_id}`);
+        } catch (error) {
+          console.warn(
+            `Error creating workspace for user ${user_id}:`,
+            error.message,
+          );
+          continue;
+        }
+      }
+
+      // Migrate recordings to the personal workspace
+      const result = db
+        .prepare(
+          `
+        UPDATE recordings 
+        SET workspace_id = ?, updated_at = ?
+        WHERE user_id = ? AND workspace_id IS NULL
+      `,
+        )
+        .run(personalWorkspaceId, new Date().toISOString(), user_id);
+
+      if (result.changes > 0) {
+        console.log(
+          `Migrated ${result.changes} recordings for user ${user_id} to personal workspace`,
+        );
+      }
+    }
+
+    console.log("Recording migration completed successfully");
+  } catch (error) {
+    console.error("Error migrating existing recordings:", error);
+  }
+};
+
+/**
+ * Create test workspaces for a user
+ */
+const createTestWorkspaces = (db, userId) => {
+  console.log("Creating test workspaces...");
+
+  const now = new Date().toISOString();
+
+  // Create a personal workspace for the user
+  const personalWorkspace = {
+    id: `personal-${userId}`,
+    name: "Personal Workspace",
+    description: "Your personal workspace for private recordings",
+    slug: `personal-${userId}`,
+    avatar_url: null,
+    settings: JSON.stringify({}),
+    storage_quota: 1073741824, // 1GB
+    storage_used: 0,
+    created_by: userId,
+    created_at: now,
+    updated_at: now,
+  };
+
+  // Create a team workspace for collaboration
+  const teamWorkspace = {
+    id: `team-${userId}`,
+    name: "Team Workspace",
+    description: "Shared workspace for team collaboration",
+    slug: `team-${userId}`,
+    avatar_url: null,
+    settings: JSON.stringify({}),
+    storage_quota: 5368709120, // 5GB
+    storage_used: 0,
+    created_by: userId,
+    created_at: now,
+    updated_at: now,
+  };
+
+  const workspaces = [personalWorkspace, teamWorkspace];
+
+  // Insert workspaces
+  const insertWorkspaceStmt = db.prepare(`
+    INSERT OR IGNORE INTO workspaces (
+      id, name, description, slug, avatar_url, settings,
+      storage_quota, storage_used, created_by, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const workspace of workspaces) {
+    try {
+      const result = insertWorkspaceStmt.run(
+        workspace.id,
+        workspace.name,
+        workspace.description,
+        workspace.slug,
+        workspace.avatar_url,
+        workspace.settings,
+        workspace.storage_quota,
+        workspace.storage_used,
+        workspace.created_by,
+        workspace.created_at,
+        workspace.updated_at,
+      );
+
+      if (result.changes > 0) {
+        console.log(`Created workspace: ${workspace.name}`);
+      } else {
+        console.log(`Workspace already exists: ${workspace.name}`);
+      }
+    } catch (error) {
+      console.warn(`Error creating workspace ${workspace.id}:`, error);
+    }
+  }
+
+  // Create workspace memberships (owner role for the user)
+  const insertMembershipStmt = db.prepare(`
+    INSERT OR IGNORE INTO workspace_memberships (
+      id, workspace_id, user_id, role, status, invited_by,
+      invited_at, joined_at, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const workspace of workspaces) {
+    const membershipId = `wsm-${workspace.id}-${userId}`;
+    try {
+      const result = insertMembershipStmt.run(
+        membershipId,
+        workspace.id,
+        userId,
+        "owner",
+        "active",
+        null, // not invited by anyone, they created it
+        null,
+        now, // joined when created
+        now,
+        now,
+      );
+
+      if (result.changes > 0) {
+        console.log(`Created membership for ${workspace.name}`);
+      } else {
+        console.log(`Membership already exists for ${workspace.name}`);
+      }
+    } catch (error) {
+      console.warn(`Error creating membership for ${workspace.id}:`, error);
+    }
+  }
+
+  return workspaces;
+};
+
+/**
  * Create test recordings for a user
  */
-const createTestRecordings = (db, userId) => {
+const createTestRecordings = (db, userId, workspaces = []) => {
   console.log("Creating test recordings...");
-  
+
   const now = new Date().toISOString();
   const yesterday = new Date(Date.now() - 86400000).toISOString();
   const twoDaysAgo = new Date(Date.now() - 172800000).toISOString();
-  
+
+  // Find personal workspace to assign recordings to
+  const personalWorkspace = workspaces.find(
+    (ws) => ws.id === `personal-${userId}`,
+  );
+  const workspaceId = personalWorkspace ? personalWorkspace.id : null;
+
   // Create a few test recordings
   const recordings = [
     {
@@ -266,9 +511,10 @@ const createTestRecordings = (db, userId) => {
 - "よろしくお願いします" (Yoroshiku onegaishimasu) = Please treat me well / Nice to meet you
 
 Remember to practice the proper intonation for "よろしくお願いします" - rising on "shi" and falling on "masu".`,
+      workspace_id: workspaceId,
       status: "ready",
       created_at: now,
-      updated_at: now
+      updated_at: now,
     },
     {
       id: "rec-2",
@@ -278,9 +524,10 @@ Remember to practice the proper intonation for "よろしくお願いします" 
       file_path: `recordings/XqmkB9YbkUfYoHhUy4FBkMShidp6KHdx/2025-07-28/f5b5c81c-8cc2-48b5-abcc-3c8edc9b5b84.mp3`,
       language: "French",
       duration: 158, // 2:38
+      workspace_id: workspaceId,
       status: "ready",
       created_at: yesterday,
-      updated_at: yesterday
+      updated_at: yesterday,
     },
     {
       id: "rec-3",
@@ -290,20 +537,21 @@ Remember to practice the proper intonation for "よろしくお願いします" 
       file_path: `recordings/XqmkB9YbkUfYoHhUy4FBkMShidp6KHdx/2025-07-28/f5b5c81c-8cc2-48b5-abcc-3c8edc9b5b84.mp3`,
       language: "Korean",
       duration: 222, // 3:42
+      workspace_id: workspaceId,
       status: "ready",
       created_at: twoDaysAgo,
-      updated_at: twoDaysAgo
-    }
+      updated_at: twoDaysAgo,
+    },
   ];
-  
+
   // Insert test recordings
   const insertStmt = db.prepare(`
     INSERT OR IGNORE INTO recordings (
       id, user_id, title, description, file_path, language,
-      duration, notes, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      duration, notes, workspace_id, status, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  
+
   for (const rec of recordings) {
     try {
       const result = insertStmt.run(
@@ -315,11 +563,12 @@ Remember to practice the proper intonation for "よろしくお願いします" 
         rec.language,
         rec.duration,
         rec.notes,
+        rec.workspace_id,
         rec.status,
         rec.created_at,
-        rec.updated_at
+        rec.updated_at,
       );
-      
+
       if (result.changes > 0) {
         console.log(`Created recording: ${rec.title}`);
       } else {
@@ -329,18 +578,21 @@ Remember to practice the proper intonation for "よろしくお願いします" 
       console.warn(`Error creating test recording ${rec.id}:`, error);
     }
   }
-  
+
   // Add a transcription for the Japanese recording
   try {
     const transcriptionId = "trans-1";
-    const transcriptionText = "こんにちは、私の名前はアレックスです。日本語を勉強しています。よろしくお願いします。";
-    
-    db.prepare(`
+    const transcriptionText =
+      "こんにちは、私の名前はアレックスです。日本語を勉強しています。よろしくお願いします。";
+
+    db.prepare(
+      `
       INSERT OR IGNORE INTO transcriptions (
         id, recording_id, text, romanization, language,
         status, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       transcriptionId,
       "rec-1",
       transcriptionText,
@@ -348,16 +600,18 @@ Remember to practice the proper intonation for "よろしくお願いします" 
       "ja",
       "COMPLETED",
       now,
-      now
+      now,
     );
-    
+
     // Add a translation for the transcription
-    db.prepare(`
+    db.prepare(
+      `
       INSERT OR IGNORE INTO translations (
         id, transcription_id, text, source_language, target_language,
         status, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       "transl-1",
       transcriptionId,
       "Hello, my name is Alex. I am studying Japanese. Nice to meet you.",
@@ -365,11 +619,11 @@ Remember to practice the proper intonation for "よろしくお願いします" 
       "en",
       "COMPLETED",
       now,
-      now
+      now,
     );
-    
+
     // Notes are now stored directly in the recordings table
-    
+
     console.log("Created test transcriptions, translations, and notes");
   } catch (error) {
     console.warn("Error creating test transcriptions and related data:", error);
@@ -378,7 +632,7 @@ Remember to practice the proper intonation for "よろしくお願いします" 
 
 /**
  * Seed the database with test data
- * 
+ *
  * NOTE: We assume the 'user' table already exists and is managed by better-auth
  * The script will look for an existing user to associate test data with
  */
@@ -387,16 +641,24 @@ const seedData = (db) => {
     // Check if better-auth's user table exists
     let userTableExists = false;
     try {
-      const tableCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='user'").get();
+      const tableCheck = db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='user'",
+        )
+        .get();
       userTableExists = !!tableCheck;
     } catch (error) {
       console.error("Error checking for user table:", error);
     }
-    
+
     if (!userTableExists) {
-      console.error("The 'user' table doesn't exist. Please run the application first to initialize better-auth.");
-      console.error("Seeding will continue, but some features may not work without valid users.");
-      
+      console.error(
+        "The 'user' table doesn't exist. Please run the application first to initialize better-auth.",
+      );
+      console.error(
+        "Seeding will continue, but some features may not work without valid users.",
+      );
+
       // Instead of creating a full user table, create a simple placeholder for testing
       db.exec(`
         CREATE TABLE IF NOT EXISTS user (
@@ -409,11 +671,13 @@ const seedData = (db) => {
         VALUES ('test-user-id', 'test@example.com');
       `);
     }
-    
+
     // Find a test user ID to associate with our test data
     let userId = null;
     try {
-      const userRow = db.prepare("SELECT id FROM user WHERE email = 'test@example.com' LIMIT 1").get();
+      const userRow = db
+        .prepare("SELECT id FROM user WHERE email = 'test@example.com' LIMIT 1")
+        .get();
       if (userRow) {
         userId = userRow.id;
         console.log(`Using existing user with id: ${userId}`);
@@ -424,28 +688,35 @@ const seedData = (db) => {
           userId = anyUser.id;
           console.log(`Using existing user with id: ${userId}`);
         } else {
-          console.warn("No users found in the database. Some test data may not be created.");
+          console.warn(
+            "No users found in the database. Some test data may not be created.",
+          );
         }
       }
     } catch (error) {
       console.error("Error finding test user:", error);
     }
-    
+
     if (userId) {
       // Create user profile for the test user
-      db.prepare(`
+      db.prepare(
+        `
         INSERT OR IGNORE INTO user_profile (
           user_id, preferred_language, created_at, updated_at
         ) VALUES (?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         userId,
         "English",
         new Date().toISOString(),
-        new Date().toISOString()
+        new Date().toISOString(),
       );
-      
+
+      // Create test workspaces for the user
+      const workspaces = createTestWorkspaces(db, userId);
+
       // Create test data associated with this user
-      createTestRecordings(db, userId);
+      createTestRecordings(db, userId, workspaces);
     } else {
       console.error("No valid user ID found. Cannot create test recordings.");
     }
@@ -458,20 +729,23 @@ const seedData = (db) => {
 let db;
 try {
   db = new Database(dbPath);
-  
+
   // Enable foreign keys
   db.pragma("foreign_keys = ON");
-  
+
   // Initialize schema
   console.log("Creating database schema...");
   initializeSchema(db);
-  
+
+  // Migrate existing recordings to workspaces (always run this)
+  migrateExistingRecordings(db);
+
   // Seed data if requested
   if (shouldSeed && environment !== "production") {
     console.log("Seeding database with test data...");
     seedData(db);
   }
-  
+
   console.log("Database setup completed successfully!");
 } catch (error) {
   console.error("Error setting up database:", error);
