@@ -18,7 +18,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { recordingsQuery, deleteRecording } from "~/lib/recordings";
+import { recordingsQuery, deleteRecording, transcriptionStatusQuery } from "~/lib/recordings";
 import {
   workspaceRecordingsQuery,
   userWorkspacesQuery,
@@ -89,6 +89,14 @@ const RecordingCard: React.FC<{
       removeRecording(recording.id);
     }
   };
+  // Derive simple status using transcription status (poll-safe server fn)
+  const { data: transcriptionStatusData } = useQuery({
+    ...transcriptionStatusQuery(recording.id),
+  });
+  const derivedStatus =
+    transcriptionStatusData?.transcriptionStatus === "COMPLETED"
+      ? "ready"
+      : "processing";
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -116,14 +124,14 @@ const RecordingCard: React.FC<{
         <div className="flex items-center gap-2">
           <span
             className={`ml-2 px-2 py-1 text-xs rounded-full flex-shrink-0 ${
-              recording.status === "ready"
+              derivedStatus === "ready"
                 ? "bg-green-100 text-green-800"
-                : recording.status === "processing"
+                : derivedStatus === "processing"
                   ? "bg-yellow-100 text-yellow-800"
                   : "bg-red-100 text-red-800"
             }`}
           >
-            {recording.status}
+            {derivedStatus === "ready" ? "Ready" : "Processing"}
           </span>
           <button
             onClick={handleDeleteClick}
