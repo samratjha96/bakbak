@@ -58,9 +58,11 @@ const RecordingCard: React.FC<{
   currentWorkspaceId?: string;
 }> = ({ recording, currentWorkspaceId }) => {
   const queryClient = useQueryClient();
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const { mutate: removeRecording, isPending: isDeleting } = useMutation({
     mutationFn: (id: string) => deleteRecording({ data: id }),
     onSuccess: () => {
+      setDeleteError(null);
       if (currentWorkspaceId) {
         queryClient.invalidateQueries({
           queryKey: ["workspaces", currentWorkspaceId, "recordings"],
@@ -69,12 +71,18 @@ const RecordingCard: React.FC<{
         queryClient.invalidateQueries({ queryKey: ["recordings"] });
       }
     },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete recording";
+      setDeleteError(message);
+    },
   });
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (isDeleting) return;
+    setDeleteError(null);
     if (
       window.confirm("Delete this recording? This action cannot be undone.")
     ) {
@@ -121,12 +129,23 @@ const RecordingCard: React.FC<{
             onClick={handleDeleteClick}
             title="Delete recording"
             aria-label="Delete recording"
-            className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+            disabled={isDeleting}
+            className={`p-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
+              isDeleting
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-400 hover:text-red-600 hover:bg-red-50"
+            }`}
           >
             <TrashIcon className="w-4 h-4" />
           </button>
         </div>
       </div>
+
+      {deleteError && (
+        <div className="mb-2 text-xs text-red-600" aria-live="polite">
+          {deleteError}
+        </div>
+      )}
 
       {recording.description && (
         <p className="text-sm text-gray-600 mb-2 line-clamp-2">
