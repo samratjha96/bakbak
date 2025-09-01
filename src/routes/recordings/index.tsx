@@ -12,7 +12,12 @@ import {
 import { Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { useSession } from "~/lib/auth-client";
-import { useMutation, useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useSuspenseQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { recordingsQuery, deleteRecording } from "~/lib/recordings";
 import {
   workspaceRecordingsQuery,
@@ -52,6 +57,30 @@ const RecordingCard: React.FC<{
   recording: Recording;
   currentWorkspaceId?: string;
 }> = ({ recording, currentWorkspaceId }) => {
+  const queryClient = useQueryClient();
+  const { mutate: removeRecording, isPending: isDeleting } = useMutation({
+    mutationFn: (id: string) => deleteRecording({ data: id }),
+    onSuccess: () => {
+      if (currentWorkspaceId) {
+        queryClient.invalidateQueries({
+          queryKey: ["workspaces", currentWorkspaceId, "recordings"],
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["recordings"] });
+      }
+    },
+  });
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isDeleting) return;
+    if (
+      window.confirm("Delete this recording? This action cannot be undone.")
+    ) {
+      removeRecording(recording.id);
+    }
+  };
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -76,17 +105,27 @@ const RecordingCard: React.FC<{
         <h3 className="font-medium text-gray-900 line-clamp-2">
           {recording.title}
         </h3>
-        <span
-          className={`ml-2 px-2 py-1 text-xs rounded-full flex-shrink-0 ${
-            recording.status === "ready"
-              ? "bg-green-100 text-green-800"
-              : recording.status === "processing"
-                ? "bg-yellow-100 text-yellow-800"
-                : "bg-red-100 text-red-800"
-          }`}
-        >
-          {recording.status}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className={`ml-2 px-2 py-1 text-xs rounded-full flex-shrink-0 ${
+              recording.status === "ready"
+                ? "bg-green-100 text-green-800"
+                : recording.status === "processing"
+                  ? "bg-yellow-100 text-yellow-800"
+                  : "bg-red-100 text-red-800"
+            }`}
+          >
+            {recording.status}
+          </span>
+          <button
+            onClick={handleDeleteClick}
+            title="Delete recording"
+            aria-label="Delete recording"
+            className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {recording.description && (
