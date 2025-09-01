@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { createWorkspace } from "~/lib/workspaces";
+import { createWorkspace } from "~/lib/workspace";
 
 export const Route = createFileRoute("/workspace/new")({
   component: NewWorkspacePage,

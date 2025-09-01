@@ -3,7 +3,7 @@ import {
   fetchUserWorkspaces,
   fetchWorkspaceDetails,
   fetchWorkspaceRecordings,
-} from "./workspaces";
+} from "./workspace";
 
 /**
  * Query for fetching user's workspaces

@@ -1,6 +1,44 @@
 import { createServerFn } from "@tanstack/react-start";
 import { WorkspaceModel, RecordingModel } from "~/database/models";
 import { isAuthenticated, getCurrentUserId } from "~/database/connection";
+import { WorkspaceService } from "./workspaceService";
+
+/**
+ * Server function to ensure the current user has a personal workspace
+ * This can be called from the frontend to ensure workspace exists
+ */
+export const ensureUserWorkspace = createServerFn({ method: "POST" }).handler(
+  async () => {
+    try {
+      const authed = await isAuthenticated();
+      if (!authed) {
+        return { success: false, error: "Not authenticated" };
+      }
+
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return { success: false, error: "Not authenticated" };
+      }
+
+      const workspaceId = await WorkspaceService.ensurePersonalWorkspace(
+        userId,
+        undefined, // We don't have access to email here, but that's ok
+      );
+
+      return {
+        success: true,
+        workspaceId,
+        message: "Personal workspace ensured",
+      };
+    } catch (error) {
+      console.error("Error ensuring user workspace:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+);
 
 /**
  * Server function to fetch user's workspaces

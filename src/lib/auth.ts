@@ -20,22 +20,4 @@ export const auth = betterAuth({
     },
   },
   plugins: [reactStartCookies()],
-  // TODO: Re-enable hooks after testing basic workspace functionality
-  // hooks: {
-  //   after: [
-  //     {
-  //       matcher(context) {
-  //         return context.path === "/sign-up/email" && context.method === "POST";
-  //       },
-  //       handler: async (ctx) => {
-  //         if (ctx.returned?.user?.id) {
-  //           await WorkspaceService.onUserSignup(
-  //             ctx.returned.user.id,
-  //             ctx.returned.user.email
-  //           );
-  //         }
-  //       },
-  //     },
-  //   ],
-  // },
 });
