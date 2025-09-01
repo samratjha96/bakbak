@@ -16,13 +16,13 @@ import {
   methodGuardMiddleware,
   parseJsonBodyMiddleware,
 } from "~/middleware/apiMiddleware";
-import { transliterateText } from "~/lib/transliterate";
+import { romanizeText } from "~/lib/ai-romanization/service";
 import {
   getDefaultScriptForLanguage,
   isSupportedTranslateLanguage,
 } from "~/lib/languages";
 
-const logger = createLogger("API.TransliterateRoute");
+const logger = createLogger("API.RomanizeRoute");
 
 const postTransliterate = createServerFn({ method: "POST" })
   .middleware([
@@ -54,7 +54,7 @@ const postTransliterate = createServerFn({ method: "POST" })
 
     const sourceText = recording.translationText || recording.transcriptionText;
     if (!sourceText) {
-      return { status: 400, message: "No text available to transliterate" };
+      return { status: 400, message: "No text available to romanize" };
     }
 
     // Determine language
@@ -77,17 +77,16 @@ const postTransliterate = createServerFn({ method: "POST" })
       };
     }
 
-    // Perform transliteration
+    // Perform AI romanization
     try {
-      const transliteratedText = transliterateText(
-        sourceText,
-        lang,
-        srcScript,
-        targetScriptCode,
-      );
+      const romanizationResponse = await romanizeText({
+        text: sourceText,
+        sourceLanguage: lang as any,
+      });
+
       return {
         status: 200,
-        transliteratedText,
+        transliteratedText: romanizationResponse.romanizedText,
         languageCode: lang,
         sourceScriptCode: srcScript,
         targetScriptCode,
@@ -95,7 +94,7 @@ const postTransliterate = createServerFn({ method: "POST" })
     } catch (error: any) {
       return {
         status: 502,
-        message: `Transliteration service error: ${error?.message || "Unknown error"}`,
+        message: `AI romanization service error: ${error?.message || "Unknown error"}`,
       };
     }
   });

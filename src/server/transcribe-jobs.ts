@@ -12,7 +12,7 @@ import {
 } from "~/lib/recordings";
 import { AppError } from "~/utils/errorHandling";
 import { TranscriptionStatus } from "~/types/recording";
-import { transliterateText } from "~/lib/transliterate";
+import { romanizeText } from "~/lib/ai-romanization/service";
 import {
   getDefaultScriptForLanguage,
   isSupportedTranslateLanguage,
@@ -170,46 +170,49 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
           console.log(`[Transcribe] Job ${jobId} completed, retrieving result`);
           const result = await transcribe.getTranscriptionResult(jobId);
 
-          // Attempt transliteration to romanization if needed
+          // Attempt AI-powered romanization if needed
           let romanizedText =
             recording.transcription?.romanization || result.text;
           let languageCode: string | undefined =
             recording.language || undefined;
-          let sourceScriptCode: string | undefined;
-          const targetScriptCode = "Latn";
 
           try {
-            if (!recording.transcription?.romanization) {
-              if (languageCode && isSupportedTranslateLanguage(languageCode)) {
-                sourceScriptCode = getDefaultScriptForLanguage(languageCode);
-                if (sourceScriptCode && sourceScriptCode !== targetScriptCode) {
+            if (!recording.transcription?.romanization && languageCode) {
+              if (isSupportedTranslateLanguage(languageCode)) {
+                const sourceScriptCode =
+                  getDefaultScriptForLanguage(languageCode);
+                if (sourceScriptCode && sourceScriptCode !== "Latn") {
                   console.log(
-                    `[Transcribe] Performing transliteration for ${recordingId} lang=${languageCode} ${sourceScriptCode}->${targetScriptCode}`,
+                    `[Transcribe] Performing AI romanization for ${recordingId} lang=${languageCode} ${sourceScriptCode}->Latn`,
                   );
-                  romanizedText = transliterateText(
-                    result.text,
-                    languageCode,
-                    sourceScriptCode,
-                    targetScriptCode,
+
+                  const romanizationResponse = await romanizeText({
+                    text: result.text,
+                    sourceLanguage: languageCode as any,
+                  });
+                  romanizedText = romanizationResponse.romanizedText;
+
+                  console.log(
+                    `[Transcribe] AI romanization completed for ${recordingId}`,
                   );
                 } else {
                   console.log(
-                    `[Transcribe] Skipping transliteration for ${recordingId} (script is already ${targetScriptCode} or unknown)`,
+                    `[Transcribe] Skipping romanization for ${recordingId} (script is already Latin or unknown)`,
                   );
                 }
               } else {
                 console.warn(
-                  `[Transcribe] Unknown/unsupported language for transliteration on ${recordingId}: ${languageCode}`,
+                  `[Transcribe] Unknown/unsupported language for AI romanization on ${recordingId}: ${languageCode}`,
                 );
               }
             } else {
               console.log(
-                `[Transcribe] Romanization already exists for ${recordingId}; skipping transliteration`,
+                `[Transcribe] Romanization already exists for ${recordingId}; skipping AI romanization`,
               );
             }
-          } catch (trError: any) {
+          } catch (aiError: any) {
             console.error(
-              `[Transcribe] Transliteration failed for ${recordingId}: ${trError?.message || trError}`,
+              `[Transcribe] AI romanization failed for ${recordingId}: ${aiError?.message || aiError}`,
             );
             // Fall back to original text already set
           }

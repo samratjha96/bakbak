@@ -42,7 +42,6 @@
     "react-dom": "^19.0.0",
     "redaxios": "^0.5.1",
     "tailwind-merge": "^2.6.0",
-    "transliteration": "^2.3.5",
     "wavesurfer.js": "^7.10.1"
   },
   "devDependencies": {

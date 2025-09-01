@@ -66,7 +66,7 @@ export const normalizeTranslateLanguage = (code: string) => {
   );
 };
 
-// Additional helpers for script-aware features (transliteration)
+// Additional helpers for script-aware features (romanization)
 
 /**
  * Check if a language code is supported by our Translate/Transliterate flows
