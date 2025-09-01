@@ -311,6 +311,25 @@ export const ChevronUpIcon: React.FC<IconProps> = ({
   </svg>
 );
 
+export const ChevronRightIcon: React.FC<IconProps> = ({
+  className = "w-6 h-6",
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    className={className}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M9 5l7 7-7 7"
+    />
+  </svg>
+);
+
 export const PauseIcon: React.FC<IconProps> = ({ className = "w-6 h-6" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"

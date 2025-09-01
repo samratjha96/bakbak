@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
-import { MicrophoneIcon, PlusIcon, DocumentIcon, TrashIcon } from "~/components/ui/Icons";
+import { MicrophoneIcon, PlusIcon, DocumentIcon, TrashIcon, ChevronRightIcon } from "~/components/ui/Icons";
 import { Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { useSession } from "~/lib/auth-client";
@@ -76,7 +76,16 @@ const RecordingItem: React.FC<{
   return (
     <div
       onClick={handleCardClick}
-      className="flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors gap-4"
+      className="group flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors gap-4"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleCardClick(e as any);
+        }
+      }}
+      aria-label={`Open recording ${title}`}
     >
       <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
         <MicrophoneIcon className="w-5 h-5 text-primary" />
@@ -107,7 +116,7 @@ const RecordingItem: React.FC<{
           <span>{date}</span>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {!isTranscribed && transcriptionStatus !== "IN_PROGRESS" && (
           <TranscribeButton
             recordingId={id}
@@ -117,15 +126,11 @@ const RecordingItem: React.FC<{
             currentStatus={transcriptionStatus}
           />
         )}
-        <Link
-          to="/recordings/$id"
-          params={{ id }}
-          className="text-primary hover:text-secondary flex-shrink-0"
-        >
+        <Link to="/recordings/$id" params={{ id }} className="text-primary hover:text-secondary flex-shrink-0 text-sm font-medium">
           View
         </Link>
         <button
-          className="ml-1 text-gray-400 hover:text-red-600 transition-colors"
+          className="ml-1 inline-flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors"
           onClick={async (e) => {
             e.stopPropagation();
             if (deleteMutation.isPending) return;
@@ -146,7 +151,9 @@ const RecordingItem: React.FC<{
           title="Delete"
         >
           <TrashIcon className="w-4 h-4" />
+          <span className="hidden sm:inline text-xs">Delete</span>
         </button>
+        <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-gray-400 ml-1" />
       </div>
     </div>
   );
@@ -293,30 +300,55 @@ function RecordingsPage() {
             <h2 className="font-medium text-sm text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Recent Recordings
             </h2>
-            <span className="text-xs text-primary font-medium cursor-pointer">
-              View All
-            </span>
+            <div className="flex items-center gap-4">
+              {session?.user && (
+                <Link 
+                  to="/workspace/$workspaceId" 
+                  params={{ workspaceId: `personal-${session.user.id}` }}
+                  className="text-xs text-blue-600 font-medium hover:text-blue-700"
+                >
+                  View Workspace
+                </Link>
+              )}
+              <span className="text-xs text-primary font-medium cursor-pointer">
+                View All
+              </span>
+            </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-            {recordings.map((recording, index) => (
-              <React.Fragment key={recording.id}>
-                {index > 0 && (
-                  <div className="mx-4 border-t border-gray-100 dark:border-gray-800"></div>
-                )}
-                <RecordingItem
-                  id={recording.id}
-                  title={recording.title}
-                  language={recording.language}
-                  duration={recording.duration}
-                  date={formatRelativeDate(new Date(recording.createdAt))}
-                  isTranscribed={recording.isTranscribed}
-                  transcriptionStatus={recording.transcriptionStatus}
-                  onDeleted={() => recordingsQueryResult.refetch()}
-                />
-              </React.Fragment>
-            ))}
-          </div>
+          {recordings.length === 0 ? (
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 text-center">
+              <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <MicrophoneIcon className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="font-medium mb-1">No recordings yet</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Start your first practice session to see it here.</p>
+              <Link to="/recordings/new" className="inline-flex items-center gap-2 py-2 px-4 bg-primary text-white rounded-lg hover:bg-secondary">
+                <MicrophoneIcon className="w-4 h-4" />
+                Start Recording
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+              {recordings.map((recording, index) => (
+                <React.Fragment key={recording.id}>
+                  {index > 0 && (
+                    <div className="mx-4 border-t border-gray-100 dark:border-gray-800"></div>
+                  )}
+                  <RecordingItem
+                    id={recording.id}
+                    title={recording.title}
+                    language={recording.language}
+                    duration={recording.duration}
+                    date={formatRelativeDate(new Date(recording.createdAt))}
+                    isTranscribed={recording.isTranscribed}
+                    transcriptionStatus={recording.transcriptionStatus}
+                    onDeleted={() => recordingsQueryResult.refetch()}
+                  />
+                </React.Fragment>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Layout>

@@ -1,11 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-// Route deprecated; redirect to new recordings page for now
+// Route deprecated; redirect to new recordings page without hard reload
 export const Route = createFileRoute("/record")({
-  beforeLoad: () => {
-    if (typeof window !== "undefined") {
-      window.location.replace("/recordings/new");
-    }
-  },
-  component: () => null,
+  beforeLoad: () => redirect({ to: "/recordings/new" }),
 });

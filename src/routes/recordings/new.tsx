@@ -64,7 +64,6 @@ const uploadAudioRecording = createServerFn({ method: "POST" })
         );
       }
 
-      console.log(`Uploading ${audioFile.name} (${Math.round(audioFile.size/1024)}KB) to ${storagePath}`);
 
       const presignedUrl = await getPresignedUploadUrl({
         data: {
@@ -89,7 +88,6 @@ const uploadAudioRecording = createServerFn({ method: "POST" })
         );
       }
 
-      console.log(`Upload successful: ${storagePath}`);
 
       const fileUrl = await getS3Url({ data: { key: storagePath } });
 
@@ -202,9 +200,7 @@ function NewRecordingPage() {
       formData.append("fileExtension", ext);
       formData.append("contentType", blobType);
 
-      console.log(`[Upload] Starting upload: ${(audioBlob.size / 1024 / 1024).toFixed(1)}MB ${ext} file`);
       const uploadResult = await uploadAudioRecording({ data: formData });
-      console.log(`[Upload] Success: ${uploadResult.url}`);
 
       createRecordingMutation.mutate({
         data: {
@@ -245,11 +241,10 @@ function NewRecordingPage() {
         </div>
 
         {/* Main content section */}
-        <div className="max-w-3xl mx-auto">
-          {/* Recording section */}
-          <div>
-            {/* Recording visualizer and controls */}
-            <div className="bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 rounded-lg p-4 md:p-6 mb-6">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            {/* Recording section */}
+            <div className="bg-gradient-to-br from-primary/5 via-white to-white dark:from-primary/10 dark:via-gray-900 dark:to-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 rounded-lg p-4 md:p-6">
               {/* Waveform container with fixed aspect ratio */}
               <div className="relative w-full mb-6">
                 {/* Live waveform during recording; WaveSurfer player after */}
@@ -344,11 +339,13 @@ function NewRecordingPage() {
                 </div>
 
                 {/* Label under primary control for clarity */}
-                {isRecording && (
+                {isRecording ? (
                   <div className="text-xs text-gray-500 mb-1">
-                    {isPaused ? "Paused" : "Tap to pause"}
+                    {isPaused ? "Paused – tap to resume" : "Recording… tap to pause"}
                   </div>
-                )}
+                ) : !audioUrl ? (
+                  <div className="text-xs text-gray-500 mb-1">Tap to start</div>
+                ) : null}
 
                 {/* WaveSurfer handles playback UI */}
 
@@ -360,7 +357,7 @@ function NewRecordingPage() {
             </div>
 
             {/* Recording details form */}
-            <div className="bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 rounded-lg p-4 md:p-6">
+            <div className="bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 rounded-lg p-4 md:p-6 lg:sticky lg:top-24">
               <h2 className="text-lg font-semibold mb-4">Recording Details</h2>
 
               <div className="space-y-5">
@@ -448,6 +445,7 @@ function NewRecordingPage() {
               </div>
             </div>
           </div>
+          </div>
         </div>
         {/* Sticky mobile CTA bar - visible only on small screens */}
         <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 supports-[backdrop-filter]:dark:bg-gray-900/80">
@@ -466,7 +464,6 @@ function NewRecordingPage() {
               {isRecording ? "Recording..." : isUploading ? "Uploading..." : "Save"}
             </button>
           </div>
-        </div>
       </div>
     </Layout>
   );

@@ -2,14 +2,32 @@ import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { useSession, signOut, signIn } from "~/lib/auth-client";
 import { MicrophoneIcon } from "~/components/ui/Icons";
+import { WorkspaceSelector } from "~/components/workspace";
+import { useQuery } from "@tanstack/react-query";
+import { userWorkspacesQuery } from "~/lib/workspaceQueries";
 
-interface HeaderProps {
-  className?: string;
-}
+interface HeaderProps {}
 
-export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
+export const Header: React.FC<HeaderProps> = () => {
   const { data } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [currentWorkspaceId, setCurrentWorkspaceId] = React.useState<string>();
+
+  // Fetch user workspaces using TanStack Query
+  const {
+    data: workspaces = [],
+    isLoading: workspacesLoading,
+  } = useQuery({
+    ...userWorkspacesQuery(),
+    enabled: !!data?.user,
+  });
+
+  // Set first workspace as current if none selected
+  React.useEffect(() => {
+    if (workspaces.length > 0 && !currentWorkspaceId) {
+      setCurrentWorkspaceId(workspaces[0].id);
+    }
+  }, [workspaces, currentWorkspaceId]);
 
   return (
     <header className="bg-white dark:bg-gray-950 sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800">
@@ -23,6 +41,23 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Workspace Selector - shown when logged in */}
+            {data?.user && !workspacesLoading && workspaces.length > 0 && (
+              <WorkspaceSelector
+                workspaces={workspaces}
+                currentWorkspaceId={currentWorkspaceId}
+                onWorkspaceChange={setCurrentWorkspaceId}
+              />
+            )}
+            
+            {/* Record CTA - desktop */}
+            <Link
+              to="/recordings/new"
+              className="hidden md:inline-flex items-center gap-2 py-1.5 px-3 bg-primary hover:bg-secondary text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <MicrophoneIcon className="w-4 h-4" />
+              Record
+            </Link>
             {/* User account section - responsive */}
             <div>
               {data ? (
@@ -87,6 +122,7 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
             <nav className="flex flex-col space-y-2">
               <Link
                 to="/recordings"
+                preload={false}
                 className="py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -94,6 +130,7 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
               </Link>
               <Link
                 to="/recordings/new"
+                preload={false}
                 className="py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -101,6 +138,7 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
               </Link>
               <Link
                 to="/transcribe"
+                preload={false}
                 className="py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -108,6 +146,7 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
               </Link>
               <Link
                 to="/recordings"
+                preload={false}
                 className="py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => setMobileMenuOpen(false)}
               >

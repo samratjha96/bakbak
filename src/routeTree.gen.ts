@@ -14,8 +14,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TranscribeRouteImport } from './routes/transcribe'
 import { Route as RecordRouteImport } from './routes/record'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as StorageIndexRouteImport } from './routes/storage/index'
 import { Route as RecordingsIndexRouteImport } from './routes/recordings/index'
+import { Route as WorkspaceNewRouteImport } from './routes/workspace/new'
+import { Route as WorkspaceWorkspaceIdRouteImport } from './routes/workspace/$workspaceId'
 import { Route as RecordingsNewRouteImport } from './routes/recordings/new'
 import { Route as RecordingsIdRouteImport } from './routes/recordings/$id'
 import { Route as ApiRecordingsRecordingIdTransliterateIndexRouteImport } from './routes/api/recordings/$recordingId/transliterate/index'
@@ -43,14 +44,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StorageIndexRoute = StorageIndexRouteImport.update({
-  id: '/storage/',
-  path: '/storage/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RecordingsIndexRoute = RecordingsIndexRouteImport.update({
   id: '/recordings/',
   path: '/recordings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceNewRoute = WorkspaceNewRouteImport.update({
+  id: '/workspace/new',
+  path: '/workspace/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceWorkspaceIdRoute = WorkspaceWorkspaceIdRouteImport.update({
+  id: '/workspace/$workspaceId',
+  path: '/workspace/$workspaceId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecordingsNewRoute = RecordingsNewRouteImport.update({
@@ -111,8 +117,9 @@ export interface FileRoutesByFullPath {
   '/transcribe': typeof TranscribeRoute
   '/recordings/$id': typeof RecordingsIdRoute
   '/recordings/new': typeof RecordingsNewRoute
+  '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRoute
+  '/workspace/new': typeof WorkspaceNewRoute
   '/recordings': typeof RecordingsIndexRoute
-  '/storage': typeof StorageIndexRoute
   '/api/recordings/$recordingId/transcribe/status': typeof ApiRecordingsRecordingIdTranscribeStatusRoute
   '/api/recordings/$recordingId/transcribe': typeof ApiRecordingsRecordingIdTranscribeIndexRoute
   '/api/recordings/$recordingId/transcription': typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
@@ -126,8 +133,9 @@ export interface FileRoutesByTo {
   '/transcribe': typeof TranscribeRoute
   '/recordings/$id': typeof RecordingsIdRoute
   '/recordings/new': typeof RecordingsNewRoute
+  '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRoute
+  '/workspace/new': typeof WorkspaceNewRoute
   '/recordings': typeof RecordingsIndexRoute
-  '/storage': typeof StorageIndexRoute
   '/api/recordings/$recordingId/transcribe/status': typeof ApiRecordingsRecordingIdTranscribeStatusRoute
   '/api/recordings/$recordingId/transcribe': typeof ApiRecordingsRecordingIdTranscribeIndexRoute
   '/api/recordings/$recordingId/transcription': typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
@@ -142,8 +150,9 @@ export interface FileRoutesById {
   '/transcribe': typeof TranscribeRoute
   '/recordings/$id': typeof RecordingsIdRoute
   '/recordings/new': typeof RecordingsNewRoute
+  '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRoute
+  '/workspace/new': typeof WorkspaceNewRoute
   '/recordings/': typeof RecordingsIndexRoute
-  '/storage/': typeof StorageIndexRoute
   '/api/recordings/$recordingId/transcribe/status': typeof ApiRecordingsRecordingIdTranscribeStatusRoute
   '/api/recordings/$recordingId/transcribe/': typeof ApiRecordingsRecordingIdTranscribeIndexRoute
   '/api/recordings/$recordingId/transcription/': typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
@@ -159,8 +168,9 @@ export interface FileRouteTypes {
     | '/transcribe'
     | '/recordings/$id'
     | '/recordings/new'
+    | '/workspace/$workspaceId'
+    | '/workspace/new'
     | '/recordings'
-    | '/storage'
     | '/api/recordings/$recordingId/transcribe/status'
     | '/api/recordings/$recordingId/transcribe'
     | '/api/recordings/$recordingId/transcription'
@@ -174,8 +184,9 @@ export interface FileRouteTypes {
     | '/transcribe'
     | '/recordings/$id'
     | '/recordings/new'
+    | '/workspace/$workspaceId'
+    | '/workspace/new'
     | '/recordings'
-    | '/storage'
     | '/api/recordings/$recordingId/transcribe/status'
     | '/api/recordings/$recordingId/transcribe'
     | '/api/recordings/$recordingId/transcription'
@@ -189,8 +200,9 @@ export interface FileRouteTypes {
     | '/transcribe'
     | '/recordings/$id'
     | '/recordings/new'
+    | '/workspace/$workspaceId'
+    | '/workspace/new'
     | '/recordings/'
-    | '/storage/'
     | '/api/recordings/$recordingId/transcribe/status'
     | '/api/recordings/$recordingId/transcribe/'
     | '/api/recordings/$recordingId/transcription/'
@@ -205,8 +217,9 @@ export interface RootRouteChildren {
   TranscribeRoute: typeof TranscribeRoute
   RecordingsIdRoute: typeof RecordingsIdRoute
   RecordingsNewRoute: typeof RecordingsNewRoute
+  WorkspaceWorkspaceIdRoute: typeof WorkspaceWorkspaceIdRoute
+  WorkspaceNewRoute: typeof WorkspaceNewRoute
   RecordingsIndexRoute: typeof RecordingsIndexRoute
-  StorageIndexRoute: typeof StorageIndexRoute
   ApiRecordingsRecordingIdTranscribeStatusRoute: typeof ApiRecordingsRecordingIdTranscribeStatusRoute
   ApiRecordingsRecordingIdTranscribeIndexRoute: typeof ApiRecordingsRecordingIdTranscribeIndexRoute
   ApiRecordingsRecordingIdTranscriptionIndexRoute: typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
@@ -259,18 +272,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/storage/': {
-      id: '/storage/'
-      path: '/storage'
-      fullPath: '/storage'
-      preLoaderRoute: typeof StorageIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/recordings/': {
       id: '/recordings/'
       path: '/recordings'
       fullPath: '/recordings'
       preLoaderRoute: typeof RecordingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workspace/new': {
+      id: '/workspace/new'
+      path: '/workspace/new'
+      fullPath: '/workspace/new'
+      preLoaderRoute: typeof WorkspaceNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workspace/$workspaceId': {
+      id: '/workspace/$workspaceId'
+      path: '/workspace/$workspaceId'
+      fullPath: '/workspace/$workspaceId'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recordings/new': {
@@ -349,8 +369,9 @@ const rootRouteChildren: RootRouteChildren = {
   TranscribeRoute: TranscribeRoute,
   RecordingsIdRoute: RecordingsIdRoute,
   RecordingsNewRoute: RecordingsNewRoute,
+  WorkspaceWorkspaceIdRoute: WorkspaceWorkspaceIdRoute,
+  WorkspaceNewRoute: WorkspaceNewRoute,
   RecordingsIndexRoute: RecordingsIndexRoute,
-  StorageIndexRoute: StorageIndexRoute,
   ApiRecordingsRecordingIdTranscribeStatusRoute:
     ApiRecordingsRecordingIdTranscribeStatusRoute,
   ApiRecordingsRecordingIdTranscribeIndexRoute:

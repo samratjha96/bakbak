@@ -6,3 +6,4 @@ export * from "./Transcription";
 export * from "./Translation";
 export * from "./Note";
 export * from "./RecordingSharing";
+export * from "./Workspace";

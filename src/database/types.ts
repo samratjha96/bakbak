@@ -11,6 +11,7 @@ export interface DbRecording {
   notes?: string; // User notes for this recording
   metadata?: string; // JSON string
   status: "processing" | "ready" | "error";
+  workspace_id?: string; // Added for workspace support
   created_at: string; // ISO timestamp
   updated_at: string; // ISO timestamp
 }
@@ -48,4 +49,31 @@ export interface DbUser {
   image?: string;
   createdAt: string; // ISO timestamp
   updatedAt: string; // ISO timestamp
+}
+
+export interface DbWorkspace {
+  id: string;
+  name: string;
+  description?: string;
+  slug: string;
+  avatar_url?: string;
+  settings: string; // JSON string
+  storage_quota: number;
+  storage_used: number;
+  created_by: string;
+  created_at: string; // ISO timestamp
+  updated_at: string; // ISO timestamp
+}
+
+export interface DbWorkspaceMembership {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  role: "owner" | "editor" | "viewer";
+  status: "active" | "pending";
+  invited_by?: string;
+  invited_at?: string;
+  joined_at?: string;
+  created_at: string; // ISO timestamp
+  updated_at: string; // ISO timestamp
 }

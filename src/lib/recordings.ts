@@ -47,7 +47,7 @@ export {
   getRecordingPath,
   deleteRecording,
   getTranscriptionJobStatus,
-}; 
+};
 
 // Query options for fetching presigned URL with caching
 export const presignedUrlQuery = (id: string) =>

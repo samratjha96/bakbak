@@ -111,17 +111,18 @@ const startTranscription = createServerFn({ method: "POST" })
 export const Route = createFileRoute(
   "/api/recordings/$recordingId/transcribe/",
 )({
-  loaderDeps: (ctx: any) => ({ recordingId: ctx?.params?.recordingId }),
-  serverComponent: async ({ params, deps, request }: any) => {
+  loaderDeps: ({ params }: { params: { recordingId: string } }) => ({ recordingId: params.recordingId }),
+  serverComponent: async ({
+    params,
+    deps,
+    request
+  }: {
+    params: { recordingId: string };
+    deps: { recordingId: string };
+    request: Request;
+  }) => {
     logger.info(`Request received: ${request.method} ${request.url}`);
     
-    // Debug AWS environment variables
-    console.log('AWS Environment Variables:', {
-      AWS_REGION: process.env.AWS_REGION,
-      AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
-      AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ? '***' : undefined,
-      AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? '***' : undefined,
-    });
 
     if (params.recordingId !== deps.recordingId) {
       logger.error(

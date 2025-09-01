@@ -121,7 +121,52 @@ export function initializeSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
   `);
 
-  // Create RecordingSharing table for collaboration
+  // Create Workspaces table for collaboration
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS workspaces (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      slug TEXT UNIQUE NOT NULL,
+      avatar_url TEXT,
+      settings JSON DEFAULT '{}',
+      storage_quota INTEGER DEFAULT 1073741824, -- 1GB in bytes
+      storage_used INTEGER DEFAULT 0,
+      created_by TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES user(id) ON DELETE RESTRICT
+    );
+    
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_workspaces_slug ON workspaces(slug);
+    CREATE INDEX IF NOT EXISTS idx_workspaces_created_by ON workspaces(created_by);
+  `);
+
+  // Create Workspace Memberships table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS workspace_memberships (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      role TEXT NOT NULL CHECK (role IN ('owner', 'editor', 'viewer')),
+      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending')),
+      invited_by TEXT,
+      invited_at TIMESTAMP,
+      joined_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+      FOREIGN KEY (invited_by) REFERENCES user(id) ON DELETE SET NULL,
+      UNIQUE(workspace_id, user_id)
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_workspace_memberships_workspace_id ON workspace_memberships(workspace_id);
+    CREATE INDEX IF NOT EXISTS idx_workspace_memberships_user_id ON workspace_memberships(user_id);
+    CREATE INDEX IF NOT EXISTS idx_workspace_memberships_status ON workspace_memberships(status);
+  `);
+
+  // Create RecordingSharing table for collaboration (keeping for backward compatibility)
   db.exec(`
     CREATE TABLE IF NOT EXISTS recording_sharing (
       id TEXT PRIMARY KEY,
@@ -146,5 +191,14 @@ export function initializeSchema(db: Database.Database): void {
     
     -- Index for faster queries by shared_with_user_id (recordings shared with a user)
     CREATE INDEX IF NOT EXISTS idx_sharing_with_user_id ON recording_sharing(shared_with_user_id);
+  `);
+
+  // Update recordings table to add workspace support
+  db.exec(`
+    -- Add workspace_id column to recordings if it doesn't exist
+    ALTER TABLE recordings ADD COLUMN workspace_id TEXT;
+    
+    -- Create index for workspace queries
+    CREATE INDEX IF NOT EXISTS idx_recordings_workspace_id ON recordings(workspace_id);
   `);
 }

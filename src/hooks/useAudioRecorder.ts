@@ -136,10 +136,8 @@ export function useAudioRecorder(): AudioRecorderHook {
         mediaRecorder = new MediaRecorder(stream, {
           mimeType: supportedMimeType,
         });
-        console.log(`Using audio format: ${supportedMimeType}`);
       } else {
         mediaRecorder = new MediaRecorder(stream);
-        console.log(`Using default audio format: ${mediaRecorder.mimeType}`);
       }
 
       mediaRecorderRef.current = mediaRecorder;

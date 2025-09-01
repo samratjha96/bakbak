@@ -15,6 +15,7 @@ export interface Recording {
   duration: number; // in seconds
   metadata?: Record<string, any>;
   status: "processing" | "ready" | "error";
+  workspaceId?: string; // Added for workspace support
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +32,7 @@ export interface CreateRecordingInput {
   duration: number;
   metadata?: Record<string, any>;
   status?: "processing" | "ready" | "error";
+  workspaceId?: string; // Added for workspace support
 }
 
 /**
@@ -60,6 +62,7 @@ function mapDbToRecording(db: DbRecording): Recording {
     duration: db.duration,
     metadata: db.metadata ? JSON.parse(db.metadata) : undefined,
     status: db.status,
+    workspaceId: db.workspace_id,
     createdAt: new Date(db.created_at),
     updatedAt: new Date(db.updated_at),
   };
@@ -129,6 +132,24 @@ export class RecordingModel {
   }
 
   /**
+   * Find recordings by workspace ID
+   */
+  static findByWorkspaceId(workspaceId: string): Recording[] {
+    const db = getDatabase();
+    const recordings = db
+      .prepare(
+        `
+      SELECT * FROM recordings 
+      WHERE workspace_id = ?
+      ORDER BY created_at DESC
+    `,
+      )
+      .all(workspaceId) as DbRecording[];
+
+    return recordings.map(mapDbToRecording);
+  }
+
+  /**
    * Create a new recording
    */
   static create(input: CreateRecordingInput): Recording {
@@ -146,6 +167,7 @@ export class RecordingModel {
       duration: input.duration,
       metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
       status: input.status || "processing",
+      workspace_id: input.workspaceId,
       created_at: now,
       updated_at: now,
     };
@@ -154,8 +176,8 @@ export class RecordingModel {
       `
       INSERT INTO recordings (
         id, user_id, title, description, file_path, language,
-        duration, metadata, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        duration, metadata, status, workspace_id, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       recording.id,
@@ -167,6 +189,7 @@ export class RecordingModel {
       recording.duration,
       recording.metadata,
       recording.status,
+      recording.workspace_id,
       recording.created_at,
       recording.updated_at,
     );
