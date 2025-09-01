@@ -7,7 +7,6 @@ import { ActionBar } from "~/components/layout";
 import {
   RecordIcon,
   PlayIcon,
-  CloseIcon,
   SaveIcon,
   PauseIcon,
 } from "~/components/ui/Icons";
@@ -22,6 +21,7 @@ import { languages } from "~/lib/languages";
 import { useSession } from "~/lib/auth-client";
 import { getPresignedUploadUrl, getS3Url } from "~/server/s3";
 import { RecordingStoragePaths } from "~/services/storage/RecordingStoragePaths";
+import { useWorkspace } from "~/contexts/WorkspaceContext";
 
 // Server function co-located with the route that uses it
 const uploadAudioRecording = createServerFn({ method: "POST" })
@@ -117,6 +117,7 @@ function NewRecordingPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
+  const { currentWorkspaceId } = useWorkspace();
 
   // Use our custom hook for audio recording
   const {
@@ -180,18 +181,24 @@ function NewRecordingPage() {
       return;
     }
 
+    if (!currentWorkspaceId) {
+      setUploadError("No workspace selected.");
+      return;
+    }
+
     setIsUploading(true);
     setUploadError(null);
 
     try {
       const blobType = audioBlob.type || "audio/webm";
-      const ext = blobType.includes("ogg")
-        ? "ogg"
-        : blobType.includes("mp4") || blobType.includes("aac")
-          ? "m4a"
-          : blobType.includes("mpeg")
-            ? "mp3"
-            : "webm";
+
+      const getFileExtension = (mimeType: string): string => {
+        if (mimeType.includes("ogg")) return "ogg";
+        if (mimeType.includes("mp4") || mimeType.includes("aac")) return "m4a";
+        if (mimeType.includes("mpeg")) return "mp3";
+        return "webm";
+      };
+      const ext = getFileExtension(blobType);
 
       const formData = new FormData();
       const audioFile = new File([audioBlob], `recording.${ext}`, {
@@ -213,6 +220,7 @@ function NewRecordingPage() {
           duration: duration,
           audioUrl: uploadResult.url,
           notes: initialNotes ? { content: initialNotes } : undefined,
+          workspaceId: currentWorkspaceId,
         },
       });
     } catch (error) {

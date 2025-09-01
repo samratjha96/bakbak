@@ -202,7 +202,7 @@ export const createRecording = createServerFn({ method: "POST" })
         | "isTranscribed"
         | "transcriptionStatus"
         | "isTranslated"
-      >,
+      > & { workspaceId: string },
     ) => data,
   )
   .handler(async ({ data }) => {
@@ -245,10 +245,11 @@ export const createRecording = createServerFn({ method: "POST" })
     const dbRecording = {
       id: recordingId,
       user_id: userId,
+      workspace_id: data.workspaceId,
       title: data.title,
-      description: null as string | null,
+      description: null,
       file_path: filePath,
-      language: data.language || (null as string | null),
+      language: data.language || null,
       duration: data.duration,
       notes: notesContent,
       status: "processing" as const,
@@ -258,13 +259,14 @@ export const createRecording = createServerFn({ method: "POST" })
     db.prepare(
       `
        INSERT INTO recordings (
-         id, user_id, title, description, file_path, language,
+         id, user_id, workspace_id, title, description, file_path, language,
          duration, notes, status, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      `,
     ).run(
       dbRecording.id,
       dbRecording.user_id,
+      dbRecording.workspace_id,
       dbRecording.title,
       dbRecording.description,
       dbRecording.file_path,

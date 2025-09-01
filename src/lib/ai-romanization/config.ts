@@ -4,24 +4,25 @@
  * Centralized configuration for AWS Bedrock-powered romanization
  */
 
-import {
-  BEDROCK_MODELS,
-  DEFAULT_MODEL_CONFIGS,
-  type BedrockModelConfig,
-  type SupportedLanguage,
-} from "~/types/romanization";
+import { type SupportedLanguage } from "~/types/romanization";
 
 export const AI_ROMANIZATION_CONFIG = {
   AWS_REGION: process.env.AWS_REGION || "us-east-1",
   AWS_BEARER_TOKEN: process.env.AWS_BEARER_TOKEN_BEDROCK,
-  DEFAULT_MODEL: BEDROCK_MODELS.CLAUDE_3_HAIKU,
+  DEFAULT_MODEL: process.env.AWS_BEDROCK_MODEL || "amazon.nova-pro-v1:0",
   MAX_TEXT_LENGTH: 10000,
 } as const;
 
-export const ROMANIZATION_PROMPT_TEMPLATE = `You are an expert linguist specializing in romanization of voice transcriptions. Romanize the following {language} text using standard conventions (e.g., Pinyin for Chinese, Hepburn for Japanese, Revised Romanization for Korean). Account for potential transcription errors and focus on readability. Return only the romanized text.`;
-
 export function getRomanizationPrompt(language: SupportedLanguage): string {
-  const displayLanguage =
-    language === "unknown" ? "the detected language" : language;
-  return ROMANIZATION_PROMPT_TEMPLATE.replace(/{language}/g, displayLanguage);
+  const langDisplay = language || "the detected language";
+  return (
+    `You are an expert linguist. Convert the input from its original script to Latin (romanization).\n` +
+    `Source language (code or name): ${langDisplay}. Use your knowledge of language-specific romanization rules appropriate for this language.\n` +
+    `Guidelines:\n` +
+    `- Anticipate code-mixed English; keep genuine English words as-is and fix obvious misspellings.\n` +
+    `- Prioritize intended meaning and natural, readable messaging style over letter-by-letter mapping.\n` +
+    `- Avoid diacritics and special characters; plain ASCII where possible.\n` +
+    `- Keep punctuation simple; no extra commentary.\n\n` +
+    `Return only the romanized text.`
+  );
 }

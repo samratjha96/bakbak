@@ -7,6 +7,9 @@ import {
   type RomanizationResponse,
 } from "~/types/romanization";
 import { AI_ROMANIZATION_CONFIG, getRomanizationPrompt } from "./config";
+import { createLogger } from "~/utils/logger";
+
+const logger = createLogger("AI.Romanization");
 
 async function romanizeWithBedrock(
   request: RomanizationRequest,
@@ -18,8 +21,16 @@ async function romanizeWithBedrock(
   const model = provider(AI_ROMANIZATION_CONFIG.DEFAULT_MODEL);
 
   const systemPrompt = getRomanizationPrompt(request.sourceLanguage);
-  const userPrompt = `Voice transcription to romanize (${request.sourceLanguage}):\n\n"${request.text}"`;
+  const userPrompt = `Romanize this (${request.sourceLanguage}):\n\n${request.text}`;
 
+  // Log prompts for diagnosis (debug level) and request meta (info)
+  logger.info(
+    `Starting romanization | model=${AI_ROMANIZATION_CONFIG.DEFAULT_MODEL} | lang=${request.sourceLanguage} | length=${request.text.length}`,
+  );
+  logger.debug("System prompt:", systemPrompt);
+  logger.debug("User prompt:", userPrompt);
+
+  const startedAt = Date.now();
   const result = await generateText({
     model,
     system: systemPrompt,
@@ -27,6 +38,10 @@ async function romanizeWithBedrock(
     maxOutputTokens: 2048,
     temperature: 0.1,
   });
+  const durationMs = Date.now() - startedAt;
+  logger.info(
+    `Romanization completed | durationMs=${durationMs} | outputChars=${(result.text || "").length}`,
+  );
 
   const romanizedText = result.text?.trim();
   if (!romanizedText) {
@@ -36,7 +51,6 @@ async function romanizeWithBedrock(
   return {
     romanizedText,
     sourceLanguage: request.sourceLanguage,
-    processingTime: 0,
   };
 }
 
