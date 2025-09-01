@@ -17,17 +17,20 @@ export const Header: React.FC<HeaderProps> = () => {
   const {
     data: workspaces = [],
     isLoading: workspacesLoading,
+    error: workspacesError,
   } = useQuery({
     ...userWorkspacesQuery(),
     enabled: !!data?.user,
+    retry: false, // Don't retry on auth errors
   });
 
   // Set first workspace as current if none selected
   React.useEffect(() => {
-    if (workspaces.length > 0 && !currentWorkspaceId) {
+    if (workspaces && workspaces.length > 0 && !currentWorkspaceId) {
       setCurrentWorkspaceId(workspaces[0].id);
     }
   }, [workspaces, currentWorkspaceId]);
+
 
   return (
     <header className="bg-white dark:bg-gray-950 sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800">
@@ -41,8 +44,8 @@ export const Header: React.FC<HeaderProps> = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Workspace Selector - shown when logged in */}
-            {data?.user && !workspacesLoading && workspaces.length > 0 && (
+            {/* Workspace Selector - shown when logged in and workspaces are available */}
+            {data?.user && !workspacesLoading && !workspacesError && workspaces && workspaces.length > 0 && (
               <WorkspaceSelector
                 workspaces={workspaces}
                 currentWorkspaceId={currentWorkspaceId}

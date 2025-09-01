@@ -76,7 +76,7 @@ const RecordingItem: React.FC<{
   return (
     <div
       onClick={handleCardClick}
-      className="group flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors gap-4"
+      className="group flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors duration-150 ease-out gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -92,7 +92,7 @@ const RecordingItem: React.FC<{
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center">
-          <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
+          <div className="font-medium text-gray-900 dark:text-gray-100 truncate group-hover:underline underline-offset-2">
             {title}
           </div>
           {isTranscribed && (
@@ -153,7 +153,7 @@ const RecordingItem: React.FC<{
           <TrashIcon className="w-4 h-4" />
           <span className="hidden sm:inline text-xs">Delete</span>
         </button>
-        <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-gray-400 ml-1" />
+        <ChevronRightIcon className="w-5 h-5 text-gray-300 ml-1 transition-transform duration-150 group-hover:text-gray-400 group-hover:translate-x-0.5" />
       </div>
     </div>
   );
@@ -305,14 +305,19 @@ function RecordingsPage() {
                 <Link 
                   to="/workspace/$workspaceId" 
                   params={{ workspaceId: `personal-${session.user.id}` }}
-                  className="text-xs text-blue-600 font-medium hover:text-blue-700"
+                  className="text-xs text-blue-600 font-medium inline-flex items-center gap-1 hover:text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
                 >
                   View Workspace
+                  <ChevronRightIcon className="w-3.5 h-3.5" />
                 </Link>
               )}
-              <span className="text-xs text-primary font-medium cursor-pointer">
+              <Link 
+                to="/recordings" 
+                className="text-xs text-primary font-medium inline-flex items-center gap-1 hover:text-secondary hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
                 View All
-              </span>
+                <ChevronRightIcon className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
 

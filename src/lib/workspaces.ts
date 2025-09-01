@@ -7,15 +7,16 @@ import { WorkspaceModel, RecordingModel } from "~/database/models";
  */
 export const fetchUserWorkspaces = createServerFn({ method: "GET" }).handler(
   async () => {
-    const session = await auth.api.getSession({
-      headers: new Headers(),
-    });
-
-    if (!session) {
-      throw new Error("Unauthorized");
-    }
-
     try {
+      const session = await auth.api.getSession({
+        headers: new Headers(),
+      });
+
+      if (!session?.user) {
+        // Return empty array instead of throwing error for unauthenticated users
+        return [];
+      }
+
       const workspaces = WorkspaceModel.findByUserId(session.user.id);
 
       // Add member count and user role for each workspace
@@ -35,8 +36,8 @@ export const fetchUserWorkspaces = createServerFn({ method: "GET" }).handler(
 
       return workspacesWithDetails;
     } catch (error) {
-      console.error("Error fetching workspaces:", error);
-      throw new Error("Failed to fetch workspaces");
+      // Silently return empty array on error - workspace feature is optional
+      return [];
     }
   },
 );
@@ -47,17 +48,17 @@ export const fetchUserWorkspaces = createServerFn({ method: "GET" }).handler(
 export const fetchWorkspaceDetails = createServerFn({ method: "GET" })
   .validator((input: { workspaceId: string }) => input)
   .handler(async ({ data }) => {
-    const session = await auth.api.getSession({
-      headers: new Headers(),
-    });
-
-    if (!session) {
-      throw new Error("Unauthorized");
-    }
-
-    const { workspaceId } = data;
-
     try {
+      const session = await auth.api.getSession({
+        headers: new Headers(),
+      });
+
+      if (!session?.user) {
+        throw new Error("Unauthorized");
+      }
+
+      const { workspaceId } = data;
+
       // Check if user has access to workspace
       if (!WorkspaceModel.hasAccess(workspaceId, session.user.id)) {
         throw new Error("Forbidden");
@@ -99,17 +100,17 @@ export const fetchWorkspaceDetails = createServerFn({ method: "GET" })
 export const fetchWorkspaceRecordings = createServerFn({ method: "GET" })
   .validator((input: { workspaceId: string }) => input)
   .handler(async ({ data }) => {
-    const session = await auth.api.getSession({
-      headers: new Headers(),
-    });
-
-    if (!session) {
-      throw new Error("Unauthorized");
-    }
-
-    const { workspaceId } = data;
-
     try {
+      const session = await auth.api.getSession({
+        headers: new Headers(),
+      });
+
+      if (!session?.user) {
+        throw new Error("Unauthorized");
+      }
+
+      const { workspaceId } = data;
+
       // Check if user has access to workspace
       if (!WorkspaceModel.hasAccess(workspaceId, session.user.id)) {
         throw new Error("Forbidden");
