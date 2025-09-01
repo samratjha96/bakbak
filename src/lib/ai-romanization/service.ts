@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
-import { bedrock } from "@ai-sdk/amazon-bedrock";
+import { bedrock, createAmazonBedrock } from "@ai-sdk/amazon-bedrock";
 import { isAuthenticated } from "~/database/connection";
 import {
   type RomanizationRequest,
@@ -11,10 +11,11 @@ import { AI_ROMANIZATION_CONFIG, getRomanizationPrompt } from "./config";
 async function romanizeWithBedrock(
   request: RomanizationRequest,
 ): Promise<RomanizationResponse> {
-  const model = bedrock(AI_ROMANIZATION_CONFIG.DEFAULT_MODEL, {
+  const provider = createAmazonBedrock({
     region: AI_ROMANIZATION_CONFIG.AWS_REGION,
-    bearerToken: AI_ROMANIZATION_CONFIG.AWS_BEARER_TOKEN,
+    apiKey: AI_ROMANIZATION_CONFIG.AWS_BEARER_TOKEN,
   });
+  const model = provider(AI_ROMANIZATION_CONFIG.DEFAULT_MODEL);
 
   const systemPrompt = getRomanizationPrompt(request.sourceLanguage);
   const userPrompt = `Voice transcription to romanize (${request.sourceLanguage}):\n\n"${request.text}"`;
@@ -23,7 +24,7 @@ async function romanizeWithBedrock(
     model,
     system: systemPrompt,
     prompt: userPrompt,
-    maxTokens: 2048,
+    maxOutputTokens: 2048,
     temperature: 0.1,
   });
 

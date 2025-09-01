@@ -187,8 +187,10 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
                   );
 
                   const romanizationResponse = await romanizeText({
-                    text: result.text,
-                    sourceLanguage: languageCode as any,
+                    data: {
+                      text: result.text,
+                      sourceLanguage: languageCode as any,
+                    },
                   });
                   romanizedText = romanizationResponse.romanizedText;
 
@@ -243,6 +245,10 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
             },
           });
 
+          const sourceScriptCode = languageCode
+            ? getDefaultScriptForLanguage(languageCode)
+            : undefined;
+          const targetScriptCode = "Latn";
           return {
             status: 200,
             transcriptionStatus: "COMPLETED",

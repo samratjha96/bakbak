@@ -80,8 +80,10 @@ const postTransliterate = createServerFn({ method: "POST" })
     // Perform AI romanization
     try {
       const romanizationResponse = await romanizeText({
-        text: sourceText,
-        sourceLanguage: lang as any,
+        data: {
+          text: sourceText,
+          sourceLanguage: lang as any,
+        },
       });
 
       return {

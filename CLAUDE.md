@@ -90,3 +90,4 @@ The application uses TanStack Query for data fetching:
 ## Documentation References
 
 - Refer to @docs/auth.md when dealing with anything related to auth and headers
+- Always read @docs/serverFunctions.md when working with server functions and client code

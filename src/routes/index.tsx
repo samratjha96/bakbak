@@ -1,10 +1,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import HomePage from "~/routes/landing/HomePage";
+import HomePage from "~/components/pages/HomePage";
+import { isAuthenticatedServer } from "~/server/auth";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
-    const { isAuthenticated } = await import("~/database/connection");
-    if (await isAuthenticated()) {
+    const authed = await isAuthenticatedServer();
+    if (authed) {
       throw redirect({ to: "/recordings" });
     }
   },

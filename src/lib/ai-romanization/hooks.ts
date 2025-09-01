@@ -22,7 +22,7 @@ export function useRomanizeText() {
       if (!session) {
         throw new Error("Authentication required");
       }
-      return await romanizeText(request);
+      return await romanizeText({ data: request });
     },
   });
 }

@@ -1,4 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { isAuthenticatedServer } from "~/server/auth";
 import { createServerFn } from "@tanstack/react-start";
 import * as React from "react";
 import { Layout } from "~/components/layout";
@@ -489,8 +490,8 @@ function NewRecordingPage() {
 
 export const Route = createFileRoute("/recordings/new")({
   beforeLoad: async () => {
-    const { isAuthenticated } = await import("~/database/connection");
-    if (!(await isAuthenticated())) {
+    const authed = await isAuthenticatedServer();
+    if (!authed) {
       throw redirect({ to: "/" });
     }
   },
