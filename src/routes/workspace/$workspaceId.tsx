@@ -7,6 +7,7 @@ import {
   workspaceDetailsQuery,
   workspaceRecordingsQuery,
 } from "~/lib/workspaceQueries";
+import { formatDuration, formatDate } from "~/utils/formatting";
 
 interface Workspace {
   id: string;
@@ -99,19 +100,6 @@ function WorkspacePage() {
     );
   }
 
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   const handleInvite = async (email: string, role: string) => {
     try {

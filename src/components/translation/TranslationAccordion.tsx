@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryInvalidator } from "~/lib/queryInvalidation";
 import {
   TranslateIcon,
   ChevronDownIcon,
   ChevronUpIcon,
 } from "~/components/ui/Icons";
+import { formatDate } from "~/utils/formatting";
 import { TranslationStatus } from "./TranslationStatus";
 import type { TranslationStatus as TStatus } from "./TranslationStatus";
 import { updateRecordingTranslation } from "~/lib/recordings";
@@ -12,7 +14,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   fetchTranslationData,
   createTranslationForRecording,
-} from "~/server/translation";
+} from "~/server/content-processing";
 import { createLogger } from "~/utils/logger";
 import { getErrorMessage } from "~/utils/errorHandling";
 
@@ -51,6 +53,7 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
   );
   const [status, setStatus] = useState<TStatus>(initialStatus);
   const queryClient = useQueryClient();
+  const invalidator = useQueryInvalidator();
 
   // Bind server functions safely
   const boundFetchTranslation = useServerFn(fetchTranslationData);
@@ -135,9 +138,8 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
     onSuccess: () => {
       // Mark as completed so the in-progress banner hides
       setStatus("COMPLETED");
-      // Just invalidate queries - React Query will handle refetching
-      queryClient.invalidateQueries({ queryKey: ["translation", recordingId] });
-      queryClient.invalidateQueries({ queryKey: ["recording", recordingId] });
+      // Use standardized invalidation for translation creation
+      invalidator.translation.afterCreate(recordingId);
     },
     onError: (error) => {
       // Set status to failed
@@ -183,7 +185,7 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
           {/* Last updated timestamp if available */}
           {displayLastUpdated && (
             <span className="text-xs text-gray-500 dark:text-gray-400 mr-3">
-              Updated {new Date(displayLastUpdated).toLocaleDateString()}
+              Updated {formatDate(displayLastUpdated)}
             </span>
           )}
           {/* Chevron icon */}

@@ -3,12 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
 import { fetchRecording, updateRecordingTranscription } from "~/lib/recordings";
 import { z } from "zod";
-import {
-  apiSuccess,
-  apiError,
-  apiMethodNotAllowed,
-  apiNotFound,
-} from "~/utils/apiResponse";
+import { apiSuccess, apiError, apiNotFound } from "~/utils/apiResponse";
 import { createLogger } from "~/utils/logger";
 import { handleApiError } from "~/utils/errorHandling";
 import {
@@ -163,7 +158,7 @@ export const Route = createFileRoute(
         return apiSuccess(result);
       } else {
         logger.warn(`Method not allowed: ${request.method}`);
-        return apiMethodNotAllowed(["GET", "POST"]);
+        return apiError("Method not allowed", 405, { Allow: "GET, POST" });
       }
     } catch (error) {
       logger.error(`Error processing request:`, error);

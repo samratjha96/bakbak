@@ -58,30 +58,3 @@ export function apiError(
 export function apiNotFound(message = "Resource not found"): Response {
   return apiError(message, HTTP_STATUS.NOT_FOUND);
 }
-
-/**
- * Creates a standardized bad request response
- * @param message - Optional custom message
- * @returns Response object with 400 status
- */
-export function apiBadRequest(message = "Invalid request"): Response {
-  return apiError(message, HTTP_STATUS.BAD_REQUEST);
-}
-
-/**
- * Creates a standardized method not allowed response
- * @param allowedMethods - List of allowed HTTP methods
- * @returns Response object with 405 status
- */
-export function apiMethodNotAllowed(allowedMethods: string[] = []): Response {
-  const additionalHeaders =
-    allowedMethods.length > 0
-      ? { Allow: allowedMethods.join(", ") }
-      : undefined;
-
-  return apiError(
-    "Method not allowed",
-    HTTP_STATUS.METHOD_NOT_ALLOWED,
-    additionalHeaders,
-  );
-}

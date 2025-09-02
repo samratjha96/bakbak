@@ -1,22 +1,13 @@
 import * as React from "react";
 import WaveSurfer from "wavesurfer.js";
 import { PlayIcon, PauseIcon } from "~/components/ui/Icons";
+import { formatDuration } from "~/utils/formatting";
 
 interface AudioWaveSurferPlayerProps {
   url: string;
   className?: string;
 }
 
-function formatTime(seconds: number): string {
-  if (!isFinite(seconds) || seconds < 0) return "00:00";
-  const m = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const s = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, "0");
-  return `${m}:${s}`;
-}
 
 export const AudioWaveSurferPlayer: React.FC<AudioWaveSurferPlayerProps> = ({
   url,
@@ -103,7 +94,7 @@ export const AudioWaveSurferPlayer: React.FC<AudioWaveSurferPlayerProps> = ({
         </button>
 
         <div className="text-sm text-gray-600 dark:text-gray-400">
-          {formatTime(currentTime)} / {formatTime(duration)}
+          {formatDuration(currentTime)} / {formatDuration(duration)}
         </div>
       </div>
     </div>

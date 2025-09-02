@@ -8,8 +8,10 @@ import {
   updateRecordingTranscription,
   transcriptionStatusQuery,
 } from "~/lib/recordings";
-import { fetchTranscriptionData } from "~/server/transcription";
+import { fetchTranscriptionData } from "~/server/content-processing";
 import { getErrorMessage } from "~/utils/errorHandling";
+import { queryKeys } from "~/lib/queryKeys";
+import { useQueryInvalidator } from "~/lib/queryInvalidation";
 
 interface TranscriptionDisplayProps {
   recordingId: string;
@@ -36,6 +38,7 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
     initialTranscriptionText,
   );
   const queryClient = useQueryClient();
+  const invalidator = useQueryInvalidator();
 
   // Bind server function safely
   const boundFetchTranscription = useServerFn(fetchTranscriptionData);
@@ -114,19 +117,82 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
           },
         },
       }),
-    onError: (error) => {
+    onMutate: async (newText: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.transcriptions.detail(recordingId) });
+      
+      // Snapshot the previous values
+      const previousRecording = queryClient.getQueryData(queryKeys.recordings.detail(recordingId));
+      const previousTranscription = queryClient.getQueryData(queryKeys.transcriptions.detail(recordingId));
+      
+      // Optimistically update recording with new transcription
+      queryClient.setQueryData(queryKeys.recordings.detail(recordingId), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          transcriptionText: newText,
+          transcriptionStatus: "COMPLETED",
+          isTranscribed: true,
+          transcriptionLastUpdated: new Date(),
+          transcription: {
+            ...old.transcription,
+            text: newText,
+            isComplete: true,
+            lastUpdated: new Date(),
+          },
+        };
+      });
+      
+      // Optimistically update transcription detail
+      queryClient.setQueryData(queryKeys.transcriptions.detail(recordingId), (old: any) => ({
+        ...old,
+        transcriptionText: newText,
+        transcriptionStatus: "COMPLETED",
+        transcriptionLastUpdated: new Date(),
+      }));
+      
+      // Also update recordings list cache if it exists
+      queryClient.setQueryData(queryKeys.recordings.lists(), (old: any) => {
+        if (!old || !Array.isArray(old)) return old;
+        return old.map((r: any) => 
+          r.id === recordingId 
+            ? { 
+                ...r, 
+                transcriptionText: newText,
+                transcriptionStatus: "COMPLETED",
+                isTranscribed: true,
+                transcriptionLastUpdated: new Date(),
+              }
+            : r
+        );
+      });
+      
+      return { previousRecording, previousTranscription };
+    },
+    onError: (error, newText, context) => {
+      // Rollback on error
+      if (context?.previousRecording) {
+        queryClient.setQueryData(queryKeys.recordings.detail(recordingId), context.previousRecording);
+      }
+      if (context?.previousTranscription) {
+        queryClient.setQueryData(queryKeys.transcriptions.detail(recordingId), context.previousTranscription);
+      }
+      
       // Simple error handling without logging
       console.error(getErrorMessage(error, `Failed to update transcription`));
     },
     onSuccess: () => {
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({
-        queryKey: ["transcription", recordingId],
-      });
-      queryClient.invalidateQueries({ queryKey: ["recording", recordingId] });
+      // Use standardized invalidation
+      invalidator.transcription.afterUpdate(recordingId);
 
       // Exit editing mode
       setIsEditing(false);
+    },
+    onSettled: () => {
+      // Always refetch to ensure server state consistency
+      queryClient.invalidateQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.transcriptions.detail(recordingId) });
     },
   });
 

@@ -2,12 +2,17 @@ import { Recording } from "~/types/recording";
 
 /**
  * Format a duration in seconds to MM:SS format
+ * Handles edge cases for invalid or negative numbers
  */
 export const formatDuration = (seconds: number): string => {
+  if (!isFinite(seconds) || seconds < 0) return "00:00";
+
   const minutes = Math.floor(seconds / 60)
     .toString()
     .padStart(2, "0");
-  const remainingSeconds = (seconds % 60).toString().padStart(2, "0");
+  const remainingSeconds = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, "0");
   return `${minutes}:${remainingSeconds}`;
 };
 
@@ -27,26 +32,39 @@ export const formatRelativeDate = (date: Date): string => {
 };
 
 /**
- * Get total practice time from recordings in hours
+ * Format a date string to a localized short format (MMM DD, YYYY)
  */
-export const getTotalPracticeTime = (recordings: Recording[]): string => {
-  const totalSeconds = recordings.reduce((acc, r) => acc + r.duration, 0);
-  const totalHours = totalSeconds / 3600;
-  return `${Math.round(totalHours * 10) / 10}h`;
+export const formatDate = (dateString: string | Date): string => {
+  const date =
+    typeof dateString === "string" ? new Date(dateString) : dateString;
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 };
 
 /**
- * Count the number of unique languages in recordings
+ * Format a date string to a localized long format (Month DD, YYYY)
  */
-export const getUniqueLanguagesCount = (recordings: Recording[]): number => {
-  return new Set(recordings.map((r) => r.language).filter(Boolean)).size;
+export const formatDateLong = (dateString: string | Date): string => {
+  const date =
+    typeof dateString === "string" ? new Date(dateString) : dateString;
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 };
 
 /**
- * Get the number of recordings created in the last week
+ * Format a timestamp to include date and time
  */
-export const getRecordingsThisWeek = (recordings: Recording[]): number => {
-  const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  return recordings.filter((r) => r.createdAt > weekAgo).length;
+export const formatDateTime = (date: Date): string => {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+  }).format(date);
 };

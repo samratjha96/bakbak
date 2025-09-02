@@ -5,18 +5,9 @@ import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
 import { BackIcon, EditIcon, SaveIcon } from "~/components/ui/Icons";
 import { Link } from "@tanstack/react-router";
-import {
-  useMutation,
-  useSuspenseQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import {
-  recordingQuery,
-  updateRecordingNotes,
-  updateRecording,
-  getRecordingPresignedUrl,
-} from "~/lib/recordings";
-import { formatDuration } from "~/utils/formatting";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { recordingQuery } from "~/lib/recordings";
+import { useRecordingDetails } from "~/hooks/useRecordingDetails";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";
 import { TranscriptionDisplay } from "~/components/transcription/TranscriptionDisplay";
 import { TranslationAccordion } from "~/components/translation/TranslationAccordion";
@@ -62,133 +53,29 @@ function RecordingPlayer({
 // A dynamic recording view that shows transcription and notes in one page
 function RecordingDetailPage() {
   const { id } = Route.useParams();
-  const queryClient = useQueryClient();
 
   // Fetch recording data
   const recordingQueryResult = useSuspenseQuery(recordingQuery(id));
   const { data: recording } = recordingQueryResult;
-  const isLoading = recordingQueryResult.isLoading;
-  const isError = recordingQueryResult.isError;
 
-  // Define presigned URL fetch function with caching
-  const fetchPresignedUrl = React.useCallback(async (): Promise<
-    string | { url: string; directUrl?: string }
-  > => {
-    // Try to get from cache first
-    const cachedData = queryClient.getQueryData<any>([
-      "recording",
-      id,
-      "presignedUrl",
-    ]);
-
-    // Return cached data if valid and not expired
-    if (cachedData && cachedData.url) {
-      return cachedData as {
-        url: string;
-        directUrl?: string;
-        expiresAt?: string;
-      };
-    }
-
-    try {
-      // Fetch new URL if not cached or expired
-      const result = await getRecordingPresignedUrl({ data: id });
-
-      // Cache the result
-      queryClient.setQueryData(["recording", id, "presignedUrl"], result);
-
-      return result as { url: string; directUrl?: string };
-    } catch (error) {
-      console.error("Error fetching presigned URL:", error);
-      throw error; // Re-throw to let the AudioPlayer component handle it
-    }
-  }, [id, queryClient]);
-
-  // Only manage state for fields we're actually editing in this component
-  const [notesContent, setNotesContent] = React.useState(
-    recording?.notes?.content || "",
-  );
-  const [title, setTitle] = React.useState(recording?.title || "");
-  const [editingNotes, setEditingNotes] = React.useState(false);
-  const [editingTitle, setEditingTitle] = React.useState(false);
-
-  React.useEffect(() => {
-    if (recording) {
-      setNotesContent(recording.notes?.content || "");
-      setTitle(recording.title || "");
-    }
-  }, [recording]);
-
-  // Format duration as MM:SS
-  const formattedDuration = formatDuration(recording.duration);
-
-  // Format date
-  const formattedDate = React.useMemo(() => {
-    return new Date(recording.createdAt).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }, [recording.createdAt]);
-
-  // Mutation for updating notes
-  const updateNotesMutation = useMutation({
-    mutationFn: async (notesData: {
-      id: string;
-      notes: { content: string };
-    }) => {
-      try {
-        return await updateRecordingNotes({ data: notesData });
-      } catch (error) {
-        // Transform server errors into user-friendly messages
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Failed to save notes. Please try again.";
-        throw new Error(message);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recording", id] });
-      setEditingNotes(false);
-    },
-  });
-
-  // Mutation for updating recording title
-  const updateTitleMutation = useMutation({
-    mutationFn: async (recordingData: { id: string; title: string }) => {
-      try {
-        return await updateRecording({ data: recordingData });
-      } catch (error) {
-        // Transform server errors into user-friendly messages
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Failed to save title. Please try again.";
-        throw new Error(message);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recording", id] });
-      setEditingTitle(false);
-    },
-  });
-
-  const handleSaveNotes = () => {
-    updateNotesMutation.mutate({
-      id,
-      notes: {
-        content: notesContent,
-      },
-    });
-  };
-
-  const handleSaveTitle = () => {
-    updateTitleMutation.mutate({
-      id,
-      title,
-    });
-  };
+  // Use custom hook to manage all recording detail business logic
+  const {
+    notesContent,
+    setNotesContent,
+    title,
+    setTitle,
+    editingNotes,
+    setEditingNotes,
+    editingTitle,
+    setEditingTitle,
+    formattedDuration,
+    formattedDate,
+    handleSaveNotes,
+    handleSaveTitle,
+    fetchPresignedUrl,
+    updateNotesMutation,
+    updateTitleMutation,
+  } = useRecordingDetails(id, recording);
 
   // Action bar for both mobile and desktop
   const actionBar = (

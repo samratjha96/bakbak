@@ -1,9 +1,5 @@
 import {
-  ListBucketsCommand,
-  ListObjectsV2Command,
   PutObjectCommand,
-  GetObjectCommand,
-  DeleteObjectCommand,
   CreateMultipartUploadCommand,
   UploadPartCommand,
   CompleteMultipartUploadCommand,
@@ -16,67 +12,6 @@ import { createServerFn } from "@tanstack/react-start";
 
 // Get default bucket from environment variable
 const defaultBucket = process.env.AWS_S3_BUCKET || "";
-
-/**
- * List all available S3 buckets
- */
-export const listBuckets = createServerFn().handler(async () => {
-  try {
-    const command = new ListBucketsCommand({});
-    const result = await s3Client.send(command);
-    return result.Buckets || [];
-  } catch (error) {
-    console.error("Error listing buckets:", error);
-    throw error;
-  }
-});
-
-/**
- * List objects in the S3 bucket with optional prefix filter
- */
-export const listObjects = createServerFn()
-  .validator((data: { bucket?: string; prefix?: string }) => data)
-  .handler(async ({ data }) => {
-    const bucket = data.bucket || defaultBucket;
-    try {
-      const command = new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: data.prefix,
-      });
-      const result = await s3Client.send(command);
-      return result.Contents || [];
-    } catch (error) {
-      console.error(`Error listing objects in bucket ${bucket}:`, error);
-      throw error;
-    }
-  });
-
-/**
- * Generate a presigned URL for downloading a file (GET)
- */
-export const getPresignedDownloadUrl = createServerFn()
-  .validator(
-    (data: { bucket?: string; key: string; expiresIn?: number }) => data,
-  )
-  .handler(async ({ data }) => {
-    const bucket = data.bucket || defaultBucket;
-    const expiresIn = data.expiresIn || 3600;
-
-    try {
-      const command = new GetObjectCommand({
-        Bucket: bucket,
-        Key: data.key,
-      });
-
-      return await getSignedUrl(s3Client, command, { expiresIn });
-    } catch (error) {
-      console.error(
-        `Error generating presigned download URL for ${data.key}:`,
-        error,
-      );
-      throw error;
-    }
-  });
 
 /**
  * Generate a presigned URL for uploading a file (PUT)
@@ -110,31 +45,6 @@ export const getPresignedUploadUrl = createServerFn()
       return await getSignedUrl(s3Client, command, { expiresIn });
     } catch (error) {
       console.error(`[S3] Failed to generate presigned URL:`, error);
-      throw error;
-    }
-  });
-
-/**
- * Delete a file from S3 bucket
- */
-export const deleteObject = createServerFn()
-  .validator((data: { bucket?: string; key: string }) => data)
-  .handler(async ({ data }) => {
-    const bucket = data.bucket || defaultBucket;
-
-    try {
-      const command = new DeleteObjectCommand({
-        Bucket: bucket,
-        Key: data.key,
-      });
-
-      await s3Client.send(command);
-      return { success: true };
-    } catch (error) {
-      console.error(
-        `Error deleting file ${data.key} from bucket ${bucket}:`,
-        error,
-      );
       throw error;
     }
   });

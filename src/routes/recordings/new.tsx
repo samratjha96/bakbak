@@ -14,6 +14,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createRecording } from "~/lib/recordings";
 import { formatDuration } from "~/utils/formatting";
+import { queryKeys } from "~/lib/queryKeys";
+import { useQueryInvalidator } from "~/lib/queryInvalidation";
 import { useAudioRecorder } from "~/hooks/useAudioRecorder";
 import { AudioWaveform } from "~/components/AudioWaveform";
 import { AudioWaveSurferPlayer } from "~/components/audio/AudioWaveSurferPlayer";
@@ -22,6 +24,7 @@ import { useSession } from "~/lib/auth-client";
 import { getPresignedUploadUrl, getS3Url } from "~/server/s3";
 import { RecordingStoragePaths } from "~/services/storage/RecordingStoragePaths";
 import { useWorkspace } from "~/contexts/WorkspaceContext";
+import { userWorkspacesQuery } from "~/lib/workspaceQueries";
 
 // Server function co-located with the route that uses it
 const uploadAudioRecording = createServerFn({ method: "POST" })
@@ -116,6 +119,7 @@ function NewRecordingPage() {
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const invalidator = useQueryInvalidator();
   const { data: session } = useSession();
   const { currentWorkspaceId } = useWorkspace();
 
@@ -158,9 +162,70 @@ function NewRecordingPage() {
   // Mutation to create a new recording
   const createRecordingMutation = useMutation({
     mutationFn: createRecording,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recordings"] });
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.recordings.lists() });
+      
+      // Snapshot the previous value
+      const previousRecordings = queryClient.getQueryData(queryKeys.recordings.lists());
+      
+      // Create optimistic recording object
+      const optimisticRecording = {
+        id: `temp-${Date.now()}`, // Temporary ID
+        title: variables.data.title || "Untitled Recording",
+        language: variables.data.language,
+        duration: variables.data.duration,
+        createdAt: new Date(),
+        audioUrl: variables.data.audioUrl,
+        isTranscribed: false,
+        transcriptionStatus: "NOT_STARTED" as const,
+        isTranslated: false,
+        notes: variables.data.notes || undefined,
+        // Add workspace context if available
+        ...(currentWorkspaceId && { workspaceId: currentWorkspaceId }),
+      };
+      
+      // Optimistically update recordings list
+      queryClient.setQueryData(queryKeys.recordings.lists(), (old: any) => {
+        if (!old || !Array.isArray(old)) return [optimisticRecording];
+        return [optimisticRecording, ...old];
+      });
+      
+      // Also update workspace recordings if applicable
+      if (currentWorkspaceId) {
+        queryClient.setQueryData(queryKeys.workspaces.recordings(currentWorkspaceId), (old: any) => {
+          if (!old || !Array.isArray(old)) return [optimisticRecording];
+          return [optimisticRecording, ...old];
+        });
+      }
+      
+      return { previousRecordings };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousRecordings) {
+        queryClient.setQueryData(queryKeys.recordings.lists(), context.previousRecordings);
+      }
+    },
+    onSuccess: (newRecording) => {
+      // Update the optimistic entry with the real server data
+      queryClient.setQueryData(queryKeys.recordings.lists(), (old: any) => {
+        if (!old || !Array.isArray(old)) return [newRecording];
+        return old.map((recording: any) => 
+          recording.id.startsWith('temp-') ? newRecording : recording
+        );
+      });
+      
+      // Invalidate to ensure consistency
+      invalidator.recording.afterCreate(currentWorkspaceId || undefined);
       navigate({ to: "/recordings" });
+    },
+    onSettled: () => {
+      // Always refetch to ensure server state consistency
+      queryClient.invalidateQueries({ queryKey: queryKeys.recordings.lists() });
+      if (currentWorkspaceId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.recordings(currentWorkspaceId) });
+      }
     },
   });
 
@@ -502,6 +567,16 @@ export const Route = createFileRoute("/recordings/new")({
     if (!authed) {
       throw redirect({ to: "/" });
     }
+  },
+  loader: async ({ context }) => {
+    // Prefetch user workspaces for WorkspaceContext to avoid loading state
+    try {
+      await context.queryClient.ensureQueryData(userWorkspacesQuery());
+    } catch (error) {
+      // If workspace fetching fails, don't block the page load
+      console.warn("Failed to prefetch user workspaces:", error);
+    }
+    return {};
   },
   component: NewRecordingPage,
 });

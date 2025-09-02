@@ -1,4 +1,5 @@
 import React from "react";
+import { formatDateTime } from "~/utils/formatting";
 
 export type TranslationStatus =
   | "NOT_STARTED"
@@ -52,12 +53,7 @@ export const TranslationStatus: React.FC<TranslationStatusProps> = ({
 
   // Format timestamp if available
   const formattedTime = lastUpdated
-    ? new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-      }).format(
+    ? formatDateTime(
         lastUpdated instanceof Date ? lastUpdated : new Date(lastUpdated),
       )
     : null;

@@ -7,6 +7,7 @@ import {
   TrashIcon,
   ChevronRightIcon,
 } from "~/components/ui/Icons";
+import { formatDuration, formatDate } from "~/utils/formatting";
 import { Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { useSession } from "~/lib/auth-client";
@@ -26,7 +27,7 @@ import {
   userWorkspacesQuery,
 } from "~/lib/workspaceQueries";
 import type { Recording } from "~/database/models/Recording";
-import { formatDuration, formatRelativeDate } from "~/utils/formatting";
+import { formatRelativeDate } from "~/utils/formatting";
 import { TranscribeButton } from "~/components/transcription/TranscribeButton";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
 import { useWorkspace } from "~/contexts/WorkspaceContext";
@@ -99,19 +100,6 @@ const RecordingCard: React.FC<{
     transcriptionStatusData?.transcriptionStatus === "COMPLETED"
       ? "ready"
       : "processing";
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   return (
     <Link
@@ -368,8 +356,14 @@ export const Route = createFileRoute("/recordings/")({
     }
   },
   loader: async ({ context }) => {
-    // Workspaces are now managed by the Header component and WorkspaceContext
-    // We'll let the component fetch workspace recordings once the workspace ID is available
+    // Prefetch user workspaces to eliminate loading state in WorkspaceContext
+    // This improves performance by having workspace data available immediately
+    try {
+      await context.queryClient.ensureQueryData(userWorkspacesQuery());
+    } catch (error) {
+      // If workspace fetching fails, don't block the page load
+      console.warn("Failed to prefetch user workspaces:", error);
+    }
     return {};
   },
   component: RecordingsPage,

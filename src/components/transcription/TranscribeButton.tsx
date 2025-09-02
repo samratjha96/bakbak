@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { DocumentIcon } from "~/components/ui/Icons";
 import { startTranscriptionJob } from "~/server/transcribe-jobs";
 import { transcriptionStatusQuery } from "~/lib/recordings";
+import { useQueryInvalidator } from "~/lib/queryInvalidation";
+import { queryKeys } from "~/lib/queryKeys";
 
 interface TranscribeButtonProps {
   recordingId: string;
@@ -28,6 +30,7 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
   currentStatus = "NOT_STARTED",
 }) => {
   const queryClient = useQueryClient();
+  const invalidator = useQueryInvalidator();
   const [isStarting, setIsStarting] = useState(false);
 
   // Bind the server function
@@ -42,25 +45,73 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
   // Mutation to start transcription
   const transcribeMutation = useMutation({
     mutationFn: () => boundStartTranscription({ data: { recordingId } }),
-    onSuccess: () => {
-      // Invalidate the recording query to refresh data
-      queryClient.invalidateQueries({ queryKey: ["recording", recordingId] });
-
-      // Invalidate the recordings list query to update the recordings page reactively
-      queryClient.invalidateQueries({ queryKey: ["recordings"] });
-
-      // Start polling for status updates
-      queryClient.invalidateQueries({
-        queryKey: ["transcription", "status", recordingId],
+    onMutate: async () => {
+      setIsStarting(true);
+      
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.transcriptions.status(recordingId) });
+      
+      // Snapshot the previous values
+      const previousRecording = queryClient.getQueryData(queryKeys.recordings.detail(recordingId));
+      const previousStatus = queryClient.getQueryData(queryKeys.transcriptions.status(recordingId));
+      
+      // Optimistically update recording status
+      queryClient.setQueryData(queryKeys.recordings.detail(recordingId), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          transcriptionStatus: "IN_PROGRESS",
+          isTranscribed: false,
+        };
       });
+      
+      // Optimistically update transcription status query
+      queryClient.setQueryData(queryKeys.transcriptions.status(recordingId), (old: any) => ({
+        ...old,
+        transcriptionStatus: "IN_PROGRESS",
+      }));
+      
+      // Also update recordings list cache if it exists
+      queryClient.setQueryData(queryKeys.recordings.lists(), (old: any) => {
+        if (!old || !Array.isArray(old)) return old;
+        return old.map((r: any) => 
+          r.id === recordingId 
+            ? { 
+                ...r, 
+                transcriptionStatus: "IN_PROGRESS",
+                isTranscribed: false,
+              }
+            : r
+        );
+      });
+      
+      return { previousRecording, previousStatus };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousRecording) {
+        queryClient.setQueryData(queryKeys.recordings.detail(recordingId), context.previousRecording);
+      }
+      if (context?.previousStatus) {
+        queryClient.setQueryData(queryKeys.transcriptions.status(recordingId), context.previousStatus);
+      }
+    },
+    onSuccess: () => {
+      // Use standardized invalidation for transcription start
+      invalidator.transcription.afterStart(recordingId);
 
       // Call the callback if provided
       if (onTranscriptionStarted) {
         onTranscriptionStarted();
       }
     },
-    onMutate: () => setIsStarting(true),
-    onSettled: () => setIsStarting(false),
+    onSettled: () => {
+      setIsStarting(false);
+      // Always refetch to ensure server state consistency
+      queryClient.invalidateQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.transcriptions.status(recordingId) });
+    },
   });
 
   // Determine the actual status (from polling or props)

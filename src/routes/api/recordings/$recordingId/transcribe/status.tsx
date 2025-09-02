@@ -7,12 +7,7 @@ import {
 } from "~/lib/recordings";
 import { z } from "zod";
 import { transcribe } from "~/lib/transcribe";
-import {
-  apiSuccess,
-  apiError,
-  apiNotFound,
-  apiBadRequest,
-} from "~/utils/apiResponse";
+import { apiSuccess, apiError, apiNotFound } from "~/utils/apiResponse";
 import { createLogger } from "~/utils/logger";
 import { handleApiError } from "~/utils/errorHandling";
 import {

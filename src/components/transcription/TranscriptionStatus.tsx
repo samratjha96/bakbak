@@ -1,4 +1,5 @@
 import React from "react";
+import { formatDateTime } from "~/utils/formatting";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
 
 interface TranscriptionStatusProps {
@@ -46,14 +47,7 @@ export const TranscriptionStatus: React.FC<TranscriptionStatusProps> = ({
   };
 
   // Format timestamp if available
-  const formattedTime = lastUpdated
-    ? new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-      }).format(lastUpdated)
-    : null;
+  const formattedTime = lastUpdated ? formatDateTime(lastUpdated) : null;
 
   // Render loading animation for in-progress status
   const renderStatusIcon = () => {
