@@ -18,7 +18,7 @@ import {
   getRecordingPath,
   deleteRecording,
 } from "~/server/recordings";
-import { getTranscriptionJobStatus } from "~/server/transcribe-jobs";
+import { getTranscriptionJobStatus } from "~/lib/recordingServerFunctions";
 
 // Query options for React Query - CLIENT SAFE
 export const recordingsQuery = () =>

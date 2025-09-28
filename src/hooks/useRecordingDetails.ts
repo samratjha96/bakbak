@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  updateRecordingNotes, 
-  updateRecording, 
-  getRecordingPresignedUrl 
+import {
+  updateRecordingNotes,
+  updateRecording,
+  getRecordingPresignedUrl,
 } from "~/lib/recordings";
 import { formatDuration, formatDateLong } from "~/utils/formatting";
 import { useQueryInvalidator } from "~/lib/queryInvalidation";
@@ -22,7 +22,9 @@ export function useRecordingDetails(recordingId: string, recording: Recording) {
   const invalidator = useQueryInvalidator();
 
   // Form state management
-  const [notesContent, setNotesContent] = useState(recording?.notes?.content || "");
+  const [notesContent, setNotesContent] = useState(
+    recording?.notes?.content || "",
+  );
   const [title, setTitle] = useState(recording?.title || "");
   const [editingNotes, setEditingNotes] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -36,8 +38,14 @@ export function useRecordingDetails(recordingId: string, recording: Recording) {
   }, [recording]);
 
   // Computed values
-  const formattedDuration = useMemo(() => formatDuration(recording.duration), [recording.duration]);
-  const formattedDate = useMemo(() => formatDateLong(recording.createdAt), [recording.createdAt]);
+  const formattedDuration = useMemo(
+    () => formatDuration(recording.duration),
+    [recording.duration],
+  );
+  const formattedDate = useMemo(
+    () => formatDateLong(recording.createdAt),
+    [recording.createdAt],
+  );
 
   // Presigned URL fetch function with caching
   const fetchPresignedUrl = useCallback(async (): Promise<
@@ -64,7 +72,10 @@ export function useRecordingDetails(recordingId: string, recording: Recording) {
       const result = await getRecordingPresignedUrl({ data: recordingId });
 
       // Cache the result
-      queryClient.setQueryData(["recording", recordingId, "presignedUrl"], result);
+      queryClient.setQueryData(
+        ["recording", recordingId, "presignedUrl"],
+        result,
+      );
 
       return result as { url: string; directUrl?: string };
     } catch (error) {
@@ -91,45 +102,55 @@ export function useRecordingDetails(recordingId: string, recording: Recording) {
     },
     onMutate: async (notesData) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
-      
-      // Snapshot the previous value
-      const previousRecording = queryClient.getQueryData(queryKeys.recordings.detail(recordingId));
-      
-      // Optimistically update to the new value
-      queryClient.setQueryData(queryKeys.recordings.detail(recordingId), (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          notes: {
-            content: notesData.notes.content,
-            lastUpdated: new Date(),
-          }
-        };
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.recordings.detail(recordingId),
       });
-      
+
+      // Snapshot the previous value
+      const previousRecording = queryClient.getQueryData(
+        queryKeys.recordings.detail(recordingId),
+      );
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(
+        queryKeys.recordings.detail(recordingId),
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            notes: {
+              content: notesData.notes.content,
+              lastUpdated: new Date(),
+            },
+          };
+        },
+      );
+
       // Also update recordings list cache if it exists
       queryClient.setQueryData(queryKeys.recordings.lists(), (old: any) => {
         if (!old || !Array.isArray(old)) return old;
-        return old.map((r: any) => 
-          r.id === recordingId 
-            ? { 
-                ...r, 
-                notes: { 
-                  content: notesData.notes.content, 
-                  lastUpdated: new Date() 
-                } 
+        return old.map((r: any) =>
+          r.id === recordingId
+            ? {
+                ...r,
+                notes: {
+                  content: notesData.notes.content,
+                  lastUpdated: new Date(),
+                },
               }
-            : r
+            : r,
         );
       });
-      
+
       return { previousRecording };
     },
     onError: (err, notesData, context) => {
       // Rollback on error
       if (context?.previousRecording) {
-        queryClient.setQueryData(queryKeys.recordings.detail(recordingId), context.previousRecording);
+        queryClient.setQueryData(
+          queryKeys.recordings.detail(recordingId),
+          context.previousRecording,
+        );
       }
     },
     onSuccess: () => {
@@ -138,7 +159,9 @@ export function useRecordingDetails(recordingId: string, recording: Recording) {
     },
     onSettled: () => {
       // Always refetch to ensure server state consistency
-      queryClient.invalidateQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.recordings.detail(recordingId),
+      });
     },
   });
 
@@ -157,36 +180,44 @@ export function useRecordingDetails(recordingId: string, recording: Recording) {
     },
     onMutate: async (recordingData) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
-      
-      // Snapshot the previous value
-      const previousRecording = queryClient.getQueryData(queryKeys.recordings.detail(recordingId));
-      
-      // Optimistically update to the new value
-      queryClient.setQueryData(queryKeys.recordings.detail(recordingId), (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          title: recordingData.title,
-        };
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.recordings.detail(recordingId),
       });
-      
+
+      // Snapshot the previous value
+      const previousRecording = queryClient.getQueryData(
+        queryKeys.recordings.detail(recordingId),
+      );
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(
+        queryKeys.recordings.detail(recordingId),
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            title: recordingData.title,
+          };
+        },
+      );
+
       // Also update recordings list cache if it exists
       queryClient.setQueryData(queryKeys.recordings.lists(), (old: any) => {
         if (!old || !Array.isArray(old)) return old;
-        return old.map((r: any) => 
-          r.id === recordingId 
-            ? { ...r, title: recordingData.title }
-            : r
+        return old.map((r: any) =>
+          r.id === recordingId ? { ...r, title: recordingData.title } : r,
         );
       });
-      
+
       return { previousRecording };
     },
     onError: (err, recordingData, context) => {
       // Rollback on error
       if (context?.previousRecording) {
-        queryClient.setQueryData(queryKeys.recordings.detail(recordingId), context.previousRecording);
+        queryClient.setQueryData(
+          queryKeys.recordings.detail(recordingId),
+          context.previousRecording,
+        );
       }
     },
     onSuccess: () => {
@@ -195,7 +226,9 @@ export function useRecordingDetails(recordingId: string, recording: Recording) {
     },
     onSettled: () => {
       // Always refetch to ensure server state consistency
-      queryClient.invalidateQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.recordings.detail(recordingId),
+      });
     },
   });
 
@@ -226,16 +259,16 @@ export function useRecordingDetails(recordingId: string, recording: Recording) {
     setEditingNotes,
     editingTitle,
     setEditingTitle,
-    
+
     // Computed
     formattedDuration,
     formattedDate,
-    
+
     // Actions
     handleSaveNotes,
     handleSaveTitle,
     fetchPresignedUrl,
-    
+
     // Mutations
     updateNotesMutation,
     updateTitleMutation,

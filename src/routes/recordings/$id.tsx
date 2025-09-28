@@ -13,6 +13,16 @@ import { TranscriptionDisplay } from "~/components/transcription/TranscriptionDi
 import { TranslationAccordion } from "~/components/translation/TranslationAccordion";
 import { AudioWaveSurferPlayer } from "~/components/audio/AudioWaveSurferPlayer";
 
+// Export server functions from separate file for co-location
+export {
+  translateRecording,
+  transcribeRecording,
+  getTranscription,
+  getTranslation,
+  transliterateRecording,
+  getTranscriptionJobStatus,
+} from "~/lib/recordingServerFunctions";
+
 function RecordingPlayer({
   fetchPresignedUrl,
 }: {

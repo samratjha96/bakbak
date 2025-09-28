@@ -34,9 +34,11 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   readOnly = false,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingRomanization, setIsEditingRomanization] = useState(false);
   const [transcriptionText, setTranscriptionText] = useState(
     initialTranscriptionText,
   );
+  const [romanizationText, setRomanizationText] = useState("");
   const queryClient = useQueryClient();
   const invalidator = useQueryInvalidator();
 
@@ -74,10 +76,18 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   }, [transcriptionData?.transcriptionText, initialTranscriptionText]);
 
   // Romanization displayed in a separate section
-  const romanizationText = useMemo(
+  const displayRomanizationText = useMemo(
     () => (transcriptionData as any)?.romanization as string | undefined,
     [(transcriptionData as any)?.romanization],
   );
+
+  // Sync state with fetched data
+  useEffect(() => {
+    if (transcriptionData) {
+      setTranscriptionText(transcriptionData.transcriptionText || "");
+      setRomanizationText((transcriptionData as any)?.romanization || "");
+    }
+  }, [transcriptionData]);
 
   const displayStatus = useMemo(
     () => transcriptionData?.transcriptionStatus || initialStatus,
@@ -105,6 +115,23 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
     }
   }, [jobStatusData?.transcriptionStatus, queryClient, recordingId]);
 
+  // Mutation to update romanization
+  const updateRomanizationMutation = useMutation({
+    mutationFn: (newRomanization: string) =>
+      updateRecordingTranscription({
+        data: {
+          id: recordingId,
+          transcription: {
+            romanization: newRomanization,
+          },
+        },
+      }),
+    onSuccess: () => {
+      invalidator.transcription.afterUpdate(recordingId);
+      setIsEditingRomanization(false);
+    },
+  });
+
   // Mutation to update transcription using server function
   const updateTranscriptionMutation = useMutation({
     mutationFn: (newText: string) =>
@@ -119,66 +146,86 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
       }),
     onMutate: async (newText: string) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
-      await queryClient.cancelQueries({ queryKey: queryKeys.transcriptions.detail(recordingId) });
-      
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.recordings.detail(recordingId),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.transcriptions.detail(recordingId),
+      });
+
       // Snapshot the previous values
-      const previousRecording = queryClient.getQueryData(queryKeys.recordings.detail(recordingId));
-      const previousTranscription = queryClient.getQueryData(queryKeys.transcriptions.detail(recordingId));
-      
+      const previousRecording = queryClient.getQueryData(
+        queryKeys.recordings.detail(recordingId),
+      );
+      const previousTranscription = queryClient.getQueryData(
+        queryKeys.transcriptions.detail(recordingId),
+      );
+
       // Optimistically update recording with new transcription
-      queryClient.setQueryData(queryKeys.recordings.detail(recordingId), (old: any) => {
-        if (!old) return old;
-        return {
+      queryClient.setQueryData(
+        queryKeys.recordings.detail(recordingId),
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            transcriptionText: newText,
+            transcriptionStatus: "COMPLETED",
+            isTranscribed: true,
+            transcriptionLastUpdated: new Date(),
+            transcription: {
+              ...old.transcription,
+              text: newText,
+              isComplete: true,
+              lastUpdated: new Date(),
+            },
+          };
+        },
+      );
+
+      // Optimistically update transcription detail
+      queryClient.setQueryData(
+        queryKeys.transcriptions.detail(recordingId),
+        (old: any) => ({
           ...old,
           transcriptionText: newText,
           transcriptionStatus: "COMPLETED",
-          isTranscribed: true,
           transcriptionLastUpdated: new Date(),
-          transcription: {
-            ...old.transcription,
-            text: newText,
-            isComplete: true,
-            lastUpdated: new Date(),
-          },
-        };
-      });
-      
-      // Optimistically update transcription detail
-      queryClient.setQueryData(queryKeys.transcriptions.detail(recordingId), (old: any) => ({
-        ...old,
-        transcriptionText: newText,
-        transcriptionStatus: "COMPLETED",
-        transcriptionLastUpdated: new Date(),
-      }));
-      
+        }),
+      );
+
       // Also update recordings list cache if it exists
       queryClient.setQueryData(queryKeys.recordings.lists(), (old: any) => {
         if (!old || !Array.isArray(old)) return old;
-        return old.map((r: any) => 
-          r.id === recordingId 
-            ? { 
-                ...r, 
+        return old.map((r: any) =>
+          r.id === recordingId
+            ? {
+                ...r,
                 transcriptionText: newText,
                 transcriptionStatus: "COMPLETED",
                 isTranscribed: true,
                 transcriptionLastUpdated: new Date(),
               }
-            : r
+            : r,
         );
       });
-      
+
       return { previousRecording, previousTranscription };
     },
     onError: (error, newText, context) => {
       // Rollback on error
       if (context?.previousRecording) {
-        queryClient.setQueryData(queryKeys.recordings.detail(recordingId), context.previousRecording);
+        queryClient.setQueryData(
+          queryKeys.recordings.detail(recordingId),
+          context.previousRecording,
+        );
       }
       if (context?.previousTranscription) {
-        queryClient.setQueryData(queryKeys.transcriptions.detail(recordingId), context.previousTranscription);
+        queryClient.setQueryData(
+          queryKeys.transcriptions.detail(recordingId),
+          context.previousTranscription,
+        );
       }
-      
+
       // Simple error handling without logging
       console.error(getErrorMessage(error, `Failed to update transcription`));
     },
@@ -191,13 +238,33 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
     },
     onSettled: () => {
       // Always refetch to ensure server state consistency
-      queryClient.invalidateQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.transcriptions.detail(recordingId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.recordings.detail(recordingId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.transcriptions.detail(recordingId),
+      });
     },
   });
 
   const handleSaveTranscription = () => {
     updateTranscriptionMutation.mutate(transcriptionText);
+  };
+
+  const handleSaveRomanization = () => {
+    updateRomanizationMutation.mutate(romanizationText);
+  };
+
+  const handleStartEditingRomanization = () => {
+    if (!readOnly) {
+      setRomanizationText(displayRomanizationText || "");
+      setIsEditingRomanization(true);
+    }
+  };
+
+  const handleCancelEditingRomanization = () => {
+    setRomanizationText(displayRomanizationText || "");
+    setIsEditingRomanization(false);
   };
 
   // If we're still loading and have no initial data
@@ -317,14 +384,73 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
             {displayTranscriptionText || "No transcription content available."}
           </div>
 
-          {romanizationText && romanizationText.trim().length > 0 && (
+          {(displayRomanizationText || isEditingRomanization) && (
             <div className="mt-6">
-              <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Romanization
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Romanization
+                </div>
+                {!readOnly &&
+                  !isEditingRomanization &&
+                  displayRomanizationText && (
+                    <button
+                      onClick={handleStartEditingRomanization}
+                      className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-primary transition-colors"
+                    >
+                      <EditIcon className="w-3 h-3" />
+                      <span>Edit</span>
+                    </button>
+                  )}
               </div>
-              <div className="whitespace-pre-wrap bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-gray-700 dark:text-gray-300">
-                {romanizationText}
-              </div>
+
+              {isEditingRomanization && !readOnly ? (
+                <div>
+                  <div className="relative">
+                    <textarea
+                      value={romanizationText}
+                      onChange={(e) => setRomanizationText(e.target.value)}
+                      className="w-full min-h-[100px] p-3 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-900 transition-all focus:outline-none focus:border-primary focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] mb-2"
+                      placeholder="Enter romanization text..."
+                    />
+                    {updateRomanizationMutation.isPending && (
+                      <div className="absolute inset-0 bg-white/50 dark:bg-black/50 flex items-center justify-center">
+                        <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-primary border-r-transparent align-[-0.125em]"></div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={handleCancelEditingRomanization}
+                      disabled={updateRomanizationMutation.isPending}
+                      className="flex items-center gap-1.5 py-1 px-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveRomanization}
+                      disabled={updateRomanizationMutation.isPending}
+                      className="flex items-center gap-1.5 py-1 px-3 bg-primary text-white text-sm rounded hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <SaveIcon className="w-4 h-4" />
+                      {updateRomanizationMutation.isPending
+                        ? "Saving..."
+                        : "Save"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="whitespace-pre-wrap bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-gray-700 dark:text-gray-300">
+                  {displayRomanizationText || "No romanization available."}
+                  {!readOnly && !displayRomanizationText && (
+                    <button
+                      onClick={handleStartEditingRomanization}
+                      className="ml-2 text-primary hover:underline text-sm"
+                    >
+                      Add romanization
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -336,6 +462,15 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
           {updateTranscriptionMutation.error instanceof Error
             ? updateTranscriptionMutation.error.message
             : String(updateTranscriptionMutation.error)}
+        </div>
+      )}
+
+      {updateRomanizationMutation.isError && (
+        <div className="mt-2 text-sm text-red-600 dark:text-red-400">
+          Error saving romanization:{" "}
+          {updateRomanizationMutation.error instanceof Error
+            ? updateRomanizationMutation.error.message
+            : String(updateRomanizationMutation.error)}
         </div>
       )}
     </div>

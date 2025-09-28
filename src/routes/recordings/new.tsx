@@ -164,11 +164,15 @@ function NewRecordingPage() {
     mutationFn: createRecording,
     onMutate: async (variables) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.recordings.lists() });
-      
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.recordings.lists(),
+      });
+
       // Snapshot the previous value
-      const previousRecordings = queryClient.getQueryData(queryKeys.recordings.lists());
-      
+      const previousRecordings = queryClient.getQueryData(
+        queryKeys.recordings.lists(),
+      );
+
       // Create optimistic recording object
       const optimisticRecording = {
         id: `temp-${Date.now()}`, // Temporary ID
@@ -184,38 +188,44 @@ function NewRecordingPage() {
         // Add workspace context if available
         ...(currentWorkspaceId && { workspaceId: currentWorkspaceId }),
       };
-      
+
       // Optimistically update recordings list
       queryClient.setQueryData(queryKeys.recordings.lists(), (old: any) => {
         if (!old || !Array.isArray(old)) return [optimisticRecording];
         return [optimisticRecording, ...old];
       });
-      
+
       // Also update workspace recordings if applicable
       if (currentWorkspaceId) {
-        queryClient.setQueryData(queryKeys.workspaces.recordings(currentWorkspaceId), (old: any) => {
-          if (!old || !Array.isArray(old)) return [optimisticRecording];
-          return [optimisticRecording, ...old];
-        });
+        queryClient.setQueryData(
+          queryKeys.workspaces.recordings(currentWorkspaceId),
+          (old: any) => {
+            if (!old || !Array.isArray(old)) return [optimisticRecording];
+            return [optimisticRecording, ...old];
+          },
+        );
       }
-      
+
       return { previousRecordings };
     },
     onError: (err, variables, context) => {
       // Rollback on error
       if (context?.previousRecordings) {
-        queryClient.setQueryData(queryKeys.recordings.lists(), context.previousRecordings);
+        queryClient.setQueryData(
+          queryKeys.recordings.lists(),
+          context.previousRecordings,
+        );
       }
     },
     onSuccess: (newRecording) => {
       // Update the optimistic entry with the real server data
       queryClient.setQueryData(queryKeys.recordings.lists(), (old: any) => {
         if (!old || !Array.isArray(old)) return [newRecording];
-        return old.map((recording: any) => 
-          recording.id.startsWith('temp-') ? newRecording : recording
+        return old.map((recording: any) =>
+          recording.id.startsWith("temp-") ? newRecording : recording,
         );
       });
-      
+
       // Invalidate to ensure consistency
       invalidator.recording.afterCreate(currentWorkspaceId || undefined);
       navigate({ to: "/recordings" });
@@ -224,7 +234,9 @@ function NewRecordingPage() {
       // Always refetch to ensure server state consistency
       queryClient.invalidateQueries({ queryKey: queryKeys.recordings.lists() });
       if (currentWorkspaceId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.recordings(currentWorkspaceId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.workspaces.recordings(currentWorkspaceId),
+        });
       }
     },
   });

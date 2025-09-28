@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { DocumentIcon } from "~/components/ui/Icons";
-import { startTranscriptionJob } from "~/server/transcribe-jobs";
+import { transcribeRecording } from "~/lib/recordingServerFunctions";
 import { transcriptionStatusQuery } from "~/lib/recordings";
 import { useQueryInvalidator } from "~/lib/queryInvalidation";
 import { queryKeys } from "~/lib/queryKeys";
@@ -34,7 +34,7 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
   const [isStarting, setIsStarting] = useState(false);
 
   // Bind the server function
-  const boundStartTranscription = useServerFn(startTranscriptionJob);
+  const boundStartTranscription = useServerFn(transcribeRecording);
 
   // Poll transcription status if in progress
   const { data: statusData } = useQuery({
@@ -47,54 +47,74 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
     mutationFn: () => boundStartTranscription({ data: { recordingId } }),
     onMutate: async () => {
       setIsStarting(true);
-      
+
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
-      await queryClient.cancelQueries({ queryKey: queryKeys.transcriptions.status(recordingId) });
-      
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.recordings.detail(recordingId),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.transcriptions.status(recordingId),
+      });
+
       // Snapshot the previous values
-      const previousRecording = queryClient.getQueryData(queryKeys.recordings.detail(recordingId));
-      const previousStatus = queryClient.getQueryData(queryKeys.transcriptions.status(recordingId));
-      
+      const previousRecording = queryClient.getQueryData(
+        queryKeys.recordings.detail(recordingId),
+      );
+      const previousStatus = queryClient.getQueryData(
+        queryKeys.transcriptions.status(recordingId),
+      );
+
       // Optimistically update recording status
-      queryClient.setQueryData(queryKeys.recordings.detail(recordingId), (old: any) => {
-        if (!old) return old;
-        return {
+      queryClient.setQueryData(
+        queryKeys.recordings.detail(recordingId),
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            transcriptionStatus: "IN_PROGRESS",
+            isTranscribed: false,
+          };
+        },
+      );
+
+      // Optimistically update transcription status query
+      queryClient.setQueryData(
+        queryKeys.transcriptions.status(recordingId),
+        (old: any) => ({
           ...old,
           transcriptionStatus: "IN_PROGRESS",
-          isTranscribed: false,
-        };
-      });
-      
-      // Optimistically update transcription status query
-      queryClient.setQueryData(queryKeys.transcriptions.status(recordingId), (old: any) => ({
-        ...old,
-        transcriptionStatus: "IN_PROGRESS",
-      }));
-      
+        }),
+      );
+
       // Also update recordings list cache if it exists
       queryClient.setQueryData(queryKeys.recordings.lists(), (old: any) => {
         if (!old || !Array.isArray(old)) return old;
-        return old.map((r: any) => 
-          r.id === recordingId 
-            ? { 
-                ...r, 
+        return old.map((r: any) =>
+          r.id === recordingId
+            ? {
+                ...r,
                 transcriptionStatus: "IN_PROGRESS",
                 isTranscribed: false,
               }
-            : r
+            : r,
         );
       });
-      
+
       return { previousRecording, previousStatus };
     },
     onError: (err, variables, context) => {
       // Rollback on error
       if (context?.previousRecording) {
-        queryClient.setQueryData(queryKeys.recordings.detail(recordingId), context.previousRecording);
+        queryClient.setQueryData(
+          queryKeys.recordings.detail(recordingId),
+          context.previousRecording,
+        );
       }
       if (context?.previousStatus) {
-        queryClient.setQueryData(queryKeys.transcriptions.status(recordingId), context.previousStatus);
+        queryClient.setQueryData(
+          queryKeys.transcriptions.status(recordingId),
+          context.previousStatus,
+        );
       }
     },
     onSuccess: () => {
@@ -109,8 +129,12 @@ export const TranscribeButton: React.FC<TranscribeButtonProps> = ({
     onSettled: () => {
       setIsStarting(false);
       // Always refetch to ensure server state consistency
-      queryClient.invalidateQueries({ queryKey: queryKeys.recordings.detail(recordingId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.transcriptions.status(recordingId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.recordings.detail(recordingId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.transcriptions.status(recordingId),
+      });
     },
   });
 

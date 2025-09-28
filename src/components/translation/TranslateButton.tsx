@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TranslateIcon } from "~/components/ui/Icons";
+import { translateRecording } from "~/lib/recordingServerFunctions";
 
 interface TranslateButtonProps {
   recordingId: string;
@@ -31,22 +32,12 @@ export const TranslateButton: React.FC<TranslateButtonProps> = ({
   const translateMutation = useMutation({
     mutationFn: async () => {
       setIsLoading(true);
-      const response = await fetch(`/api/recordings/${recordingId}/translate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      return await translateRecording({
+        data: {
+          recordingId,
           targetLanguage,
-        }),
+        },
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to start translation");
-      }
-
-      return response.json();
     },
     onSuccess: () => {
       // Invalidate the recording query to refresh data

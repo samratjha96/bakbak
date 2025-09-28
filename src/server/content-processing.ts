@@ -10,12 +10,12 @@ import {
   getCurrentUserId,
   isAuthenticated,
 } from "~/database/connection";
-import { 
-  withErrorHandling, 
-  ServerErrors, 
-  validateRequired, 
+import {
+  withErrorHandling,
+  ServerErrors,
+  validateRequired,
   validateString,
-  type ServerResponse 
+  type ServerResponse,
 } from "~/utils/server-errors";
 import { createLogger } from "~/utils/logger";
 import { translate } from "~/lib/translate";
@@ -56,19 +56,21 @@ export interface TranslationData {
  */
 export const fetchContentProcessingData = createServerFn({ method: "GET" })
   .validator((id: string) => {
-    validateRequired(id, 'Recording ID');
-    validateString(id, 'Recording ID');
+    validateRequired(id, "Recording ID");
+    validateString(id, "Recording ID");
     return id;
   })
-  .handler(async ({ data: id }): Promise<ServerResponse<ContentProcessingData>> => {
-    return withErrorHandling(async () => {
-      const userId = await getCurrentUserId();
-      if (!userId) throw ServerErrors.unauthorized();
-      
-      const db = getDatabase();
-      
-      const result = db
-        .prepare(`
+  .handler(
+    async ({ data: id }): Promise<ServerResponse<ContentProcessingData>> => {
+      return withErrorHandling(async () => {
+        const userId = await getCurrentUserId();
+        if (!userId) throw ServerErrors.unauthorized();
+
+        const db = getDatabase();
+
+        const result = db
+          .prepare(
+            `
           SELECT 
             t.text as transcription_text,
             t.romanization,
@@ -82,56 +84,63 @@ export const fetchContentProcessingData = createServerFn({ method: "GET" })
           LEFT JOIN transcriptions t ON r.id = t.recording_id
           LEFT JOIN translations tr ON t.id = tr.transcription_id
           WHERE r.id = ? AND r.user_id = ?
-        `)
-        .get(id, userId) as {
-          transcription_text?: string;
-          romanization?: string;
-          transcription_status?: string;
-          transcription_updated_at?: string;
-          translation_text?: string;
-          translation_language?: string;
-          translation_status?: string;
-          translation_updated_at?: string;
-        } | undefined;
+        `,
+          )
+          .get(id, userId) as
+          | {
+              transcription_text?: string;
+              romanization?: string;
+              transcription_status?: string;
+              transcription_updated_at?: string;
+              translation_text?: string;
+              translation_language?: string;
+              translation_status?: string;
+              translation_updated_at?: string;
+            }
+          | undefined;
 
-      if (!result) {
-        throw ServerErrors.notFound('Recording');
-      }
+        if (!result) {
+          throw ServerErrors.notFound("Recording");
+        }
 
-      return {
-        transcriptionText: result.transcription_text,
-        transcriptionStatus: (result.transcription_status as TranscriptionStatus) || "NOT_STARTED",
-        transcriptionLastUpdated: result.transcription_updated_at
-          ? new Date(result.transcription_updated_at)
-          : undefined,
-        romanization: result.romanization,
-        translationText: result.translation_text,
-        translationLanguage: result.translation_language,
-        translationLastUpdated: result.translation_updated_at
-          ? new Date(result.translation_updated_at)
-          : undefined,
-        isTranslated: result.translation_status === "COMPLETED",
-      };
-    }, 'fetch_content_processing_data');
-  });
+        return {
+          transcriptionText: result.transcription_text,
+          transcriptionStatus:
+            (result.transcription_status as TranscriptionStatus) ||
+            "NOT_STARTED",
+          transcriptionLastUpdated: result.transcription_updated_at
+            ? new Date(result.transcription_updated_at)
+            : undefined,
+          romanization: result.romanization,
+          translationText: result.translation_text,
+          translationLanguage: result.translation_language,
+          translationLastUpdated: result.translation_updated_at
+            ? new Date(result.translation_updated_at)
+            : undefined,
+          isTranslated: result.translation_status === "COMPLETED",
+        };
+      }, "fetch_content_processing_data");
+    },
+  );
 
 /**
  * Fetch transcription data only (backward compatible)
  */
 export const fetchTranscriptionData = createServerFn({ method: "GET" })
   .validator((id: string) => {
-    validateRequired(id, 'Recording ID');
-    validateString(id, 'Recording ID');
+    validateRequired(id, "Recording ID");
+    validateString(id, "Recording ID");
     return id;
   })
   .handler(async ({ data: id }): Promise<TranscriptionData> => {
     const userId = await getCurrentUserId();
     if (!userId) throw ServerErrors.unauthorized();
-    
+
     const db = getDatabase();
-    
+
     const result = db
-      .prepare(`
+      .prepare(
+        `
         SELECT 
           t.text as transcription_text,
           t.romanization,
@@ -140,21 +149,25 @@ export const fetchTranscriptionData = createServerFn({ method: "GET" })
         FROM recordings r
         LEFT JOIN transcriptions t ON r.id = t.recording_id
         WHERE r.id = ? AND r.user_id = ?
-      `)
-      .get(id, userId) as {
-        transcription_text?: string;
-        romanization?: string;
-        transcription_status?: string;
-        transcription_updated_at?: string;
-      } | undefined;
+      `,
+      )
+      .get(id, userId) as
+      | {
+          transcription_text?: string;
+          romanization?: string;
+          transcription_status?: string;
+          transcription_updated_at?: string;
+        }
+      | undefined;
 
     if (!result) {
-      throw ServerErrors.notFound('Recording');
+      throw ServerErrors.notFound("Recording");
     }
 
     return {
       transcriptionText: result.transcription_text,
-      transcriptionStatus: (result.transcription_status as TranscriptionStatus) || "NOT_STARTED",
+      transcriptionStatus:
+        (result.transcription_status as TranscriptionStatus) || "NOT_STARTED",
       transcriptionLastUpdated: result.transcription_updated_at
         ? new Date(result.transcription_updated_at)
         : undefined,
@@ -167,8 +180,8 @@ export const fetchTranscriptionData = createServerFn({ method: "GET" })
  */
 export const fetchTranslationData = createServerFn({ method: "GET" })
   .validator((id: string) => {
-    validateRequired(id, 'Recording ID');
-    validateString(id, 'Recording ID');
+    validateRequired(id, "Recording ID");
+    validateString(id, "Recording ID");
     return id;
   })
   .handler(async ({ data: id }): Promise<TranslationData> => {
@@ -176,11 +189,12 @@ export const fetchTranslationData = createServerFn({ method: "GET" })
 
     const userId = await getCurrentUserId();
     if (!userId) throw ServerErrors.unauthorized();
-    
+
     const db = getDatabase();
-    
+
     const result = db
-      .prepare(`
+      .prepare(
+        `
         SELECT 
           tr.text as translation_text,
           tr.target_language as translation_language,
@@ -190,16 +204,19 @@ export const fetchTranslationData = createServerFn({ method: "GET" })
         LEFT JOIN transcriptions t ON r.id = t.recording_id
         LEFT JOIN translations tr ON t.id = tr.transcription_id
         WHERE r.id = ? AND r.user_id = ?
-      `)
-      .get(id, userId) as {
-        translation_text?: string;
-        translation_language?: string;
-        translation_status?: string;
-        translation_updated_at?: string;
-      } | undefined;
+      `,
+      )
+      .get(id, userId) as
+      | {
+          translation_text?: string;
+          translation_language?: string;
+          translation_status?: string;
+          translation_updated_at?: string;
+        }
+      | undefined;
 
     if (!result) {
-      throw ServerErrors.notFound('Recording');
+      throw ServerErrors.notFound("Recording");
     }
 
     return {
@@ -217,24 +234,26 @@ export const fetchTranslationData = createServerFn({ method: "GET" })
  */
 export const createTranslationForRecording = createServerFn({ method: "POST" })
   .validator((params: { recordingId: string; targetLanguage?: string }) => {
-    validateRequired(params?.recordingId, 'Recording ID');
-    validateString(params.recordingId, 'Recording ID');
-    
+    validateRequired(params?.recordingId, "Recording ID");
+    validateString(params.recordingId, "Recording ID");
+
     if (params.targetLanguage) {
-      validateString(params.targetLanguage, 'Target language', 2, 10);
+      validateString(params.targetLanguage, "Target language", 2, 10);
     }
-    
+
     return params;
   })
   .handler(async ({ data: { recordingId, targetLanguage = "en" } }) => {
-    logger.info(`Creating translation for recording ${recordingId} -> ${targetLanguage}`);
+    logger.info(
+      `Creating translation for recording ${recordingId} -> ${targetLanguage}`,
+    );
 
     // Fetch recording to validate and get language/transcription
     let recording: any;
     try {
       recording = await fetchRecording({ data: recordingId });
     } catch (error) {
-      throw ServerErrors.notFound('Recording');
+      throw ServerErrors.notFound("Recording");
     }
 
     if (!recording.isTranscribed || !recording.transcriptionText) {
@@ -247,7 +266,7 @@ export const createTranslationForRecording = createServerFn({ method: "POST" })
     // Perform translation
     const srcLang = recording.language || "auto";
     const tgtLang = normalizeTranslateLanguage(targetLanguage || "en");
-    
+
     let translatedText: string;
     try {
       translatedText = await translate.translateText(
@@ -256,7 +275,7 @@ export const createTranslationForRecording = createServerFn({ method: "POST" })
         tgtLang,
       );
     } catch (error) {
-      logger.error('Translation service error:', error);
+      logger.error("Translation service error:", error);
       throw ServerErrors.internal("Translation service failed");
     }
 
@@ -271,7 +290,7 @@ export const createTranslationForRecording = createServerFn({ method: "POST" })
         },
       });
     } catch (error) {
-      logger.error('Failed to persist translation:', error);
+      logger.error("Failed to persist translation:", error);
       throw ServerErrors.database("Failed to save translation");
     }
 
@@ -288,29 +307,43 @@ export const createTranslationForRecording = createServerFn({ method: "POST" })
  * Batch fetch transcription statuses for multiple recordings
  * Optimized version to prevent N+1 queries
  */
-export const batchFetchTranscriptionStatuses = createServerFn({ method: "POST" })
+export const batchFetchTranscriptionStatuses = createServerFn({
+  method: "POST",
+})
   .validator((data: { recordingIds: string[] }) => {
     if (!Array.isArray(data?.recordingIds)) {
       throw ServerErrors.validation("recordingIds must be an array");
     }
-    
-    data.recordingIds.forEach(id => validateString(id, 'Recording ID'));
+
+    data.recordingIds.forEach((id) => validateString(id, "Recording ID"));
     return data;
   })
-  .handler(async ({ data: { recordingIds } }): Promise<ServerResponse<Record<string, {
-    status: TranscriptionStatus;
-    lastUpdated?: Date;
-  }>>> => {
-    return withErrorHandling(async () => {
-      const userId = await getCurrentUserId();
-      if (!userId) throw ServerErrors.unauthorized();
-      
-      if (recordingIds.length === 0) return {};
-      
-      const db = getDatabase();
-      const placeholders = recordingIds.map(() => '?').join(',');
-      
-      const results = db.prepare(`
+  .handler(
+    async ({
+      data: { recordingIds },
+    }): Promise<
+      ServerResponse<
+        Record<
+          string,
+          {
+            status: TranscriptionStatus;
+            lastUpdated?: Date;
+          }
+        >
+      >
+    > => {
+      return withErrorHandling(async () => {
+        const userId = await getCurrentUserId();
+        if (!userId) throw ServerErrors.unauthorized();
+
+        if (recordingIds.length === 0) return {};
+
+        const db = getDatabase();
+        const placeholders = recordingIds.map(() => "?").join(",");
+
+        const results = db
+          .prepare(
+            `
         SELECT 
           r.id as recording_id,
           t.status as transcription_status,
@@ -318,26 +351,34 @@ export const batchFetchTranscriptionStatuses = createServerFn({ method: "POST" }
         FROM recordings r
         LEFT JOIN transcriptions t ON r.id = t.recording_id
         WHERE r.id IN (${placeholders}) AND r.user_id = ?
-      `).all(...recordingIds, userId) as {
-        recording_id: string;
-        transcription_status?: string;
-        transcription_updated_at?: string;
-      }[];
-      
-      const statusMap: Record<string, { status: TranscriptionStatus; lastUpdated?: Date }> = {};
-      
-      results.forEach(result => {
-        statusMap[result.recording_id] = {
-          status: (result.transcription_status as TranscriptionStatus) || "NOT_STARTED",
-          lastUpdated: result.transcription_updated_at 
-            ? new Date(result.transcription_updated_at)
-            : undefined,
-        };
-      });
-      
-      return statusMap;
-    }, 'batch_fetch_transcription_statuses');
-  });
+      `,
+          )
+          .all(...recordingIds, userId) as {
+          recording_id: string;
+          transcription_status?: string;
+          transcription_updated_at?: string;
+        }[];
+
+        const statusMap: Record<
+          string,
+          { status: TranscriptionStatus; lastUpdated?: Date }
+        > = {};
+
+        results.forEach((result) => {
+          statusMap[result.recording_id] = {
+            status:
+              (result.transcription_status as TranscriptionStatus) ||
+              "NOT_STARTED",
+            lastUpdated: result.transcription_updated_at
+              ? new Date(result.transcription_updated_at)
+              : undefined,
+          };
+        });
+
+        return statusMap;
+      }, "batch_fetch_transcription_statuses");
+    },
+  );
 
 /**
  * Batch fetch translation statuses for multiple recordings
@@ -347,25 +388,37 @@ export const batchFetchTranslationStatuses = createServerFn({ method: "POST" })
     if (!Array.isArray(data?.recordingIds)) {
       throw ServerErrors.validation("recordingIds must be an array");
     }
-    
-    data.recordingIds.forEach(id => validateString(id, 'Recording ID'));
+
+    data.recordingIds.forEach((id) => validateString(id, "Recording ID"));
     return data;
   })
-  .handler(async ({ data: { recordingIds } }): Promise<ServerResponse<Record<string, {
-    isTranslated: boolean;
-    language?: string;
-    lastUpdated?: Date;
-  }>>> => {
-    return withErrorHandling(async () => {
-      const userId = await getCurrentUserId();
-      if (!userId) throw ServerErrors.unauthorized();
-      
-      if (recordingIds.length === 0) return {};
-      
-      const db = getDatabase();
-      const placeholders = recordingIds.map(() => '?').join(',');
-      
-      const results = db.prepare(`
+  .handler(
+    async ({
+      data: { recordingIds },
+    }): Promise<
+      ServerResponse<
+        Record<
+          string,
+          {
+            isTranslated: boolean;
+            language?: string;
+            lastUpdated?: Date;
+          }
+        >
+      >
+    > => {
+      return withErrorHandling(async () => {
+        const userId = await getCurrentUserId();
+        if (!userId) throw ServerErrors.unauthorized();
+
+        if (recordingIds.length === 0) return {};
+
+        const db = getDatabase();
+        const placeholders = recordingIds.map(() => "?").join(",");
+
+        const results = db
+          .prepare(
+            `
         SELECT 
           r.id as recording_id,
           tr.status as translation_status,
@@ -375,53 +428,59 @@ export const batchFetchTranslationStatuses = createServerFn({ method: "POST" })
         LEFT JOIN transcriptions t ON r.id = t.recording_id
         LEFT JOIN translations tr ON t.id = tr.transcription_id
         WHERE r.id IN (${placeholders}) AND r.user_id = ?
-      `).all(...recordingIds, userId) as {
-        recording_id: string;
-        translation_status?: string;
-        translation_language?: string;
-        translation_updated_at?: string;
-      }[];
-      
-      const statusMap: Record<string, { isTranslated: boolean; language?: string; lastUpdated?: Date }> = {};
-      
-      results.forEach(result => {
-        statusMap[result.recording_id] = {
-          isTranslated: result.translation_status === "COMPLETED",
-          language: result.translation_language,
-          lastUpdated: result.translation_updated_at 
-            ? new Date(result.translation_updated_at)
-            : undefined,
-        };
-      });
-      
-      return statusMap;
-    }, 'batch_fetch_translation_statuses');
-  });
+      `,
+          )
+          .all(...recordingIds, userId) as {
+          recording_id: string;
+          translation_status?: string;
+          translation_language?: string;
+          translation_updated_at?: string;
+        }[];
+
+        const statusMap: Record<
+          string,
+          { isTranslated: boolean; language?: string; lastUpdated?: Date }
+        > = {};
+
+        results.forEach((result) => {
+          statusMap[result.recording_id] = {
+            isTranslated: result.translation_status === "COMPLETED",
+            language: result.translation_language,
+            lastUpdated: result.translation_updated_at
+              ? new Date(result.translation_updated_at)
+              : undefined,
+          };
+        });
+
+        return statusMap;
+      }, "batch_fetch_translation_statuses");
+    },
+  );
 
 // Query helpers for TanStack Query
 export const contentProcessingQuery = (recordingId: string) => ({
-  queryKey: ['content-processing', recordingId],
+  queryKey: ["content-processing", recordingId],
   queryFn: () => fetchContentProcessingData({ data: recordingId }),
 });
 
 export const transcriptionQuery = (recordingId: string) => ({
-  queryKey: ['transcription', recordingId],
+  queryKey: ["transcription", recordingId],
   queryFn: () => fetchTranscriptionData({ data: recordingId }),
 });
 
 export const translationQuery = (recordingId: string) => ({
-  queryKey: ['translation', recordingId],
+  queryKey: ["translation", recordingId],
   queryFn: () => fetchTranslationData({ data: recordingId }),
 });
 
 export const batchTranscriptionStatusQuery = (recordingIds: string[]) => ({
-  queryKey: ['transcriptions', 'batch-status', recordingIds.sort()],
+  queryKey: ["transcriptions", "batch-status", recordingIds.sort()],
   queryFn: () => batchFetchTranscriptionStatuses({ data: { recordingIds } }),
   staleTime: 30000, // 30 seconds - status doesn't change frequently
 });
 
 export const batchTranslationStatusQuery = (recordingIds: string[]) => ({
-  queryKey: ['translations', 'batch-status', recordingIds.sort()],
+  queryKey: ["translations", "batch-status", recordingIds.sort()],
   queryFn: () => batchFetchTranslationStatuses({ data: { recordingIds } }),
   staleTime: 30000, // 30 seconds - status doesn't change frequently
 });

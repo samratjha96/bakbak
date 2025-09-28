@@ -8,7 +8,6 @@ interface AudioWaveSurferPlayerProps {
   className?: string;
 }
 
-
 export const AudioWaveSurferPlayer: React.FC<AudioWaveSurferPlayerProps> = ({
   url,
   className = "",

@@ -20,12 +20,6 @@ import { Route as WorkspaceNewRouteImport } from './routes/workspace/new'
 import { Route as WorkspaceWorkspaceIdRouteImport } from './routes/workspace/$workspaceId'
 import { Route as RecordingsNewRouteImport } from './routes/recordings/new'
 import { Route as RecordingsIdRouteImport } from './routes/recordings/$id'
-import { Route as ApiRecordingsRecordingIdTransliterateIndexRouteImport } from './routes/api/recordings/$recordingId/transliterate/index'
-import { Route as ApiRecordingsRecordingIdTranslationIndexRouteImport } from './routes/api/recordings/$recordingId/translation/index'
-import { Route as ApiRecordingsRecordingIdTranslateIndexRouteImport } from './routes/api/recordings/$recordingId/translate/index'
-import { Route as ApiRecordingsRecordingIdTranscriptionIndexRouteImport } from './routes/api/recordings/$recordingId/transcription/index'
-import { Route as ApiRecordingsRecordingIdTranscribeIndexRouteImport } from './routes/api/recordings/$recordingId/transcribe/index'
-import { Route as ApiRecordingsRecordingIdTranscribeStatusRouteImport } from './routes/api/recordings/$recordingId/transcribe/status'
 import { ServerRoute as ApiAuthSplatServerRouteImport } from './routes/api/auth/$'
 
 const rootServerRouteImport = createServerRootRoute()
@@ -75,42 +69,6 @@ const RecordingsIdRoute = RecordingsIdRouteImport.update({
   path: '/recordings/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiRecordingsRecordingIdTransliterateIndexRoute =
-  ApiRecordingsRecordingIdTransliterateIndexRouteImport.update({
-    id: '/api/recordings/$recordingId/transliterate/',
-    path: '/api/recordings/$recordingId/transliterate/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiRecordingsRecordingIdTranslationIndexRoute =
-  ApiRecordingsRecordingIdTranslationIndexRouteImport.update({
-    id: '/api/recordings/$recordingId/translation/',
-    path: '/api/recordings/$recordingId/translation/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiRecordingsRecordingIdTranslateIndexRoute =
-  ApiRecordingsRecordingIdTranslateIndexRouteImport.update({
-    id: '/api/recordings/$recordingId/translate/',
-    path: '/api/recordings/$recordingId/translate/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiRecordingsRecordingIdTranscriptionIndexRoute =
-  ApiRecordingsRecordingIdTranscriptionIndexRouteImport.update({
-    id: '/api/recordings/$recordingId/transcription/',
-    path: '/api/recordings/$recordingId/transcription/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiRecordingsRecordingIdTranscribeIndexRoute =
-  ApiRecordingsRecordingIdTranscribeIndexRouteImport.update({
-    id: '/api/recordings/$recordingId/transcribe/',
-    path: '/api/recordings/$recordingId/transcribe/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiRecordingsRecordingIdTranscribeStatusRoute =
-  ApiRecordingsRecordingIdTranscribeStatusRouteImport.update({
-    id: '/api/recordings/$recordingId/transcribe/status',
-    path: '/api/recordings/$recordingId/transcribe/status',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiAuthSplatServerRoute = ApiAuthSplatServerRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -127,12 +85,6 @@ export interface FileRoutesByFullPath {
   '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRoute
   '/workspace/new': typeof WorkspaceNewRoute
   '/recordings': typeof RecordingsIndexRoute
-  '/api/recordings/$recordingId/transcribe/status': typeof ApiRecordingsRecordingIdTranscribeStatusRoute
-  '/api/recordings/$recordingId/transcribe': typeof ApiRecordingsRecordingIdTranscribeIndexRoute
-  '/api/recordings/$recordingId/transcription': typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
-  '/api/recordings/$recordingId/translate': typeof ApiRecordingsRecordingIdTranslateIndexRoute
-  '/api/recordings/$recordingId/translation': typeof ApiRecordingsRecordingIdTranslationIndexRoute
-  '/api/recordings/$recordingId/transliterate': typeof ApiRecordingsRecordingIdTransliterateIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -144,12 +96,6 @@ export interface FileRoutesByTo {
   '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRoute
   '/workspace/new': typeof WorkspaceNewRoute
   '/recordings': typeof RecordingsIndexRoute
-  '/api/recordings/$recordingId/transcribe/status': typeof ApiRecordingsRecordingIdTranscribeStatusRoute
-  '/api/recordings/$recordingId/transcribe': typeof ApiRecordingsRecordingIdTranscribeIndexRoute
-  '/api/recordings/$recordingId/transcription': typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
-  '/api/recordings/$recordingId/translate': typeof ApiRecordingsRecordingIdTranslateIndexRoute
-  '/api/recordings/$recordingId/translation': typeof ApiRecordingsRecordingIdTranslationIndexRoute
-  '/api/recordings/$recordingId/transliterate': typeof ApiRecordingsRecordingIdTransliterateIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -162,12 +108,6 @@ export interface FileRoutesById {
   '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRoute
   '/workspace/new': typeof WorkspaceNewRoute
   '/recordings/': typeof RecordingsIndexRoute
-  '/api/recordings/$recordingId/transcribe/status': typeof ApiRecordingsRecordingIdTranscribeStatusRoute
-  '/api/recordings/$recordingId/transcribe/': typeof ApiRecordingsRecordingIdTranscribeIndexRoute
-  '/api/recordings/$recordingId/transcription/': typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
-  '/api/recordings/$recordingId/translate/': typeof ApiRecordingsRecordingIdTranslateIndexRoute
-  '/api/recordings/$recordingId/translation/': typeof ApiRecordingsRecordingIdTranslationIndexRoute
-  '/api/recordings/$recordingId/transliterate/': typeof ApiRecordingsRecordingIdTransliterateIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,12 +121,6 @@ export interface FileRouteTypes {
     | '/workspace/$workspaceId'
     | '/workspace/new'
     | '/recordings'
-    | '/api/recordings/$recordingId/transcribe/status'
-    | '/api/recordings/$recordingId/transcribe'
-    | '/api/recordings/$recordingId/transcription'
-    | '/api/recordings/$recordingId/translate'
-    | '/api/recordings/$recordingId/translation'
-    | '/api/recordings/$recordingId/transliterate'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -198,12 +132,6 @@ export interface FileRouteTypes {
     | '/workspace/$workspaceId'
     | '/workspace/new'
     | '/recordings'
-    | '/api/recordings/$recordingId/transcribe/status'
-    | '/api/recordings/$recordingId/transcribe'
-    | '/api/recordings/$recordingId/transcription'
-    | '/api/recordings/$recordingId/translate'
-    | '/api/recordings/$recordingId/translation'
-    | '/api/recordings/$recordingId/transliterate'
   id:
     | '__root__'
     | '/'
@@ -215,12 +143,6 @@ export interface FileRouteTypes {
     | '/workspace/$workspaceId'
     | '/workspace/new'
     | '/recordings/'
-    | '/api/recordings/$recordingId/transcribe/status'
-    | '/api/recordings/$recordingId/transcribe/'
-    | '/api/recordings/$recordingId/transcription/'
-    | '/api/recordings/$recordingId/translate/'
-    | '/api/recordings/$recordingId/translation/'
-    | '/api/recordings/$recordingId/transliterate/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -233,12 +155,6 @@ export interface RootRouteChildren {
   WorkspaceWorkspaceIdRoute: typeof WorkspaceWorkspaceIdRoute
   WorkspaceNewRoute: typeof WorkspaceNewRoute
   RecordingsIndexRoute: typeof RecordingsIndexRoute
-  ApiRecordingsRecordingIdTranscribeStatusRoute: typeof ApiRecordingsRecordingIdTranscribeStatusRoute
-  ApiRecordingsRecordingIdTranscribeIndexRoute: typeof ApiRecordingsRecordingIdTranscribeIndexRoute
-  ApiRecordingsRecordingIdTranscriptionIndexRoute: typeof ApiRecordingsRecordingIdTranscriptionIndexRoute
-  ApiRecordingsRecordingIdTranslateIndexRoute: typeof ApiRecordingsRecordingIdTranslateIndexRoute
-  ApiRecordingsRecordingIdTranslationIndexRoute: typeof ApiRecordingsRecordingIdTranslationIndexRoute
-  ApiRecordingsRecordingIdTransliterateIndexRoute: typeof ApiRecordingsRecordingIdTransliterateIndexRoute
 }
 export interface FileServerRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatServerRoute
@@ -327,48 +243,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RecordingsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/recordings/$recordingId/transliterate/': {
-      id: '/api/recordings/$recordingId/transliterate/'
-      path: '/api/recordings/$recordingId/transliterate'
-      fullPath: '/api/recordings/$recordingId/transliterate'
-      preLoaderRoute: typeof ApiRecordingsRecordingIdTransliterateIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/recordings/$recordingId/translation/': {
-      id: '/api/recordings/$recordingId/translation/'
-      path: '/api/recordings/$recordingId/translation'
-      fullPath: '/api/recordings/$recordingId/translation'
-      preLoaderRoute: typeof ApiRecordingsRecordingIdTranslationIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/recordings/$recordingId/translate/': {
-      id: '/api/recordings/$recordingId/translate/'
-      path: '/api/recordings/$recordingId/translate'
-      fullPath: '/api/recordings/$recordingId/translate'
-      preLoaderRoute: typeof ApiRecordingsRecordingIdTranslateIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/recordings/$recordingId/transcription/': {
-      id: '/api/recordings/$recordingId/transcription/'
-      path: '/api/recordings/$recordingId/transcription'
-      fullPath: '/api/recordings/$recordingId/transcription'
-      preLoaderRoute: typeof ApiRecordingsRecordingIdTranscriptionIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/recordings/$recordingId/transcribe/': {
-      id: '/api/recordings/$recordingId/transcribe/'
-      path: '/api/recordings/$recordingId/transcribe'
-      fullPath: '/api/recordings/$recordingId/transcribe'
-      preLoaderRoute: typeof ApiRecordingsRecordingIdTranscribeIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/recordings/$recordingId/transcribe/status': {
-      id: '/api/recordings/$recordingId/transcribe/status'
-      path: '/api/recordings/$recordingId/transcribe/status'
-      fullPath: '/api/recordings/$recordingId/transcribe/status'
-      preLoaderRoute: typeof ApiRecordingsRecordingIdTranscribeStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 declare module '@tanstack/react-start/server' {
@@ -393,18 +267,6 @@ const rootRouteChildren: RootRouteChildren = {
   WorkspaceWorkspaceIdRoute: WorkspaceWorkspaceIdRoute,
   WorkspaceNewRoute: WorkspaceNewRoute,
   RecordingsIndexRoute: RecordingsIndexRoute,
-  ApiRecordingsRecordingIdTranscribeStatusRoute:
-    ApiRecordingsRecordingIdTranscribeStatusRoute,
-  ApiRecordingsRecordingIdTranscribeIndexRoute:
-    ApiRecordingsRecordingIdTranscribeIndexRoute,
-  ApiRecordingsRecordingIdTranscriptionIndexRoute:
-    ApiRecordingsRecordingIdTranscriptionIndexRoute,
-  ApiRecordingsRecordingIdTranslateIndexRoute:
-    ApiRecordingsRecordingIdTranslateIndexRoute,
-  ApiRecordingsRecordingIdTranslationIndexRoute:
-    ApiRecordingsRecordingIdTranslationIndexRoute,
-  ApiRecordingsRecordingIdTransliterateIndexRoute:
-    ApiRecordingsRecordingIdTransliterateIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

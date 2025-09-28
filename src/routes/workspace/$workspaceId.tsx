@@ -100,7 +100,6 @@ function WorkspacePage() {
     );
   }
 
-
   const handleInvite = async (email: string, role: string) => {
     try {
       const result = await inviteMutation.mutateAsync({
