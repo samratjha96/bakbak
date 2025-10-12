@@ -6,7 +6,7 @@ import { MicrophoneIcon } from "~/components/ui/Icons";
 import { WorkspaceSelector } from "~/components/workspace";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { userWorkspacesQuery } from "~/lib/workspaceQueries";
-import { ensureUserWorkspace } from "~/lib/workspace";
+import { ensureUserWorkspace } from "~/lib/functions/workspaces/mutations/create";
 import { useWorkspace } from "~/contexts/WorkspaceContext";
 
 interface HeaderProps {}

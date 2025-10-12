@@ -5,11 +5,11 @@ import { EditIcon, SaveIcon } from "~/components/ui/Icons";
 import { TranscriptionStatus } from "./TranscriptionStatus";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
 import {
-  updateRecordingTranscription,
   transcriptionStatusQuery,
 } from "~/lib/recordings";
-import { fetchTranscriptionData } from "~/server/content-processing";
-import { regenerateRomanization } from "~/lib/recordingServerFunctions";
+import { updateRecordingTranscription } from "~/lib/functions/recordings/mutations/transcription";
+import { fetchTranscriptionData } from "~/lib/functions/content-processing/queries/transcription";
+import { romanizeText } from "~/lib/functions/ai/romanization";
 import { getErrorMessage } from "~/utils/errorHandling";
 import { queryKeys } from "~/lib/queryKeys";
 import { useQueryInvalidator } from "~/lib/queryInvalidation";
@@ -43,9 +43,10 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   const queryClient = useQueryClient();
   const invalidator = useQueryInvalidator();
 
-  // Bind server function safely
+  // Bind server functions consistently
   const boundFetchTranscription = useServerFn(fetchTranscriptionData);
-  const boundRegenerateRomanization = useServerFn(regenerateRomanization);
+  const boundRomanizeText = useServerFn(romanizeText);
+  const boundUpdateTranscription = useServerFn(updateRecordingTranscription);
 
   // Fetch the current transcription data using the bound server function with polling
   const {
@@ -120,7 +121,7 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   // Mutation to update romanization
   const updateRomanizationMutation = useMutation({
     mutationFn: (newRomanization: string) =>
-      updateRecordingTranscription({
+      boundUpdateTranscription({
         data: {
           id: recordingId,
           transcription: {
@@ -134,9 +135,38 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
     },
   });
 
-  // Mutation to regenerate romanization using AI
+  // Mutation to regenerate romanization using client-side composition
   const regenerateRomanizationMutation = useMutation({
-    mutationFn: () => boundRegenerateRomanization({ data: { recordingId } }),
+    mutationFn: async () => {
+      if (!displayTranscriptionText) {
+        throw new Error("No transcription text available");
+      }
+
+      // Get recording data to determine language
+      const recording = queryClient.getQueryData(queryKeys.recordings.detail(recordingId)) as any;
+      const sourceLanguage = recording?.language || "hi";
+
+      // Call romanization service
+      const romanizationResult = await boundRomanizeText({
+        data: {
+          text: displayTranscriptionText,
+          sourceLanguage,
+        },
+      });
+
+      // Update the database with the new romanization
+      await boundUpdateTranscription({
+        data: {
+          id: recordingId,
+          transcription: {
+            romanization: romanizationResult.romanizedText,
+            isComplete: true,
+          },
+        },
+      });
+
+      return romanizationResult;
+    },
     onSuccess: (result) => {
       // Update the romanization text state with the new result
       setRomanizationText(result.romanizedText || "");
@@ -151,7 +181,7 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   // Mutation to update transcription using server function
   const updateTranscriptionMutation = useMutation({
     mutationFn: (newText: string) =>
-      updateRecordingTranscription({
+      boundUpdateTranscription({
         data: {
           id: recordingId,
           transcription: {

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TranslateIcon } from "~/components/ui/Icons";
-import { translateRecording } from "~/lib/recordingServerFunctions";
+import { translateRecording } from "~/lib/functions/content-processing/mutations/translation";
 
 interface TranslateButtonProps {
   recordingId: string;

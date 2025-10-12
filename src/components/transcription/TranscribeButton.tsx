@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { DocumentIcon } from "~/components/ui/Icons";
-import { transcribeRecording } from "~/lib/recordingServerFunctions";
+import { transcribeRecording } from "~/lib/functions/content-processing/mutations/transcription";
 import { transcriptionStatusQuery } from "~/lib/recordings";
 import { useQueryInvalidator } from "~/lib/queryInvalidation";
 import { queryKeys } from "~/lib/queryKeys";

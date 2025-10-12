@@ -8,17 +8,23 @@ import { queryOptions } from "@tanstack/react-query";
 import {
   fetchRecordings,
   fetchRecording,
-  createRecording,
-  updateRecordingTranscription,
-  updateRecordingNotes,
-  updateRecordingTranscriptionStatus,
-  updateRecordingTranslation,
-  updateRecording,
+} from "~/lib/functions/recordings/queries/fetch";
+import {
   getRecordingPresignedUrl,
   getRecordingPath,
-  deleteRecording,
-} from "~/server/recordings";
-import { getTranscriptionJobStatus } from "~/lib/recordingServerFunctions";
+} from "~/lib/functions/recordings/queries/paths";
+import { getTranscriptionJobStatus } from "~/lib/functions/recordings/queries/status";
+import { createRecording } from "~/lib/functions/recordings/mutations/create";
+import {
+  updateRecording,
+  updateRecordingNotes,
+} from "~/lib/functions/recordings/mutations/update";
+import {
+  updateRecordingTranscription,
+  updateRecordingTranscriptionStatus,
+} from "~/lib/functions/recordings/mutations/transcription";
+import { updateRecordingTranslation } from "~/lib/functions/recordings/mutations/translation";
+import { deleteRecording } from "~/lib/functions/recordings/mutations/delete";
 
 // Query options for React Query - CLIENT SAFE
 export const recordingsQuery = () =>

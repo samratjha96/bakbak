@@ -1,3 +1,7 @@
+/**
+ * ABOUTME: AI-powered text romanization using Amazon Bedrock
+ * ABOUTME: Converts text from non-Latin scripts to Latin alphabet
+ */
 import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { bedrock, createAmazonBedrock } from "@ai-sdk/amazon-bedrock";
@@ -6,7 +10,7 @@ import {
   type RomanizationRequest,
   type RomanizationResponse,
 } from "~/types/romanization";
-import { AI_ROMANIZATION_CONFIG, getRomanizationPrompt } from "./config";
+import { AI_ROMANIZATION_CONFIG, getRomanizationPrompt } from "~/lib/ai-romanization/config";
 import { createLogger } from "~/utils/logger";
 
 const logger = createLogger("AI.Romanization");
@@ -23,7 +27,6 @@ async function romanizeWithBedrock(
   const systemPrompt = getRomanizationPrompt(request.sourceLanguage);
   const userPrompt = `Romanize this (${request.sourceLanguage}):\n\n${request.text}`;
 
-  // Log prompts for diagnosis (debug level) and request meta (info)
   logger.info(
     `Starting romanization | model=${AI_ROMANIZATION_CONFIG.DEFAULT_MODEL} | lang=${request.sourceLanguage} | length=${request.text.length}`,
   );
@@ -55,7 +58,7 @@ async function romanizeWithBedrock(
 }
 
 export const romanizeText = createServerFn({ method: "POST" })
-  .validator((data: RomanizationRequest) => {
+  .inputValidator((data: RomanizationRequest) => {
     if (!data.text?.trim()) throw new Error("Text is required");
     if (data.text.length > AI_ROMANIZATION_CONFIG.MAX_TEXT_LENGTH) {
       throw new Error(

@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useSession } from "~/lib/auth-client";
-import { romanizeText } from "./service";
+import { romanizeText } from "../functions/ai/romanization";
 import {
   type RomanizationRequest,
   type RomanizationResponse,

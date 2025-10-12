@@ -1,5 +1,5 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
-import { isAuthenticatedServer } from "~/server/auth";
+import { isAuthenticatedServer } from "~/lib/functions/auth/session";
 import * as React from "react";
 import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
@@ -13,16 +13,12 @@ import { TranscriptionDisplay } from "~/components/transcription/TranscriptionDi
 import { TranslationAccordion } from "~/components/translation/TranslationAccordion";
 import { AudioWaveSurferPlayer } from "~/components/audio/AudioWaveSurferPlayer";
 
-// Export server functions from separate file for co-location
-export {
-  translateRecording,
-  transcribeRecording,
-  getTranscription,
-  getTranslation,
-  transliterateRecording,
-  getTranscriptionJobStatus,
-  regenerateRomanization,
-} from "~/lib/recordingServerFunctions";
+// Export server functions from new organized locations
+export { translateRecording } from "~/lib/functions/content-processing/mutations/translation";
+export { transcribeRecording, transliterateRecording } from "~/lib/functions/content-processing/mutations/transcription";
+export { getTranscription } from "~/lib/functions/content-processing/queries/transcription";
+export { getTranslation } from "~/lib/functions/content-processing/queries/translation";
+export { getTranscriptionJobStatus } from "~/lib/functions/recordings/queries/status";
 
 function RecordingPlayer({
   fetchPresignedUrl,

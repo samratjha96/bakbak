@@ -2,8 +2,8 @@ import { queryOptions } from "@tanstack/react-query";
 import {
   fetchUserWorkspaces,
   fetchWorkspaceDetails,
-  fetchWorkspaceRecordings,
-} from "./workspace";
+} from "./functions/workspaces/queries/fetch";
+import { fetchWorkspaceRecordings } from "./functions/workspaces/queries/recordings";
 
 /**
  * Query for fetching user's workspaces

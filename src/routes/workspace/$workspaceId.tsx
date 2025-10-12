@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { inviteUserToWorkspace } from "~/lib/workspace";
+import { inviteUserToWorkspace } from "~/lib/functions/workspaces/mutations/invite";
 import {
   workspaceDetailsQuery,
   workspaceRecordingsQuery,

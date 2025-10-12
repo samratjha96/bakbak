@@ -4,11 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   getPresignedUploadUrl,
   getS3Url,
+} from "~/lib/functions/s3/uploads/single";
+import {
   initiateMultipartUpload,
   getPresignedPartUploadUrl,
   completeMultipartUpload,
   abortMultipartUpload,
-} from "~/server/s3";
+} from "~/lib/functions/s3/multipart/operations";
 
 interface S3FileUploadProps {
   bucketName: string;

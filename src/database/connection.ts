@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { auth } from "~/lib/auth";
-import { getWebRequest } from "@tanstack/react-start/server";
+import { getRequest } from "@tanstack/react-start/server";
 
 // Database connection singleton
 let db: Database.Database | null = null;
@@ -48,7 +48,7 @@ export function closeDatabase(): void {
 // Helper function to get current user ID from the auth system
 export async function getCurrentUserId(): Promise<string | null> {
   try {
-    const request = getWebRequest();
+    const request = getRequest();
     const session = await auth.api.getSession({ headers: request.headers });
     return session?.user?.id ?? null;
   } catch (error) {
@@ -59,7 +59,7 @@ export async function getCurrentUserId(): Promise<string | null> {
 
 export async function isAuthenticated(): Promise<boolean> {
   try {
-    const request = getWebRequest();
+    const request = getRequest();
     const session = await auth.api.getSession({ headers: request.headers });
     return !!session;
   } catch {

@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { isAuthenticatedServer } from "~/server/auth";
+import { isAuthenticatedServer } from "~/lib/functions/auth/session";
 import { Layout } from "~/components/layout";
 import { ActionBar } from "~/components/layout";
 import {

@@ -11,10 +11,8 @@ import { TranslationStatus } from "./TranslationStatus";
 import type { TranslationStatus as TStatus } from "./TranslationStatus";
 import { updateRecordingTranslation } from "~/lib/recordings";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  fetchTranslationData,
-  createTranslationForRecording,
-} from "~/server/content-processing";
+import { fetchTranslationData } from "~/lib/functions/content-processing/queries/translation";
+import { translateRecording } from "~/lib/functions/content-processing/mutations/translation";
 import { createLogger } from "~/utils/logger";
 import { getErrorMessage } from "~/utils/errorHandling";
 
@@ -57,7 +55,7 @@ export const TranslationAccordion: React.FC<TranslationAccordionProps> = ({
 
   // Bind server functions safely
   const boundFetchTranslation = useServerFn(fetchTranslationData);
-  const boundCreateTranslation = useServerFn(createTranslationForRecording);
+  const boundCreateTranslation = useServerFn(translateRecording);
 
   // Fetch the current translation data using the bound server function
   const {
