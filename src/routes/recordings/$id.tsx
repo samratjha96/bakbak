@@ -21,6 +21,7 @@ export {
   getTranslation,
   transliterateRecording,
   getTranscriptionJobStatus,
+  regenerateRomanization,
 } from "~/lib/recordingServerFunctions";
 
 function RecordingPlayer({

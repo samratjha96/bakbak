@@ -8,12 +8,14 @@ import { z } from "zod";
 import {
   fetchRecording,
   updateRecordingTranslation,
+  updateRecordingTranscription,
   updateRecordingTranscriptionStatus,
   getRecordingPresignedUrl,
 } from "~/lib/recordings";
 import { translate } from "~/lib/translate";
 import { normalizeTranslateLanguage } from "~/lib/languages";
 import { transcribe } from "~/lib/transcribe";
+import { romanizeText } from "~/lib/ai-romanization/service";
 
 export const translateRecording = createServerFn({ method: "POST" })
   .validator((data: { recordingId: string; targetLanguage?: string }) => {
@@ -224,6 +226,22 @@ export const transliterateRecording = createServerFn({ method: "POST" })
     };
   });
 
+// Helper function to romanize transcription text
+async function romanizeTranscriptionText(text: string, language: string): Promise<string | undefined> {
+  try {
+    const result = await romanizeText({
+      data: {
+        text,
+        sourceLanguage: language,
+      },
+    });
+    return result.romanizedText;
+  } catch (error) {
+    console.error("Romanization failed:", error);
+    return undefined; // Don't fail the whole transcription if romanization fails
+  }
+}
+
 export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
   .validator((data: { recordingId: string }) => {
     return z
@@ -250,6 +268,61 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
       };
     }
 
+    // If we have a job ID and status is IN_PROGRESS, check AWS for completion
+    if (recording.transcriptionUrl && recording.transcriptionStatus === "IN_PROGRESS") {
+      try {
+        const jobId = recording.transcriptionUrl;
+        const awsStatus = await transcribe.getTranscriptionStatus(jobId);
+
+        if (awsStatus.status === "COMPLETED") {
+          // Get transcription result from AWS
+          const transcriptionResult = await transcribe.getTranscriptionResult(jobId);
+          const transcriptionText = transcriptionResult.text;
+
+          // Romanize the transcription text
+          const sourceLanguage = recording.language || "hi";
+          const romanizedText = await romanizeTranscriptionText(transcriptionText, sourceLanguage);
+
+          // Update database with transcription and romanization
+          await updateRecordingTranscription({
+            data: {
+              id: recordingId,
+              transcription: {
+                text: transcriptionText,
+                romanization: romanizedText,
+                isComplete: true,
+              },
+            },
+          });
+
+          return {
+            transcriptionStatus: "COMPLETED",
+            jobStatus: "COMPLETED",
+            text: transcriptionText,
+            romanizedText: romanizedText,
+            recordingId,
+          };
+        } else if (awsStatus.status === "FAILED") {
+          // Update status to failed
+          await updateRecordingTranscriptionStatus({
+            data: {
+              id: recordingId,
+              status: "FAILED",
+            },
+          });
+
+          return {
+            transcriptionStatus: "FAILED",
+            jobStatus: "FAILED",
+            errorMessage: awsStatus.errorMessage,
+            recordingId,
+          };
+        }
+      } catch (error) {
+        console.error("Error checking AWS transcription status:", error);
+      }
+    }
+
     if (!recording.transcriptionUrl) {
       return {
         transcriptionStatus: recording.transcriptionStatus,
@@ -261,6 +334,48 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
     return {
       transcriptionStatus: recording.transcriptionStatus,
       jobStatus: recording.transcriptionStatus,
+      recordingId,
+    };
+  });
+
+export const regenerateRomanization = createServerFn({ method: "POST" })
+  .validator((data: { recordingId: string }) => {
+    return z
+      .object({
+        recordingId: z.string(),
+      })
+      .parse(data);
+  })
+  .handler(async ({ data }) => {
+    const { recordingId } = data;
+
+    const recording = await fetchRecording({ data: recordingId });
+    if (!recording) {
+      throw notFound();
+    }
+
+    if (!recording.isTranscribed || !recording.transcriptionText) {
+      throw new Error("No transcription available to romanize");
+    }
+
+    // Reuse the same romanization logic as the main transcription flow
+    const sourceLanguage = recording.language || "hi";
+    const romanizedText = await romanizeTranscriptionText(recording.transcriptionText, sourceLanguage);
+
+    // Update the romanization in the database
+    await updateRecordingTranscription({
+      data: {
+        id: recordingId,
+        transcription: {
+          romanization: romanizedText,
+          isComplete: true,
+        },
+      },
+    });
+
+    return {
+      romanizedText: romanizedText,
+      sourceLanguage: sourceLanguage,
       recordingId,
     };
   });

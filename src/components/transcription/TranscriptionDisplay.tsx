@@ -9,6 +9,7 @@ import {
   transcriptionStatusQuery,
 } from "~/lib/recordings";
 import { fetchTranscriptionData } from "~/server/content-processing";
+import { regenerateRomanization } from "~/lib/recordingServerFunctions";
 import { getErrorMessage } from "~/utils/errorHandling";
 import { queryKeys } from "~/lib/queryKeys";
 import { useQueryInvalidator } from "~/lib/queryInvalidation";
@@ -44,6 +45,7 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
 
   // Bind server function safely
   const boundFetchTranscription = useServerFn(fetchTranscriptionData);
+  const boundRegenerateRomanization = useServerFn(regenerateRomanization);
 
   // Fetch the current transcription data using the bound server function with polling
   const {
@@ -129,6 +131,20 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
     onSuccess: () => {
       invalidator.transcription.afterUpdate(recordingId);
       setIsEditingRomanization(false);
+    },
+  });
+
+  // Mutation to regenerate romanization using AI
+  const regenerateRomanizationMutation = useMutation({
+    mutationFn: () => boundRegenerateRomanization({ data: { recordingId } }),
+    onSuccess: (result) => {
+      // Update the romanization text state with the new result
+      setRomanizationText(result.romanizedText || "");
+      // Invalidate queries to refresh the UI
+      invalidator.transcription.afterUpdate(recordingId);
+    },
+    onError: (error) => {
+      console.error("Failed to regenerate romanization:", error);
     },
   });
 
@@ -331,24 +347,59 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
           lastUpdated={displayLastUpdated}
         />
         {!readOnly && (
-          <button
-            onClick={() =>
-              isEditing ? setIsEditing(false) : setIsEditing(true)
-            }
-            className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light transition-colors"
-          >
-            {isEditing ? (
-              <>
-                <EditIcon className="w-4 h-4" />
-                <span>Cancel</span>
-              </>
-            ) : (
-              <>
-                <EditIcon className="w-4 h-4" />
-                <span>Edit</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => regenerateRomanizationMutation.mutate()}
+              disabled={
+                regenerateRomanizationMutation.isPending ||
+                !displayTranscriptionText
+              }
+              className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Regenerate romanization using improved AI"
+            >
+              {regenerateRomanizationMutation.isPending ? (
+                <>
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
+                  <span>Regenerating...</span>
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  <span>Regenerate</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() =>
+                isEditing ? setIsEditing(false) : setIsEditing(true)
+              }
+              className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light transition-colors"
+            >
+              {isEditing ? (
+                <>
+                  <EditIcon className="w-4 h-4" />
+                  <span>Cancel</span>
+                </>
+              ) : (
+                <>
+                  <EditIcon className="w-4 h-4" />
+                  <span>Edit</span>
+                </>
+              )}
+            </button>
+          </div>
         )}
       </div>
 
@@ -471,6 +522,15 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
           {updateRomanizationMutation.error instanceof Error
             ? updateRomanizationMutation.error.message
             : String(updateRomanizationMutation.error)}
+        </div>
+      )}
+
+      {regenerateRomanizationMutation.isError && (
+        <div className="mt-2 text-sm text-red-600 dark:text-red-400">
+          Error regenerating romanization:{" "}
+          {regenerateRomanizationMutation.error instanceof Error
+            ? regenerateRomanizationMutation.error.message
+            : String(regenerateRomanizationMutation.error)}
         </div>
       )}
     </div>
