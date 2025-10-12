@@ -44,6 +44,9 @@ export function createRouter() {
   );
 }
 
+// Export getRouter function for TanStack Start compatibility
+export const getRouter = createRouter;
+
 declare module "@tanstack/react-router" {
   interface Register {
     router: ReturnType<typeof createRouter>;

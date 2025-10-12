@@ -18,6 +18,7 @@ import { Route as WorkspaceNewRouteImport } from './routes/workspace/new'
 import { Route as WorkspaceWorkspaceIdRouteImport } from './routes/workspace/$workspaceId'
 import { Route as RecordingsNewRouteImport } from './routes/recordings/new'
 import { Route as RecordingsIdRouteImport } from './routes/recordings/$id'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const TranscribeRoute = TranscribeRouteImport.update({
   id: '/transcribe',
@@ -64,6 +65,11 @@ const RecordingsIdRoute = RecordingsIdRouteImport.update({
   path: '/recordings/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRoute
   '/workspace/new': typeof WorkspaceNewRoute
   '/recordings': typeof RecordingsIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRoute
   '/workspace/new': typeof WorkspaceNewRoute
   '/recordings': typeof RecordingsIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRoute
   '/workspace/new': typeof WorkspaceNewRoute
   '/recordings/': typeof RecordingsIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/workspace/$workspaceId'
     | '/workspace/new'
     | '/recordings'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/workspace/$workspaceId'
     | '/workspace/new'
     | '/recordings'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/workspace/$workspaceId'
     | '/workspace/new'
     | '/recordings/'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +157,7 @@ export interface RootRouteChildren {
   WorkspaceWorkspaceIdRoute: typeof WorkspaceWorkspaceIdRoute
   WorkspaceNewRoute: typeof WorkspaceNewRoute
   RecordingsIndexRoute: typeof RecordingsIndexRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RecordingsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,6 +245,7 @@ const rootRouteChildren: RootRouteChildren = {
   WorkspaceWorkspaceIdRoute: WorkspaceWorkspaceIdRoute,
   WorkspaceNewRoute: WorkspaceNewRoute,
   RecordingsIndexRoute: RecordingsIndexRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
