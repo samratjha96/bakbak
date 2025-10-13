@@ -19,11 +19,18 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Remove old .output directory if it exists
+RUN rm -rf .output
+
 # Build application
 RUN npm run build
 
 # Rebuild native dependencies
 RUN npm rebuild better-sqlite3
+
+# Set environment variables
+ENV PORT=3010
+ENV NODE_ENV=production
 
 # Expose port
 EXPOSE 3010
@@ -33,4 +40,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:3010/ || exit 1
 
 # Start application
-CMD ["node", ".output/server/index.mjs"]
+CMD ["npm", "start"]
