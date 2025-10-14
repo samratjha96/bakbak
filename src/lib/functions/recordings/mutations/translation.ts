@@ -4,9 +4,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import crypto from "crypto";
-import {
-  getDatabase,
-} from "~/database/connection";
+import { getDatabase } from "~/database/connection";
 import { DbTranscription, DbTranslation } from "~/database/types";
 import { fetchRecording } from "~/lib/functions/recordings/queries/fetch";
 

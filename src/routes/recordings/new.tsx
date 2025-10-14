@@ -20,12 +20,14 @@ import { AudioWaveform } from "~/components/AudioWaveform";
 import { AudioWaveSurferPlayer } from "~/components/audio/AudioWaveSurferPlayer";
 import { languages } from "~/lib/languages";
 import { useSession } from "~/lib/auth-client";
-import { getPresignedUploadUrl, getS3Url } from "~/lib/functions/s3/uploads/single";
+import {
+  getPresignedUploadUrl,
+  getS3Url,
+} from "~/lib/functions/s3/uploads/single";
 import { uploadAudioRecording } from "~/lib/functions/recordings/mutations/upload";
 import { RecordingStoragePaths } from "~/services/storage/RecordingStoragePaths";
 import { useWorkspace } from "~/contexts/WorkspaceContext";
 import { userWorkspacesQuery } from "~/lib/workspaceQueries";
-
 
 function NewRecordingPage() {
   const [title, setTitle] = React.useState("");
@@ -214,6 +216,7 @@ function NewRecordingPage() {
           audioUrl: uploadResult.url,
           notes: initialNotes ? { content: initialNotes } : undefined,
           workspaceId: currentWorkspaceId,
+          sourceType: "SELF_RECORDED" as const,
         },
       });
     } catch (error) {

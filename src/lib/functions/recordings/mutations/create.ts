@@ -1,103 +1,102 @@
 /**
- * ABOUTME: Recording creation server functions
- * ABOUTME: Handles creating new recordings with workspace integration
+ * Recording creation server function
+ * Follows TanStack Start best practices for 2024
  */
 import { createServerFn } from "@tanstack/react-start";
-import crypto from "crypto";
-import { Recording } from "~/types/recording";
-import {
-  getDatabase,
-  getCurrentUserId,
-  isAuthenticated,
-} from "~/database/connection";
-import { fetchRecording } from "~/lib/functions/recordings/queries/fetch";
+import { z } from "zod";
+import { RecordingModel } from "~/database/models";
+import { getCurrentUserId, isAuthenticated } from "~/database/connection";
+import { randomUUID } from "crypto";
 
+// Input validation schema using Zod (TanStack Start best practice)
+const CreateRecordingSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200, "Title too long"),
+  description: z.string().max(1000, "Description too long").optional(),
+  language: z.string().min(2, "Language code required"),
+  workspaceId: z.string().uuid("Invalid workspace ID"),
+  duration: z.number().min(0, "Duration must be positive").optional(),
+  filePath: z.string().optional(),
+  sourceType: z
+    .enum(["SELF_RECORDED", "UPLOADED", "IMPORTED"])
+    .default("SELF_RECORDED"),
+  audioUrl: z.string().url("Invalid audio URL").optional(),
+  notes: z
+    .object({
+      content: z.string(),
+    })
+    .optional(),
+});
+
+/**
+ * Create a new recording
+ *
+ * Follows TanStack Start patterns:
+ * - Simple Zod validation
+ * - Direct error throwing (no custom error classes)
+ * - Simple return values (no wrapped responses)
+ * - Clean, minimal implementation
+ */
 export const createRecording = createServerFn({ method: "POST" })
-  .inputValidator(
-    (
-      data: Omit<
-        Recording,
-        | "id"
-        | "createdAt"
-        | "isTranscribed"
-        | "transcriptionStatus"
-        | "isTranslated"
-      > & { workspaceId: string },
-    ) => data,
-  )
+  .inputValidator(CreateRecordingSchema)
   .handler(async ({ data }) => {
-    const db = getDatabase();
+    // Authentication check
     const authed = await isAuthenticated();
     if (!authed) {
-      throw new Error("Not authenticated");
+      throw new Error("Authentication required");
     }
+
     const userId = await getCurrentUserId();
-    const recordingId = crypto.randomUUID();
-    const now = new Date().toISOString();
+    if (!userId) {
+      throw new Error("User ID not found");
+    }
 
-    // Derive S3 file path from provided audioUrl if available
-    const filePath =
-      (() => {
-        try {
-          const audioUrl = (data as any).audioUrl as string | undefined;
-          if (!audioUrl) return null;
-          const u = new URL(audioUrl);
-          const host = u.host;
-          const pathname = u.pathname.replace(/^\//, "");
-          const bucket = process.env.AWS_S3_BUCKET;
-          // Virtual-hosted–style: <bucket>.s3.*.amazonaws.com/<key>
-          if (bucket && host.startsWith(`${bucket}.s3`)) return pathname;
-          // Path-style: s3.*.amazonaws.com/<bucket>/<key> or s3.amazonaws.com/<bucket>/<key>
-          const parts = pathname.split("/");
-          if (parts.length >= 2) {
-            if (!bucket || parts[0] === bucket) {
-              return parts.slice(1).join("/");
-            }
-            return parts.join("/");
-          }
-        } catch {}
-        return null;
-      })() ||
-      `recordings/${userId}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.webm`;
+    try {
+      // Create recording using the model
+      const recording = await RecordingModel.create({
+        userId,
+        title: data.title,
+        description: data.description,
+        filePath:
+          data.filePath ||
+          `recordings/${userId}/${new Date().toISOString().slice(0, 10)}/${randomUUID()}.webm`,
+        language: data.language,
+        duration: data.duration || 0,
+        workspaceId: data.workspaceId,
+        status: "processing",
+        // Handle notes if provided
+        metadata: data.notes ? { notes: data.notes } : undefined,
+      });
 
-    const notesContent: string | null = data.notes?.content ?? null;
+      // Return simple data (TanStack Start best practice)
+      return {
+        id: recording.id,
+        title: recording.title,
+        description: recording.description,
+        language: recording.language,
+        workspaceId: recording.workspaceId,
+        userId: recording.userId,
+        duration: recording.duration,
+        status: recording.status,
+        createdAt: recording.createdAt.toISOString(),
+        // Include audioUrl if provided in input
+        audioUrl: data.audioUrl,
+        // Include notes if they exist in metadata
+        notes: recording.metadata?.notes,
+        // Include other useful fields
+        filePath: recording.filePath,
+      };
+    } catch (error) {
+      // Simple error handling (TanStack Start best practice)
+      if (error instanceof Error) {
+        if (error.message.includes("UNIQUE constraint")) {
+          throw new Error("A recording with this title already exists");
+        }
+        if (error.message.includes("FOREIGN KEY constraint")) {
+          throw new Error("Invalid workspace");
+        }
+      }
 
-    const dbRecording = {
-      id: recordingId,
-      user_id: userId,
-      workspace_id: data.workspaceId,
-      title: data.title,
-      description: null,
-      file_path: filePath,
-      language: data.language || null,
-      duration: data.duration,
-      notes: notesContent,
-      status: "processing" as const,
-      created_at: now,
-    };
-
-    db.prepare(
-      `
-       INSERT INTO recordings (
-         id, user_id, workspace_id, title, description, file_path, language,
-         duration, notes, status, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     `,
-    ).run(
-      dbRecording.id,
-      dbRecording.user_id,
-      dbRecording.workspace_id,
-      dbRecording.title,
-      dbRecording.description,
-      dbRecording.file_path,
-      dbRecording.language,
-      dbRecording.duration,
-      dbRecording.notes,
-      dbRecording.status,
-      dbRecording.created_at,
-      now,
-    );
-
-    // Return the newly created recording by fetching it
-    return fetchRecording({ data: recordingId });
+      // Re-throw with user-friendly message
+      throw new Error("Failed to create recording. Please try again.");
+    }
   });

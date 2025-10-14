@@ -37,19 +37,26 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
     }
 
     // If we have a job ID and status is IN_PROGRESS, check AWS for completion
-    if (recording.transcriptionUrl && recording.transcriptionStatus === "IN_PROGRESS") {
+    if (
+      recording.transcriptionUrl &&
+      recording.transcriptionStatus === "IN_PROGRESS"
+    ) {
       try {
         const jobId = recording.transcriptionUrl;
         const awsStatus = await transcribe.getTranscriptionStatus(jobId);
 
         if (awsStatus.status === "COMPLETED") {
           // Get transcription result from AWS
-          const transcriptionResult = await transcribe.getTranscriptionResult(jobId);
+          const transcriptionResult =
+            await transcribe.getTranscriptionResult(jobId);
           const transcriptionText = transcriptionResult.text;
 
           // Romanize the transcription text
           const sourceLanguage = recording.language || "hi";
-          const romanizedText = await romanizeTranscriptionText(transcriptionText, sourceLanguage);
+          const romanizedText = await romanizeTranscriptionText(
+            transcriptionText,
+            sourceLanguage,
+          );
 
           // Update database with transcription and romanization
           await updateRecordingTranscription({
@@ -72,7 +79,9 @@ export const getTranscriptionJobStatus = createServerFn({ method: "GET" })
           };
         } else if (awsStatus.status === "FAILED") {
           // Update status to failed
-          const { updateRecordingTranscriptionStatus } = await import("~/lib/functions/recordings/mutations/transcription");
+          const { updateRecordingTranscriptionStatus } = await import(
+            "~/lib/functions/recordings/mutations/transcription"
+          );
           await updateRecordingTranscriptionStatus({
             data: {
               id: recordingId,

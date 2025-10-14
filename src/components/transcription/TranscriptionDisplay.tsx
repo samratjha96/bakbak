@@ -4,9 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { EditIcon, SaveIcon } from "~/components/ui/Icons";
 import { TranscriptionStatus } from "./TranscriptionStatus";
 import { TranscriptionStatus as TStatus } from "~/types/recording";
-import {
-  transcriptionStatusQuery,
-} from "~/lib/recordings";
+import { transcriptionStatusQuery } from "~/lib/recordings";
 import { updateRecordingTranscription } from "~/lib/functions/recordings/mutations/transcription";
 import { fetchTranscriptionData } from "~/lib/functions/content-processing/queries/transcription";
 import { romanizeText } from "~/lib/functions/ai/romanization";
@@ -143,7 +141,9 @@ export const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
       }
 
       // Get recording data to determine language
-      const recording = queryClient.getQueryData(queryKeys.recordings.detail(recordingId)) as any;
+      const recording = queryClient.getQueryData(
+        queryKeys.recordings.detail(recordingId),
+      ) as any;
       const sourceLanguage = recording?.language || "hi";
 
       // Call romanization service

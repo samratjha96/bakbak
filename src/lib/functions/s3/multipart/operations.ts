@@ -129,7 +129,9 @@ export const completeMultipartUpload = createServerFn()
  * Abort a multipart upload
  */
 export const abortMultipartUpload = createServerFn()
-  .inputValidator((data: { bucket?: string; key: string; uploadId: string }) => data)
+  .inputValidator(
+    (data: { bucket?: string; key: string; uploadId: string }) => data,
+  )
   .handler(async ({ data }) => {
     const bucket = data.bucket || defaultBucket;
 

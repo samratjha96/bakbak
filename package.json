@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
-    "start": "vite start --port 3010 --host 0.0.0.0",
+    "start": "node .output/server/index.mjs",
     "lint": "npx prettier \"**/*.{ts,tsx,js,jsx}\" --write",
     "lint:check": "npx prettier \"**/*.{ts,tsx,js,jsx}\" --check",
     "db:setup": "node scripts/setup-db.js --seed"
@@ -47,6 +47,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@tanstack/nitro-v2-vite-plugin": "^1.132.40",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.5.4",
     "@types/react": "^19.0.8",

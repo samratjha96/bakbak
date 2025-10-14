@@ -66,7 +66,10 @@ export function mapJoinedRowToRecording(
 /**
  * Helper function to romanize transcription text with error handling
  */
-export async function romanizeTranscriptionText(text: string, language: string): Promise<string | undefined> {
+export async function romanizeTranscriptionText(
+  text: string,
+  language: string,
+): Promise<string | undefined> {
   try {
     const { romanizeText } = await import("~/lib/functions/ai/romanization");
     const result = await romanizeText({

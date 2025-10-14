@@ -10,7 +10,10 @@ import {
   type RomanizationRequest,
   type RomanizationResponse,
 } from "~/types/romanization";
-import { AI_ROMANIZATION_CONFIG, getRomanizationPrompt } from "~/lib/ai-romanization/config";
+import {
+  AI_ROMANIZATION_CONFIG,
+  getRomanizationPrompt,
+} from "~/lib/ai-romanization/config";
 import { createLogger } from "~/utils/logger";
 
 const logger = createLogger("AI.Romanization");

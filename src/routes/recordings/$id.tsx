@@ -15,7 +15,10 @@ import { AudioWaveSurferPlayer } from "~/components/audio/AudioWaveSurferPlayer"
 
 // Export server functions from new organized locations
 export { translateRecording } from "~/lib/functions/content-processing/mutations/translation";
-export { transcribeRecording, transliterateRecording } from "~/lib/functions/content-processing/mutations/transcription";
+export {
+  transcribeRecording,
+  transliterateRecording,
+} from "~/lib/functions/content-processing/mutations/transcription";
 export { getTranscription } from "~/lib/functions/content-processing/queries/transcription";
 export { getTranslation } from "~/lib/functions/content-processing/queries/translation";
 export { getTranscriptionJobStatus } from "~/lib/functions/recordings/queries/status";
