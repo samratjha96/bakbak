@@ -7,7 +7,7 @@ export const auth = betterAuth({
   database: new Database("./data/sqlite.db"),
   baseURL:
     process.env.NODE_ENV === "production"
-      ? "https://bakbak.techbrohomelab.xyz"
+      ? "https://bakbak.bootloop.cc"
       : "http://localhost:3010",
   trustedOrigins: ["http://localhost:3010", "http://localhost:3000"],
   emailAndPassword: {
